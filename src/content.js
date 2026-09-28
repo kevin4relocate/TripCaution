@@ -1,5 +1,6 @@
 export const STATUSES = ['draft','review','scheduled','published','hidden','archived','deleted'];
-export const CATEGORIES = ['things-to-avoid','tourist-traps','transport','food','local-laws','etiquette','before-you-go'];
+import {CAUTION_CATEGORY_IDS} from './cautions.js';
+export const CATEGORIES = ['things-to-avoid','tourist-traps','transport','food','local-laws','etiquette','before-you-go',...CAUTION_CATEGORY_IDS];
 export function slugify(input) {
   return String(input || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
     .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,105);
