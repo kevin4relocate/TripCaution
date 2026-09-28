@@ -488,8 +488,34 @@ async function api(request,env,url,admin=false){
   return json({titles,upcoming});
  }
  if(method==='GET' && pathname==='/api/admin/articles'){
-  const rows=await env.DB.prepare("SELECT id,title,slug,country,city,category_id,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles ORDER BY created_at DESC LIMIT 300").all();
-  return json({articles:rows.results});
+  const q=String(url.searchParams.get('q')||'').trim().slice(0,80);
+  const status=url.searchParams.get('status')||'';
+  if(status&&!STATUSES.includes(status))return json({error:'Invalid status'},400);
+  const page=Number(url.searchParams.get('page')||'1');
+  if(!Number.isSafeInteger(page)||page<1||page>10000)return json({error:'Invalid page'},400);
+  const args=[],conditions=[];
+  if(status){conditions.push('status=?');args.push(status);}
+  if(q){conditions.push("instr(lower(title||' '||country||' '||coalesce(city,'')),lower(?))>0");args.push(q);}
+  const where=conditions.length?' WHERE '+conditions.join(' AND '):'';
+  const count=await env.DB.prepare('SELECT COUNT(*) count FROM articles'+where).bind(...args).first();
+  const total=Number(count?.count||0),pageSize=30,pages=Math.max(1,Math.ceil(total/pageSize));
+  const current=Math.min(page,pages);
+  const rows=await env.DB.prepare('SELECT id,title,slug,country,city,category_id,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles'+where+' ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?').bind(...args,pageSize,(current-1)*pageSize).all();
+  return json({articles:rows.results||[],page:current,pages,pageSize,total});
+ }
+ if(method==='GET' && pathname==='/api/admin/queue'){
+  const rows=await env.DB.prepare("SELECT id,title,slug,country,city,category_id,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles WHERE status IN ('review','scheduled','draft') ORDER BY CASE WHEN status='scheduled' THEN 0 ELSE 1 END,coalesce(scheduled_at,created_at) ASC,id ASC LIMIT 100").all();
+  const result=await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status IN ('review','scheduled','draft')").first();
+  const total=Number(result?.count||0);
+  return json({articles:rows.results||[],total,limited:total>100});
+ }
+ if(method==='GET' && pathname==='/api/admin/coverage'){
+  const countries=SOUTHEAST_ASIA_COUNTRIES;
+  const sql='SELECT country,SUM(CASE WHEN status=\'published\' AND published_at<=datetime(\'now\') THEN 1 ELSE 0 END) published,SUM(CASE WHEN status IN (\'draft\',\'review\',\'scheduled\') THEN 1 ELSE 0 END) pipeline FROM articles WHERE country IN ('+countries.map(()=>'?').join(',')+') AND status!=\'deleted\' GROUP BY country';
+  const rows=await env.DB.prepare(sql).bind(...countries).all();
+  const byCountry=new Map((rows.results||[]).map(row=>[row.country,row]));
+  const coverage=countries.map(country=>({country,published:Number(byCountry.get(country)?.published||0),pipeline:Number(byCountry.get(country)?.pipeline||0)}));
+  return json({coverage,publishedCountries:coverage.filter(row=>row.published>0).length,totalCountries:countries.length});
  }
  if(method==='GET' && pathname==='/api/admin/categories'){
   return json({categories:(await env.DB.prepare('SELECT * FROM categories ORDER BY name').all()).results});
