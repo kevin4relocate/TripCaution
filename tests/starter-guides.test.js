@@ -50,7 +50,8 @@ test('manual-import article cannot bypass review by using bot ingestion',async()
             };
           }
         };
-      }
+      },
+      async batch(statements){for(const statement of statements)await statement.run();return statements.map(()=>({success:true}));}
     }
   };
   const singapore=pack.articles.find(a=>a.country==='Singapore');

@@ -149,22 +149,44 @@ $('json-file').addEventListener('change',async ev=>{
  const file=ev.target.files[0];if(file){if(file.size>2_000_000){toast('JSON file is too large',true);return;}$('json-input').value=await file.text();}
 });
 $('import-btn').onclick=async()=>{
+ if(quickBusy)return;
  try{
   const data=JSON.parse($('json-input').value);
+  const entries=Array.isArray(data?.articles)?data.articles:[data];
+  if(!entries.length||entries.length>30)throw Error('Import a package of 1–30 articles.');
   const revision=$('revision-mode').checked;
   if(revision){
     if(!Array.isArray(data.articles)||!data.articles.length)throw Error('Revision mode requires a JSON package with articles.');
     if(!confirm('DID YOU BACK UP D1? Replacing matching articles will immediately remove them from the public website until reviewed again. Continue?'))return;
   }
-  const request={...data,update_matching:revision,confirm_unpublish:revision};
-  const result=await api('/api/admin/import',{method:'POST',body:JSON.stringify(request)});
-  const ok=result.results.filter(r=>r.ok).length;
-  $('import-result').textContent=ok+' imported, '+(result.results.length-ok)+' errors';
-  const errors=result.results.filter(r=>!r.ok);
-  if(errors.length)toast(errors.map(e=>e.title+': '+e.error).join(' | ').slice(0,600),true);
-  else toast(ok+(revision?' corrected/new articles placed in Review. Re-approve individually.':' articles imported. Review before publication.'));
+  quickBusy=true;
+  $('import-btn').disabled=true;
+  let successes=0,processed=0;
+  const failures=[];
+  for(let start=0;start<entries.length;start+=10){
+   const batch=entries.slice(start,start+10);
+   try{
+    const result=await api('/api/admin/import',{method:'POST',body:JSON.stringify({
+      ...data,articles:batch,update_matching:revision,confirm_unpublish:revision
+    })});
+    if(!Array.isArray(result.results)||result.results.length!==batch.length)
+      throw Error('Unexpected import response');
+    successes+=result.results.filter(row=>row.ok).length;
+    failures.push(...result.results.filter(row=>!row.ok));
+    processed+=batch.length;
+    $('import-result').textContent=processed+'/'+entries.length+' processed; '+successes+' imported.';
+   }catch(error){
+    // If the response was lost, the server may have accepted the last chunk.
+    // Never blindly retry revisions. Refresh the library and reconcile slugs.
+    throw Error('Import interrupted after '+processed+' confirmed items. Refresh the library before retrying: '+error.message);
+   }
+  }
+  $('import-result').textContent=successes+' imported, '+failures.length+' errors';
+  if(failures.length)toast(failures.slice(0,4).map(e=>(e.title||'Article')+': '+e.error).join(' | ').slice(0,600),true);
+  else toast(successes+(revision?' corrected/new articles placed in Review. Re-approve individually.':' articles imported. Review before publication.'));
   await refresh();
  }catch(e){toast(e.message,true);}
+ finally{quickBusy=false;$('import-btn').disabled=false;}
 };
 const editorForm=$('article-form');
 function safeSourceUrl(raw){
@@ -201,6 +223,12 @@ function populateReviewEvidence(a){
  $('review-verified-note').textContent=a.verified_at?
    'Research reference: '+a.verified_at+'. This date may come from AI research; it is not independent editorial verification.':
    'No research reference date recorded. Verify time-sensitive information before publication.';
+ const flags=$('review-uncertainties');
+ let unresolved=[];
+ try{const value=JSON.parse(a.uncertainties_json||'[]');if(Array.isArray(value))unresolved=value;}catch{}
+ flags.hidden=unresolved.length===0;
+ flags.innerHTML=unresolved.length?'<strong>OPEN RESEARCH QUESTIONS · VERIFY BEFORE PUBLISHING</strong><ul>'+
+  unresolved.slice(0,20).map(item=>'<li>'+escapeHTML((typeof item==='string'?item:JSON.stringify(item)).slice(0,500))+'</li>').join('')+'</ul>':'';
  $('editor-preview-link').href='/admin/preview/'+encodeURIComponent(a.id);
 }
 $('editor-preview-link').addEventListener('click',event=>{
@@ -238,6 +266,9 @@ async function loadArticle(id){
   fields.forEach(key=>{const el=form.elements.namedItem(key);if(el)el.value=a[key]??'';});
   form.elements.namedItem('category').value=a.category_id;
   form.elements.namedItem('sources').value=JSON.stringify(JSON.parse(a.sources_json||'[]'),null,2);
+  let unresolved=[];
+  try{const parsed=JSON.parse(a.uncertainties_json||'[]');if(Array.isArray(parsed))unresolved=parsed;}catch{}
+  form.elements.namedItem('uncertainties').value=JSON.stringify(unresolved,null,2);
   $('editor-heading').textContent=a.title;
   $('editor-subheading').textContent=[a.city,a.country].filter(Boolean).join(', ')+' · '+a.source_mode;
   $('editor-status').textContent='Current status: '+a.status;
@@ -258,6 +289,8 @@ $('article-form').onsubmit=async event=>{
   body.category=form.elements.namedItem('category').value;
   body.sources=JSON.parse(form.elements.namedItem('sources').value||'[]');
   if(!Array.isArray(body.sources))throw Error('Sources must be a JSON array');
+  body.uncertainties=JSON.parse(form.elements.namedItem('uncertainties').value||'[]');
+  if(!Array.isArray(body.uncertainties))throw Error('Research uncertainties must be a JSON array');
   await api('/api/admin/article/'+state.selected.id,{method:'PATCH',body:JSON.stringify(body)});
   toast('Saved. Changes to live or scheduled articles return them to private Review.');
   await refresh();await loadArticle(state.selected.id);
