@@ -60,7 +60,8 @@ async function refresh(){
  $('review-due').innerHTML=reviewNeeded.length?reviewNeeded.map(row=>{
   const when=row.next_review_due_at?'Review overdue since '+new Date(row.next_review_due_at).toLocaleDateString():'No recorded human review';
   return '<div class="due-row"><div><strong>'+escapeHTML(row.title)+'</strong><small>'+escapeHTML(when)+'</small></div><button class="due-reopen-btn" type="button" data-id="'+escapeHTML(row.id)+'">Reopen review →</button></div>';
- }).join(''):'<p class="due-clear">All published guides have an editorial review date within their selected window.</p>';
+ }).join(''):'<p class="due-clear">No review issues found in the latest 100 published guides checked.</p>';
+ if(overview.reviewScanLimited)$('review-due').insertAdjacentHTML('beforeend','<p class="bulk-notice">Review queue shows only the latest 100 published guides. Older guides still require separate review; this is not a full-catalog clearance.</p>');
  document.querySelectorAll('.due-reopen-btn').forEach(button=>button.addEventListener('click',async()=>{
   if(!confirm('Withdraw this article from the public website and reopen it for source verification?'))return;
   try{
