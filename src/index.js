@@ -1,5 +1,9 @@
 
-import { jwtVerify, createRemoteJWKSet } from 'jose';
+import {
+  isLoginConfigured, requireSameOrigin, checkLoginKey,
+  createAdminSession, clearAdminSession, hasAdminSession,
+  requireKeySession, checkLoginThrottle, recordLoginFailure
+} from './auth.js';
 import { normalizeArticle, STATUSES, CATEGORIES, canAutoPublish, isValidSchedule, slugify } from './content.js';
 import { STARTER_DESTINATIONS, groupDestinationsByContinent } from './destinations.js';
 
@@ -156,7 +160,7 @@ async function guidePage(env,slug){
 function staticPage(env,type){
  const pages={
  about:['About & editorial policy','We believe awareness makes better journeys. TripCaution publishes research-based guides, not first-hand reviews. Our articles explain relevant precautions, provide practical steps, and link to their sources.','We avoid naming individual small businesses as unsafe or fraudulent without strong verified evidence. High-impact claims, including legal and safety alerts, require human editorial approval. We correct or withdraw material if the supporting evidence changes. AI may assist research and drafting, but published claims are the responsibility of our editorial process. AI-generated illustrations are labeled and never presented as photos or evidence.'],
- privacy:['Privacy policy','This website uses essential technical processing to provide its pages and protect admin access. We do not currently provide user accounts or sell visitor data.','If analytics, advertising, or affiliate programs are enabled, this policy must be updated before those tools are activated. Admin identity is processed through Cloudflare Access when configured.'],
+ privacy:['Privacy policy','This website uses essential technical processing to provide its pages and protect admin access. We do not currently provide user accounts or sell visitor data.','If analytics, advertising, or affiliate programs are enabled, this policy must be updated before those tools are activated. Admin access uses a secure signed session cookie after the owner enters a private admin key.'],
  contact:['Contact & corrections','To request a correction, report an outdated source, or inquire about TripCaution, please use the contact details we publish once the site is configured.','Until an editorial contact address is configured, do not treat this site as an emergency reporting channel. Contact local authorities in an emergency.']
  };
  const p=pages[type];
@@ -174,21 +178,8 @@ async function searchPage(env,url){
  return html(layout(env,'Search',`<main class="shell simple search-results"><div class="eyebrow">DISCOVER</div><h1>Search TripCaution</h1><form action="/search" class="inline-search"><label for="search-query" class="sr-only">Search destinations and guides</label><input id="search-query" name="q" maxlength="80" placeholder="Country, city or topic" value="${esc(q)}"><button>Search ↗</button></form>${destinations}${details}</main>`,{path:'/search',noindex:true}),200,{'x-robots-tag':'noindex'});
 }
 
-async function requireAdmin(request,env){
- if(!env.ACCESS_TEAM_DOMAIN||!env.ACCESS_AUD)throw Object.assign(new Error('Admin access is not configured'),{status:503});
- const assertion=request.headers.get('Cf-Access-Jwt-Assertion');
- if(!assertion)throw Object.assign(new Error('Cloudflare Access login required'),{status:401});
- const domain=env.ACCESS_TEAM_DOMAIN.replace(/^https?:\/\//,'').replace(/\/$/,'');
- if(!/^[a-z0-9.-]+\.cloudflareaccess\.com$/i.test(domain))throw Object.assign(new Error('Invalid Access configuration'),{status:503});
- const issuer='https://'+domain;
- const jwks=createRemoteJWKSet(new URL(issuer+'/cdn-cgi/access/certs'));
- try {
-  const {payload}=await jwtVerify(assertion,jwks,{issuer,audience:env.ACCESS_AUD});
-  const email=String(payload.email||'');
-  if(env.ADMIN_EMAIL && email.toLowerCase()!==env.ADMIN_EMAIL.toLowerCase())throw Error('Not the configured administrator');
-  return email||String(payload.sub);
- } catch {throw Object.assign(new Error('Not authorized'),{status:403});}
-}
+// Single-editor key sessions replace the previous Cloudflare Access JWT dependency.
+const requireAdmin=requireKeySession;
 async function requireIngest(request,env){
  if(!env.INGEST_TOKEN || env.INGEST_TOKEN.length<32)throw Object.assign(new Error('Ingest token not configured'),{status:503});
  const provided=request.headers.get('Authorization')?.replace(/^Bearer /i,'')||'';
@@ -218,7 +209,10 @@ async function api(request,env,url,admin=false){
  const pathname=url.pathname,method=request.method;
  let actor;
  if((pathname==='/api/ingest' && method==='POST') || (pathname==='/api/ingest/topics' && method==='GET'))actor=await requireIngest(request,env);
- else actor=await requireAdmin(request,env);
+ else {
+  if(!['GET','HEAD','OPTIONS'].includes(method))requireSameOrigin(request);
+  actor=await requireAdmin(request,env);
+}
  if(method==='GET' && pathname==='/api/ingest/topics'){
   // Bot-only overview prevents re-creating the same guide and avoids competing with manual scheduling.
   if(actor!=='github-automation')return json({error:'Bot token required'},403);
@@ -337,9 +331,50 @@ export default {
  async fetch(request,env){
   const url=new URL(request.url),path=url.pathname;
   try {
+   // This public entry point is outside the legacy Cloudflare Access /admin* path.
+   if(path==='/sign-in' && request.method==='GET'){
+    if(!isLoginConfigured(env))return html('<h1>Admin login is not set up.</h1><p>Set the ADMIN_LOGIN_KEY secret in Cloudflare Worker settings before signing in.</p>',503,{'cache-control':'no-store'});
+    if(await hasAdminSession(request,env))return Response.redirect(new URL('/admin',url),302);
+    return env.ASSETS.fetch(new Request(new URL('/sign-in.html',url),request));
+   }
+   if(path==='/api/auth/login'){
+    if(request.method!=='POST')return json({error:'Method not allowed'},405);
+    requireSameOrigin(request);
+    if(!isLoginConfigured(env))return json({error:'Admin login is not configured'},503);
+    if(Number(request.headers.get('Content-Length')||0)>1024)return json({error:'Request too large'},413);
+    const actor=await checkLoginThrottle(request,env);
+    let payload;
+    try {
+      const raw=await request.text();
+      if(raw.length>1024)return json({error:'Request too large'},413);
+      payload=JSON.parse(raw);
+    }catch{return json({error:'Invalid JSON body'},400);}
+    if(!await checkLoginKey(payload?.key,env)){
+      await recordLoginFailure(env,actor);
+      return json({error:'Incorrect key'},401);
+    }
+    return new Response(JSON.stringify({ok:true}),{
+      status:200,headers:{'content-type':'application/json; charset=utf-8','set-cookie':await createAdminSession(env),
+        'cache-control':'no-store','x-content-type-options':'nosniff'}
+    });
+   }
+   if(path==='/api/auth/logout'){
+    if(request.method!=='POST')return json({error:'Method not allowed'},405);
+    requireSameOrigin(request);
+    return new Response(JSON.stringify({ok:true}),{
+      status:200,headers:{'content-type':'application/json; charset=utf-8','set-cookie':clearAdminSession(),
+       'cache-control':'no-store','x-content-type-options':'nosniff'}
+    });
+   }
    if(path==='/admin'||path==='/admin.html'||path.startsWith('/admin/')){
-    await requireAdmin(request,env);
-    return env.ASSETS.fetch(new Request(new URL('/admin.html',request.url),request));
+    if(!isLoginConfigured(env))return html('<h1>Admin login is not set up.</h1><p>Set the ADMIN_LOGIN_KEY secret in Cloudflare Worker settings before opening this page.</p>',503,{'cache-control':'no-store'});
+    if(!await hasAdminSession(request,env))return Response.redirect(new URL('/sign-in',url),302);
+    const asset=await env.ASSETS.fetch(new Request(new URL('/admin.html',url),request));
+    const headers=new Headers(asset.headers);
+    headers.set('cache-control','private, no-store');
+    headers.set('referrer-policy','no-referrer');
+    headers.set('x-frame-options','DENY');
+    return new Response(asset.body,{status:asset.status,headers});
    }
    if(path.startsWith('/api/'))return await api(request,env,url);
    if(path.startsWith('/media/'))return await media(env,path.slice(7));
@@ -367,7 +402,7 @@ export default {
   }catch(e){
    const status=e.status||500;
    if(path.startsWith('/api/'))return json({error:status<500?e.message:'Server error'},status);
-   if(path.startsWith('/admin'))return new Response(status===503?'Configure Cloudflare Access before opening /admin.':'Unauthorized',{status,headers:{'cache-control':'no-store'}});
+   if(path.startsWith('/admin'))return new Response(status===503?'Configure ADMIN_LOGIN_KEY before opening /admin.':'Unauthorized',{status,headers:{'cache-control':'no-store'}});
    console.error(e);
    return html(layout(env,'Something went wrong','<main class="shell simple"><h1>Temporary detour</h1><p>We could not load this page. Try again shortly.</p><a href="/">Back home ↗</a></main>'),500);
   }
