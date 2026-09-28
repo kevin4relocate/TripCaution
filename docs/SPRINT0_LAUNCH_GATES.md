@@ -23,7 +23,7 @@ The smoke run was performed against the deployment available at that time. Do no
 1. Choose a **dedicated editorial email address you consent to display publicly**. Do not share private passwords or the Admin key.
 2. Cloudflare → Workers & Pages → `tripcaution` → Settings → **Variables and Secrets** → **Production** → **Add variable**. Choose **Variable** (this specific address is meant to be public), name `EDITORIAL_CONTACT_EMAIL`, value your dedicated public inbox. Save/Deploy the settings as prompted.
 3. Open the public `/contact`, `/privacy` and `/about` pages. Confirm the address appears and no placeholder remains.
-4. Send an actual correction-test email from a different email account. Confirm it reaches the inbox and you can reply. This is a required manual gate; automated HTML inspection cannot test deliverability.
+4. Send an actual correction-test email from a different email account. Confirm it reaches the inbox and you can reply. This is a required manual gate; automated HTML inspection cannot test deliverability. **Only after successful delivery**, also set the Production variable `EDITORIAL_CONTACT_VERIFIED=true`. Merely setting an email-shaped address intentionally does not display it publicly; this prevents placeholder mailboxes from misleading readers.
 
 ## OWNER ACTION B — Safely apply and inspect the three edited articles
 

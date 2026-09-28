@@ -199,7 +199,7 @@ npx wrangler dev
 
 Go to `/admin`: without a signed key session, the editor should redirect to `/sign-in`. An admin key shorter than 32 characters will not work. Public pages can load on an empty local DB.
 
-If you need to reset an article, use **Restore draft** rather than hard-deleting; deletes are soft by design. The admin's batch JSON import reports accepted and rejected articles individually.
+For reversible removal, use **Hide**, **Move to Deleted**, then **Restore draft** as needed. **Permanent deletion** is a distinct, owner-confirmed action under the Deleted filter; create a private D1 export first. R2 images are not deleted by the D1 purge. The admin's batch JSON import reports accepted and rejected articles individually.
 
 ### Production readiness checklist
 
