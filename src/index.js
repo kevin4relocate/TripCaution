@@ -1,6 +1,7 @@
 
 import { jwtVerify, createRemoteJWKSet } from 'jose';
 import { normalizeArticle, STATUSES, CATEGORIES, canAutoPublish, isValidSchedule, slugify } from './content.js';
+import { STARTER_DESTINATIONS, groupDestinationsByContinent } from './destinations.js';
 
 const json = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const esc = value => String(value??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -43,13 +44,12 @@ async function homepage(env){
  if(env.DB) {
   const [a,c,n] = await Promise.all([
    env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') ORDER BY a.published_at DESC LIMIT 6").all(),
-   env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country ORDER BY total DESC LIMIT 18").all(),
+   env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country ORDER BY country COLLATE NOCASE ASC LIMIT 250").all(),
    env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published' AND published_at<=datetime('now')").first()
   ]);
   latest=a.results;countryRows=c.results;count=n.count;
  }
- const destinations=['Vietnam','Cambodia','Thailand','Laos','Japan','Singapore','France','Indonesia','Malaysia','Italy','Spain','United States'];
- const countries=[...new Set([...countryRows.map(x=>x.country),...destinations])].slice(0,18);
+ const destinationGroups=groupDestinationsByContinent([...STARTER_DESTINATIONS,...countryRows.map(x=>x.country)]);
  const body=`<main><section class="hero"><div class="hero-texture"></div><div class="shell hero-content">
  <div class="pill"><span class="live-dot"></span> THE SMARTER WAY TO EXPLORE</div>
  <h1>The world is beautiful.<br><em>Know what to avoid.</em></h1>
@@ -59,8 +59,8 @@ async function homepage(env){
  <div class="search-hints"><span>POPULAR:</span>${['Vietnam','Bangkok','Cambodia'].map(x=>link('/destinations/'+slugify(x),x)).join('')}</div>
  </div><div class="hero-art" aria-hidden="true"><div class="circle-one"></div><div class="circle-two"></div><div class="hero-landscape"><div class="sun"></div><div class="mountain m1"></div><div class="mountain m2"></div><div class="road"></div></div><div class="hero-stamp">BE CURIOUS.<br>BE PREPARED. <span>↗</span></div></div></section>
  <section class="value-bar"><div class="shell value-grid"><div><span>01 /</span><b>Research first</b><small>Information linked to sources</small></div><div><span>02 /</span><b>Stay aware</b><small>Practical advice, not fear</small></div><div><span>03 /</span><b>Go confidently</b><small>Know what matters before you go</small></div></div></section>
- <section class="section shell" id="destinations"><div class="section-heading"><div><div class="eyebrow">YOUR NEXT STOP</div><h2>Everywhere starts <em>somewhere.</em></h2><p>Pick a destination to explore local customs, common pitfalls and practical precautions.</p></div><span class="section-icon">✳</span></div>
- <div class="destination-grid">${countries.map((x,i)=>`<a class="destination-tile tone-${i%6}" href="/destinations/${slugify(x)}"><span class="destination-number">${String(i+1).padStart(2,'0')}</span><span class="destination-name">${esc(x)}</span><span class="destination-arrow">↗</span></a>`).join('')}</div></section>
+ <section class="section shell" id="destinations"><div class="section-heading"><div><div class="eyebrow">YOUR NEXT STOP</div><h2>Everywhere starts <em>somewhere.</em></h2><p>Browse countries alphabetically, organized by continent. Explore local customs, common pitfalls and practical precautions.</p></div><span class="section-icon">✳</span></div>
+ <div class="continent-directory">${destinationGroups.map(group=>`<section class="continent-section" aria-labelledby="continent-${slugify(group.continent)}"><div class="continent-heading"><h3 id="continent-${slugify(group.continent)}">${esc(group.continent)}</h3><span class="continent-count">${group.countries.length} ${group.countries.length===1?'COUNTRY':'COUNTRIES'} · A–Z</span></div><div class="destination-grid">${group.countries.map((country,i)=>`<a class="destination-tile tone-${i%6}" href="/destinations/${slugify(country)}"><span class="destination-number">${String(i+1).padStart(2,'0')}</span><span class="destination-name">${esc(country)}</span><span class="destination-arrow">↗</span></a>`).join('')}</div></section>`).join('')}</div></section>
  <section class="section alt-section" id="latest"><div class="shell"><div class="section-heading"><div><div class="eyebrow">THE FIELD NOTES</div><h2>Good to know <em>before you go.</em></h2><p>Carefully sourced articles on everyday travel decisions.</p></div><span class="guide-count">${count} PUBLISHED GUIDES</span></div>
  ${latest.length?'<div class="guide-grid">'+latest.map(a=>articleCard(a)).join('')+'</div>':'<div class="empty-state"><span>✳</span><h3>Our first field notes are on their way.</h3><p>We publish only when research and source checks meet our editorial standards. Explore a destination or return soon.</p></div>'}
  </div></section><section class="shell prefooter"><span>THE TRIPCAUTION PHILOSOPHY</span><h2>More wonder.<br><em>Less worry.</em></h2><p>Travel caution isn't about staying home. It's about arriving informed and experiencing more.</p><a href="/about" class="pill-button">How we research <span>↗</span></a></section></main>`;
