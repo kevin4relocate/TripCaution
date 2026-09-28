@@ -490,3 +490,48 @@ footer {padding-top:36px;background:#26392f;}
 .featured-layout .card-bottom .card-read{font-size:10px}
 .guide-card-side .card-bottom .card-read{font-size:9px}
 .destination-pending:hover{transform:none!important;background:#f6f4ee!important}
+
+/* Article first-screen polish. The header and article grid both use the same
+   .shell width, so the title now shares the image/body's left edge. */
+.article-top{padding:24px 0 26px;}
+.article-top .article-head{max-width:none;}
+.article-top .backlink{margin-bottom:10px;font-size:11px;}
+.article-top .eyebrow{margin-bottom:8px;font-size:9px;letter-spacing:1.55px;}
+.article-top .article-head h1{
+  max-width:950px;
+  font-size:clamp(37px,3.5vw,51px);
+  line-height:1.1;
+  letter-spacing:-1.45px;
+  margin:0 0 11px;
+}
+.article-top .article-deck{
+  max-width:760px;
+  font-size:14px;
+  line-height:1.5;
+  margin:0;
+}
+.article-top .article-meta{
+  max-width:760px;
+  margin-top:15px;
+  padding-top:10px;
+  gap:8px 19px;
+  font-size:9px;
+  line-height:1.45;
+}
+.article-wrap{padding-top:25px;}
+@media(max-width:780px){
+  .article-top{padding:22px 0 23px;}
+  .article-top .article-head h1{font-size:clamp(34px,5vw,44px);max-width:100%;letter-spacing:-1.15px;}
+  .article-top .article-deck{font-size:13px;}
+  .article-top .article-meta{margin-top:13px;gap:7px 13px;}
+  .article-wrap{padding-top:22px;}
+}
+@media(max-width:600px){
+  .article-top{padding:17px 0 20px;}
+  .article-top .backlink{margin-bottom:8px;}
+  .article-top .eyebrow{margin-bottom:7px;}
+  .article-top .article-head h1{font-size:clamp(31px,8.4vw,38px);line-height:1.13;letter-spacing:-.85px;margin-bottom:9px;}
+  .article-top .article-deck{font-size:12px;line-height:1.48;}
+  .article-top .article-meta{font-size:8px;margin-top:11px;padding-top:9px;gap:5px 11px;}
+  .article-wrap{padding-top:17px;}
+}
