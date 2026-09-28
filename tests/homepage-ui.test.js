@@ -42,7 +42,7 @@ test('homepage puts fresh published guides before the condensed destination expl
  assert.match(page,/guide-card-side/);
  assert.doesNotMatch(page,/Verified Sep|Verified \+|Last reviewed:/);
  assert.match(page,/Research planned/);
- assert.match(page,/View all destinations/);
+ assert.match(page,/Southeast Asia guide hub/);
  assert.match(page,/Thailand/);
  assert.doesNotMatch(page,/continent-directory/);
 });
