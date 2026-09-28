@@ -23,4 +23,4 @@ jobs:
       - name: Unit tests
         run: npm test
       - name: Python syntax
-        run: python -m py_compile automation/daily.py
+        run: python -m py_compile automation/daily.py automation/import_starter.py
