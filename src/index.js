@@ -272,7 +272,15 @@ function renderGuideArticle(env,a,preview=false,related=[]){
 }
 async function relatedPublishedGuides(env,a){
  if(!env.DB)return [];
- const rows=await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.id!=? AND a.status='published' AND a.published_at<=datetime('now') AND (a.country=? OR a.category_id=?) ORDER BY CASE WHEN a.country=? THEN 0 ELSE 1 END, a.published_at DESC LIMIT 3").bind(a.id,a.country,a.category_id,a.country).all();
+ const regional=isSoutheastAsia(a.country)?1:0;
+ const regionSlots=SOUTHEAST_ASIA_COUNTRIES.map(()=>'?').join(',');
+ // Region-first applies only as a tie-break among relevant, published guides.
+ // Readers outside the region keep existing same-country / topic behavior.
+ const rows=await env.DB.prepare(`SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id
+  WHERE a.id!=? AND a.status='published' AND a.published_at<=datetime('now') AND (a.country=? OR a.category_id=?)
+  ORDER BY CASE WHEN a.country=? THEN 0 WHEN ?=1 AND a.country IN (${regionSlots}) THEN 1 ELSE 2 END,
+   a.published_at DESC,a.id DESC LIMIT 3`)
+  .bind(a.id,a.country,a.category_id,a.country,regional,...SOUTHEAST_ASIA_COUNTRIES).all();
  return rows.results||[];
 }
 async function guidePage(env,slug){
