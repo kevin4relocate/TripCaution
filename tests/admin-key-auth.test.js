@@ -131,6 +131,14 @@ test('logout expires the secure cookie without requesting the key again',async()
  assert.equal(res.headers.get('set-cookie'),clearAdminSession());
 });
 
+test('Cloudflare static assets must not redirect admin.html back to admin',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const config=JSON.parse(readFileSync(new URL('../wrangler.jsonc',import.meta.url),'utf8'));
+ assert.equal(config.assets.run_worker_first,true);
+ assert.equal(config.assets.html_handling,'none',
+  'default HTML handling redirects admin.html to admin and loops signed-in users');
+});
+
 test('the public website does not require the admin key',async()=>{
  const e=env();
  delete e.ADMIN_LOGIN_KEY;
