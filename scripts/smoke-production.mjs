@@ -94,6 +94,10 @@ await run('Public search and 404 behave correctly',async()=>{
  const missing=await get('/sprint1-should-not-exist-'+Date.now());
  ensure(missing.response.status===404,'Unknown public route must return HTTP 404');
 });
+await run('Invalid public media paths are rejected safely',async()=>{
+ const {response}=await get('/media/not-an-editorial-image.js');
+ ensure(response.status===404,'Unexpected public media response for malformed image key');
+});
 await run('Anonymous visitor cannot open owner UI or private previews',async()=>{
  const admin=await get('/admin',{redirect:'manual'});
  ensure(admin.response.status===302&&admin.response.headers.get('location')===origin+'/sign-in','Admin does not enforce sign-in');
@@ -121,7 +125,7 @@ await run('Sign-in uses no-store, anti-frame protection and strict browser scrip
  ensure(!body.includes('ADMIN_LOGIN_KEY'),'Server-only secret name should not be embedded in public login HTML');
 });
 const pass=results.filter(x=>x.status==='PASS').length,failed=results.filter(x=>x.status==='FAIL').length;
-const report={origin,executed_at:new Date().toISOString(),pass,failed,total:results.length,
+const report={origin,github_source_sha:process.env.GITHUB_SHA||null,cloudflare_deployment_sha:'NOT_VERIFIED_BY_THIS_SCRIPT',executed_at:new Date().toISOString(),pass,failed,total:results.length,
  publicGuideCount,results,warnings,manualGates,
  decision:failed?'AUTOMATED_CHECKS_FAILED':'AUTOMATED_CHECKS_PASS__MANUAL_GATES_OPEN',
  note:'Automated checks intentionally exclude owner-only Cloudflare settings, inbox receipt and any database mutations.'};
