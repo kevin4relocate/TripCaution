@@ -226,3 +226,6 @@
 .severity-confirm{display:block;background:#fff0e7;border:1px solid #d0a28c;border-radius:6px;padding:14px;margin:18px 0 0;font-size:13px;font-weight:700;color:#69381d}
 .severity-confirm input{margin-right:10px;vertical-align:middle}
 .severity-confirm[hidden]{display:none}
+
+.research-check-result{white-space:pre-wrap;overflow-wrap:anywhere;max-height:350px;overflow:auto;margin-top:17px;padding:17px 19px;background:#f3f6f0;color:#244334;border:1px solid #cbd9cd;border-radius:7px;font-size:12px;line-height:1.7}
+.research-check-result[hidden]{display:none}
