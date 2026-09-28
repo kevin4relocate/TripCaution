@@ -452,6 +452,10 @@ async function insertArticle(env,raw,actor){
  const a=normalizeArticle(raw);
  const found=await env.DB.prepare("SELECT id,title FROM articles WHERE slug=?").bind(a.slug).first();
  if(found)throw Object.assign(new Error('Duplicate slug: '+a.slug),{status:409});
+ // The importer cannot judge semantic similarity. It can still prevent an
+ // accidentally repeated exact title within one country under a new slug.
+ const duplicate=await env.DB.prepare("SELECT id,title FROM articles WHERE lower(country)=lower(?) AND lower(title)=lower(?) AND status!='deleted' LIMIT 1").bind(a.country,a.title).first();
+ if(duplicate)throw Object.assign(new Error('Possible duplicate title for '+a.country+': review existing article '+duplicate.id+' before creating another'),{status:409});
  // Sprint 0: source URLs and an AI research timestamp are NEVER approval.
  // Ingesting any article always creates a human-review draft, including low-risk categories.
  // AI research, imported drafts and revisions cannot assign a public severity.
