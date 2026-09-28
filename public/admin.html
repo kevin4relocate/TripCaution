@@ -1,17 +1,23 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Editorial Desk — TripCaution</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/admin.css"></head><body class="admin-body"><aside class="sidebar"><a class="brand" href="/"><span class="brand-mark">!</span>TRIP<span>CAUTION</span></a><small>EDITORIAL WORKSPACE</small><button data-view="overview" class="active">◫ <span>Overview</span></button><button data-view="articles">▤ <span>All articles</span></button><button data-view="import">⇧ <span>Import content</span></button><button data-view="calendar">▦ <span>Publishing queue</span></button><a href="/" class="site-back">↗ View live site</a></aside><main class="admin-main"><div class="admin-top"><span>TRIPCAUTION / CONTENT OPERATIONS</span><span class="admin-top-actions"><span class="admin-badge">● PRIVATE EDITOR</span><button id="logout-btn" type="button" class="logout-btn" title="End your admin session">Sign out ↗</button></span></div><div id="toast" role="status"></div><section id="overview" class="view"><div class="admin-head"><div><small>YOUR EDITORIAL DESK</small><h1>Good morning, editor <em>✳</em></h1><p>Everything you need to keep TripCaution informed and up to date.</p></div><button class="primary" data-view="import">+ Import a guide</button></div><div id="stats" class="stats"></div><div class="panel"><h2>Editorial recheck queue</h2><p>Published guides without a documented review date or with an expired review window need attention. Re-import a corrected revision to send an existing guide back to Review.</p><div id="review-due">Loading...</div></div><div class="panel"><h2>Recent activity</h2><div id="activities">Loading...</div></div><div class="panel"><h2>Publishing principles</h2><p>Every claim needs a real, supporting source. Articles imported from AI research are queued for your approval. High-impact safety, law, health and allegations always require review.</p></div></section>
-<section id="articles" class="view" hidden><div class="admin-head"><div><small>CONTENT LIBRARY</small><h1>All articles</h1><p>Preview every saved guide in its real website layout. Review the sources before publishing.</p></div><button class="primary" data-view="import">+ Import guides</button></div><div class="panel"><div class="filters"><input id="article-search" placeholder="Search title or country" aria-label="Search articles"><select id="article-filter"><option value="">All statuses</option><option>review</option><option>draft</option><option>scheduled</option><option>published</option><option>hidden</option><option>archived</option><option>deleted</option></select></div>
+<section id="articles" class="view" hidden><div class="admin-head"><div><small>CONTENT LIBRARY</small><h1>All articles</h1><p>Review, publish and manage guides. Open Review or Edit to preview the saved article.</p></div><button class="primary" data-view="import">+ Import guides</button></div><div class="panel"><div class="filters"><input id="article-search" placeholder="Search title or country" aria-label="Search articles"><select id="article-filter"><option value="">All statuses</option><option>review</option><option>draft</option><option>scheduled</option><option>published</option><option>hidden</option><option>archived</option><option>deleted</option></select></div>
 <div class="bulk-toolbar" id="bulk-toolbar" role="region" aria-label="Selected article actions">
- <strong id="bulk-count">0 selected</strong>
- <button id="bulk-publish" type="button" disabled>Publish selected</button>
- <button id="bulk-hide" type="button" disabled>Hide selected</button>
- <button id="bulk-schedule" type="button" disabled>Schedule selected</button>
- <button id="bulk-restore" type="button" disabled>Restore selected</button>
- <button id="bulk-delete" class="bulk-danger" type="button" disabled>Delete selected</button>
- <button id="bulk-purge" class="bulk-danger bulk-purge" type="button" disabled hidden>Delete permanently</button>
- <button id="empty-trash" class="bulk-danger bulk-purge" type="button" hidden>Empty Trash</button>
- <button id="bulk-clear" type="button" class="bulk-clear">Clear</button>
+ <div class="bulk-selection"><strong id="bulk-count">0 selected</strong><button id="bulk-clear" type="button" class="bulk-clear" disabled>Clear</button></div>
+ <div class="bulk-main-actions">
+  <button id="bulk-publish" type="button" class="bulk-primary" disabled>Publish</button>
+  <button id="bulk-hide" type="button" disabled>Hide</button>
+  <button id="bulk-schedule" type="button" disabled>Schedule</button>
+  <details id="bulk-more" class="bulk-more">
+   <summary>More <span aria-hidden="true">⌄</span></summary>
+   <div class="bulk-more-menu" aria-label="Additional bulk actions">
+    <button id="bulk-restore" type="button" disabled>Restore to draft</button>
+    <button id="bulk-delete" type="button" class="bulk-danger" disabled>Move to Deleted</button>
+    <button id="bulk-purge" type="button" class="bulk-danger bulk-purge" hidden disabled>Permanently delete selected…</button>
+    <button id="empty-trash" type="button" class="bulk-danger bulk-purge" hidden>Empty Trash…</button>
+   </div>
+  </details>
+ </div>
 </div>
-<p class="bulk-notice">Select all affects only visible rows. Hide is private; Delete is recoverable. For irreversible deletion, filter by <strong>Deleted</strong>, make a D1 backup, then use Delete permanently or Empty Trash. R2 images are not automatically erased.</p>
+<p class="bulk-notice">Select all affects only visible articles. Use <strong>More</strong> to restore or delete; permanent deletion is available only under the Deleted filter.</p>
 <div id="bulk-result" role="status" aria-live="polite"></div>
 <div class="table-wrap"><table><thead><tr><th class="select-col"><input id="select-all-visible" type="checkbox" aria-label="Select all visible articles"></th><th>TITLE / DESTINATION</th><th>CATEGORY</th><th>STATUS</th><th>PUBLISH DATE</th><th>ACTIONS</th></tr></thead><tbody id="article-rows"></tbody></table></div></div></section>
 <section id="import" class="view" hidden><div class="admin-head"><div><small>IMPORT CENTER</small><h1>Bring in great research.</h1><p>Import TripCaution JSON from your research AI. Everything is checked before it enters your queue.</p></div></div><div class="panel narrow"><h2>Import JSON package</h2><p>Upload a valid JSON file or paste JSON below. Up to 30 articles per batch. New articles always enter Review; existing slugs are rejected unless you explicitly enable revision mode.</p><input id="json-file" type="file" accept=".json,application/json"><textarea id="json-input" rows="13" placeholder='{"schema_version":"1.0","articles":[...]}'></textarea>
