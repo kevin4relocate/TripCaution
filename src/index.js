@@ -192,7 +192,7 @@ async function destinationPage(env,slug){
  const cityMap={'bangkok':{name:'Bangkok',country:'Thailand'}};
  const city=cityMap[slug]||null;
  const country=common[slug]||city?.country||all.results[0]?.country;
- if(!country)return html(layout(env,'Destination not found','<main class="shell simple"><h1>We could not find that destination.</h1><a href="/">Explore destinations ↗</a></main>'),404);
+ if(!country)return html(layout(env,'Destination not found','<main class="shell simple"><h1>We could not find that destination.</h1><a href="/">Explore destinations ↗</a></main>',{noindex:true}),404,{'cache-control':'no-store','x-robots-tag':'noindex'});
  let articles=all.results;
  if(city && env.DB) {
   articles=(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND lower(a.city)=? ORDER BY a.published_at DESC LIMIT 100").bind(city.name.toLowerCase()).all()).results;
@@ -202,26 +202,6 @@ async function destinationPage(env,slug){
  ${articles.length?'<div class="guide-grid">'+articles.map(a=>articleCard(a)).join('')+'</div>':'<div class="empty-state"><span>✳</span><h3>Research in progress.</h3><p>We are building carefully sourced guides for this destination. No warnings are published until evidence is checked.</p></div>'}
  </section></main>`;
  return html(layout(env,heading+' travel precautions',body,{path:'/destinations/'+slug,description:'Travel precautions, cultural considerations and researched guides for '+heading+', '+country+'.',noindex:articles.length===0}));
-}
-function renderInline(s){
- let out=esc(s);
- out=out.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
- out=out.replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g,(_full,label,url)=>'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer nofollow">'+label+'</a>');
- return out;
-}
-function markdown(md) {
- const lines=String(md||'').split(/\r?\n/), chunks=[]; let list=false;
- for(const line of lines){
-  if(/^\s*[-*] /.test(line)){if(!list){chunks.push('<ul>');list=true;}chunks.push('<li>'+renderInline(line.replace(/^\s*[-*] /,''))+'</li>');continue;}
-  if(list){chunks.push('</ul>');list=false;}
-  if(/^### /.test(line))chunks.push('<h3>'+renderInline(line.slice(4))+'</h3>');
-  else if(/^## /.test(line))chunks.push('<h2>'+renderInline(line.slice(3))+'</h2>');
-  else if(/^# /.test(line))chunks.push('<h2>'+renderInline(line.slice(2))+'</h2>');
-  else if(/^> /.test(line))chunks.push('<blockquote>'+renderInline(line.slice(2))+'</blockquote>');
-  else if(line.trim())chunks.push('<p>'+renderInline(line.trim())+'</p>');
- }
- if(list)chunks.push('</ul>');
- return chunks.join('');
 }
 function renderGuideArticle(env,a,preview=false,reviewedAt=null,related=[]){
  const parsedSources=safeParse(a.sources_json);
@@ -266,7 +246,7 @@ async function latestEditorialReview(env,id){
 }
 async function guidePage(env,slug){
  const a=env.DB?await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.slug=? AND a.status='published' AND a.published_at<=datetime('now') LIMIT 1").bind(slug).first():null;
- if(!a)return html(layout(env,'Guide unavailable','<main class="shell simple"><h1>Guide not found.</h1><a href="/">Browse destinations ↗</a></main>'),404);
+ if(!a)return html(layout(env,'Guide unavailable','<main class="shell simple"><h1>Guide not found.</h1><a href="/">Browse destinations ↗</a></main>',{noindex:true}),404,{'cache-control':'no-store','x-robots-tag':'noindex'});
  // Related links are limited to already-public guides. Never expose draft metadata.
  const related=env.DB?(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.id!=? AND a.status='published' AND a.published_at<=datetime('now') AND (a.country=? OR a.category_id=?) ORDER BY CASE WHEN a.country=? THEN 0 ELSE 1 END, a.published_at DESC LIMIT 3").bind(a.id,a.country,a.category_id,a.country).all()).results:[];
  return renderGuideArticle(env,a,false,await latestEditorialReview(env,a.id),related);
@@ -741,13 +721,13 @@ export default {
    }
    const asset=await env.ASSETS.fetch(request);
    if(asset.status!==404)return asset;
-   return html(layout(env,'Not found','<main class="shell simple"><h1>We took a wrong turn.</h1><p>This page is not available.</p><a href="/">← Back home</a></main>'),404);
+   return html(layout(env,'Not found','<main class="shell simple"><h1>We took a wrong turn.</h1><p>This page is not available.</p><a href="/">← Back home</a></main>',{noindex:true}),404,{'cache-control':'no-store','x-robots-tag':'noindex'});
   }catch(e){
    const status=e.status||500;
    if(path.startsWith('/api/'))return json({error:status<500?e.message:'Server error'},status);
    if(path.startsWith('/admin'))return new Response(status===503?'Configure ADMIN_LOGIN_KEY before opening /admin.':'Unauthorized',{status,headers:{'cache-control':'no-store'}});
    console.error(e);
-   return html(layout(env,'Something went wrong','<main class="shell simple"><h1>Temporary detour</h1><p>We could not load this page. Try again shortly.</p><a href="/">Back home ↗</a></main>'),500);
+   return html(layout(env,'Something went wrong','<main class="shell simple"><h1>Temporary detour</h1><p>We could not load this page. Try again shortly.</p><a href="/">Back home ↗</a></main>',{noindex:true}),500,{'cache-control':'no-store','x-robots-tag':'noindex'});
   }
  },
  async scheduled(_event,env,ctx){ctx.waitUntil(publishDue(env));}
