@@ -65,6 +65,7 @@ test('previews require a signed session; unknown and deleted articles are not pr
  const unsigned=await worker.fetch(get('/admin/preview/'+id),e);
  assert.equal(unsigned.status,302);
  assert.equal(unsigned.headers.get('location'),origin+'/sign-in');
+ assert.match(unsigned.headers.get('cache-control')||'',/no-store/);
  const auth=await cookie(e);
  const missing=await worker.fetch(get('/admin/preview/a0000000-0000-4000-a000-000000000002',auth),e);
  assert.equal(missing.status,404);

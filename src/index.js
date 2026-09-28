@@ -12,6 +12,10 @@ const esc = value => String(value??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':
 const safe = (url) => { try {const u=new URL(url);return u.protocol==='https:'?u.href:null;} catch{return null;} };
 const safeParse = (value, fallback=[]) => {try {return JSON.parse(value);}catch{return fallback;}};
 const link = (href,text,cls='') => '<a href="'+esc(href)+'" class="'+cls+'">'+esc(text)+'</a>';
+const privateRedirect = target=>new Response(null,{
+ status:302,headers:{Location:String(target),'cache-control':'private, no-store',
+  'x-robots-tag':'noindex, nofollow, noarchive','referrer-policy':'no-referrer'}
+});
 const siteURL = env => (env.SITE_URL||'https://tripcaution.com').replace(/\/$/,'');
 const nav = '<a href="/destinations">Destinations</a><a href="/#latest">Field notes</a><a href="/about">About</a>';
 function layout(env, title, body, meta={}) {
@@ -237,7 +241,7 @@ async function guidePage(env,slug){
 }
 async function previewGuidePage(request,env,id){
  if(!isLoginConfigured(env))return html('<h1>Admin login is not configured.</h1>',503,{'cache-control':'no-store'});
- if(!await hasAdminSession(request,env))return Response.redirect(new URL('/sign-in',request.url),302);
+ if(!await hasAdminSession(request,env))return privateRedirect(new URL('/sign-in',request.url));
  if(!env.DB)return html('<h1>Database unavailable.</h1>',503,{'cache-control':'no-store'});
  const a=await env.DB.prepare('SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.id=? LIMIT 1').bind(id).first();
  if(!a || a.status==='deleted')return html('<h1>Preview unavailable.</h1>',404,{'cache-control':'private, no-store','x-robots-tag':'noindex'});
@@ -575,10 +579,10 @@ export default {
   const url=new URL(request.url),path=url.pathname;
   try {
    // This public entry point is outside the legacy Cloudflare Access /admin* path.
-   if(path==='/sign-in.html')return Response.redirect(new URL('/sign-in',url),302);
+   if(path==='/sign-in.html')return privateRedirect(new URL('/sign-in',url));
    if(path==='/sign-in' && request.method==='GET'){
     if(!isLoginConfigured(env))return html('<h1>Admin login is not set up.</h1><p>Set the ADMIN_LOGIN_KEY secret in Cloudflare Worker settings before signing in.</p>',503,{'cache-control':'no-store'});
-    if(await hasAdminSession(request,env))return Response.redirect(new URL('/admin',url),302);
+    if(await hasAdminSession(request,env))return privateRedirect(new URL('/admin',url));
     const asset=await env.ASSETS.fetch(new Request(new URL('/sign-in.html',url),request));
     const headers=new Headers(asset.headers);
     headers.set('cache-control','private, no-store');
@@ -626,7 +630,7 @@ export default {
    if(path.startsWith('/admin/preview/'))return new Response('Not found',{status:404,headers:{'cache-control':'no-store'}});
    if(path==='/admin'||path==='/admin.html'||path.startsWith('/admin/')){
     if(!isLoginConfigured(env))return html('<h1>Admin login is not set up.</h1><p>Set the ADMIN_LOGIN_KEY secret in Cloudflare Worker settings before opening this page.</p>',503,{'cache-control':'no-store'});
-    if(!await hasAdminSession(request,env))return Response.redirect(new URL('/sign-in',url),302);
+    if(!await hasAdminSession(request,env))return privateRedirect(new URL('/sign-in',url));
     const asset=await env.ASSETS.fetch(new Request(new URL('/admin.html',url),request));
     const headers=new Headers(asset.headers);
     headers.set('cache-control','private, no-store');

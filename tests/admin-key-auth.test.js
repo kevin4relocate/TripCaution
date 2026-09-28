@@ -62,6 +62,7 @@ test('signed key session is never exposed on /admin or /api/admin before login',
  const denied=await worker.fetch(request('/admin'),e);
  assert.equal(denied.status,302);
  assert.equal(denied.headers.get('location'),origin+'/sign-in');
+ assert.match(denied.headers.get('cache-control')||'',/no-store/);
  const adminDirect=await worker.fetch(request('/admin.html'),e);
  assert.equal(adminDirect.status,302);
  const data=await worker.fetch(request('/api/admin/articles'),e);
