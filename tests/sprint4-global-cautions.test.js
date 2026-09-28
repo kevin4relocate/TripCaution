@@ -96,3 +96,16 @@ test('additive database migration and owner editor guide are explicit',()=>{
   assert.ok(migration.includes("'"+id+"'"),id);
  assert.match(editor,/destination- and situation-specific/);
 });
+
+test('worldwide directory enumerates every curated continent but does not link unpublished countries',async()=>{
+ const {db}=database();
+ const response=await worker.fetch(new Request(origin+'/destinations'),{DB:db,SITE_URL:origin});
+ assert.equal(response.status,200);
+ const html=await response.text();
+ assert.match(html,/>Kenya</);
+ assert.match(html,/>Argentina</);
+ assert.match(html,/>New Zealand</);
+ assert.match(html,/>Japan</);
+ assert.doesNotMatch(html,/href="\/destinations\/kenya"/);
+ assert.match(html,/Research planned/);
+});
