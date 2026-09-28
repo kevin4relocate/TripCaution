@@ -59,16 +59,17 @@ async function refresh(){
   (row.pipeline?' · '+row.pipeline+' in pipeline':'')+'</small></div>').join('');
  const matrix=Array.isArray(coverage.topicCoverage)?coverage.topicCoverage:[];
  const totalPublished=coverage.coverage.reduce((sum,row)=>sum+Number(row.published||0),0);
- const publishedFirst=coverage.coverage.reduce((sum,row)=>sum+Math.min(3,Number(row.published||0)),0);
- $('sprint6-total').textContent=publishedFirst+'/33 phase-one slots reached · '+totalPublished+
-  ' published guides across 11 countries · long-term editorial target: 88 (not guaranteed)';
+ const publishedFirst=matrix.reduce((sum,row)=>sum+row.firstPassCovered,0);
+ const coveredDepth=matrix.reduce((sum,row)=>sum+row.depthCovered,0);
+ $('sprint6-total').textContent=publishedFirst+'/33 phase-one topic opportunities covered · '+coveredDepth+
+  '/88 full topic target covered · '+totalPublished+' total published guides (subject/claim quality still requires manual review)';
  $('sprint6-matrix').innerHTML=matrix.map(row=>{
   const details=row.topics.map(t=>
    '<li><span>'+escapeHTML(t.label)+'</span><span>'+t.published+'/'+t.target+
    ' published'+(t.pipeline?' · '+t.pipeline+' in review/pipeline':'')+'</span></li>'
   ).join('');
   return '<details class="sprint6-country"><summary><strong>'+escapeHTML(row.country)+'</strong>'+
-    '<span>'+row.published+' / 8 published · '+row.pipeline+' in pipeline</span></summary>'+
+    '<span>'+row.depthCovered+' / 8 topic coverage · '+row.published+' published · '+row.pipeline+' in pipeline</span></summary>'+
     '<ul>'+details+'</ul><small>Targets are editorial opportunities, never fabricated incidents or automatic country safety ratings.</small></details>';
  }).join('');
  const counts=Object.fromEntries(overview.status.map(s=>[s.status,s.count]));
