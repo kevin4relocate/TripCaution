@@ -77,10 +77,17 @@ const regionAliases = {
   'south korea (republic of korea)': 'Asia'
 };
 
-export const STARTER_DESTINATIONS = [
-  'Vietnam', 'Cambodia', 'Thailand', 'Laos', 'Japan', 'Singapore',
-  'France', 'Indonesia', 'Malaysia', 'Italy', 'Spain', 'United States'
-];
+// Editorial priority for Sprint 2: cover all 11 Southeast Asian countries
+// before preparing research briefs in new regions. Already-published guides
+// elsewhere remain available rather than disappearing from the website.
+export const SOUTHEAST_ASIA_COUNTRIES = Object.freeze([
+  'Brunei', 'Cambodia', 'Indonesia', 'Laos', 'Malaysia', 'Myanmar',
+  'Philippines', 'Singapore', 'Thailand', 'Timor-Leste', 'Vietnam'
+]);
+const southeastAsiaSet=new Set(SOUTHEAST_ASIA_COUNTRIES.map(country=>country.toLocaleLowerCase('en')));
+export const isSoutheastAsia=country=>
+  typeof country==='string' && southeastAsiaSet.has(country.trim().toLocaleLowerCase('en'));
+export const STARTER_DESTINATIONS = [...SOUTHEAST_ASIA_COUNTRIES];
 
 export function groupDestinationsByContinent(names) {
   const seen = new Set();

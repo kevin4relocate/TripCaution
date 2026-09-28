@@ -19,14 +19,20 @@ RESEARCH_MODE = os.getenv("TRIPCAUTION_RESEARCH_MODE") or "curated"
 SITE = os.getenv("TRIPCAUTION_API_URL", "").rstrip("/")
 TOKEN = os.getenv("TRIPCAUTION_INGEST_TOKEN", "")
 
+# One distinct country/topic per rotation; all 11 Southeast Asian countries
+# are included before expansion. Ingestion never bypasses owner review.
 TOPICS = [
-    ("Vietnam", "before-you-go", "Practical planning mistakes to avoid before visiting Vietnam"),
-    ("Cambodia", "etiquette", "Respectful everyday customs travelers should check in Cambodia"),
-    ("Laos", "before-you-go", "Planning a journey to Laos: transport and practical preparation"),
-    ("Thailand", "etiquette", "Everyday etiquette questions for first-time Thailand visitors"),
-    ("Singapore", "before-you-go", "Planning basics to double-check before visiting Singapore"),
-    ("Japan", "etiquette", "Public space etiquette considerations for visiting Japan"),
-    ("Indonesia", "before-you-go", "Common trip-planning oversights before visiting Indonesia")
+    ("Brunei", "before-you-go", "What a first-time visitor should verify about airport arrival, transport and official entry guidance for their own passport"),
+    ("Cambodia", "transport", "Official arrival and onward ground-transport questions at Phnom Penh or Siem Reap, including current airport information"),
+    ("Indonesia", "before-you-go", "Before departing for Indonesia: city-specific arrival, local transport and official visitor requirements"),
+    ("Laos", "transport", "How to check official transport options and booking conditions for arriving in Vientiane"),
+    ("Malaysia", "transport", "What to confirm about Kuala Lumpur airport ground transfers, tickets and official service updates"),
+    ("Myanmar", "before-you-go", "How travelers should interpret dated official warnings and consular assistance limitations; do not create tourism itineraries"),
+    ("Philippines", "before-you-go", "How first-time visitors can locate authoritative official arrival notices and carrier-specific airport transfer information"),
+    ("Singapore", "transport", "Which official operator pages answer first-time airport and contactless transit payment questions"),
+    ("Thailand", "transport", "How to verify Bangkok airport ground-transport pickup points and published fare rules with official operators"),
+    ("Timor-Leste", "before-you-go", "Planning with authoritative official arrival, transport and insurance advice; qualify all passport-specific statements"),
+    ("Vietnam", "transport", "First airport pickup in Vietnam: terminal-specific official pickup notices and fare-check steps")
 ]
 
 def request_json(url, payload=None, headers=None, timeout=110):
@@ -116,7 +122,7 @@ def main():
     research_prompt=f"""Research in English for TripCaution: {idea}.
 Previously published or scheduled article titles (DO NOT REPEAT):
 {json.dumps(old_titles[:180],ensure_ascii=False)[:6500]}
-Choose a differentiated practical research angle appropriate to this destination.
+Choose a differentiated practical research angle appropriate to this destination. Focus the editorial roadmap on all 11 Southeast Asian countries only. UK and Canadian official travel advice is nationality-specific for entry and visas: NEVER imply it is universal. For Myanmar, prioritize dated, region-specific official warnings and consular limitations; do not produce a general tourism itinerary.
 Use fresh Google Search grounding. Provide five or more concrete, useful findings supported by official authorities
 and reputable reporting where possible. Clearly note each source's publisher, actual URL, publication date
 and specific scope. Do not invent claims or sources. Do not make safety, legal, health or crime assertions

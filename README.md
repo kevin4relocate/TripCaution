@@ -18,7 +18,7 @@ TripCaution is a Cloudflare Workers application with a GitHub Actions/Gemini res
 | Safety | 12-hour HMAC-signed HttpOnly/Secure admin cookie, D1 login throttling, same-origin mutation checks, separate bot token, source gate, manual review and audit log |
 | SEO | Per-article titles, meta descriptions, canonical, social metadata, dynamic sitemap, source lists |
 
-**Important current limitations:** Gemini-generated artwork is *not automatically rendered* by the free daily job. It creates a ready-to-use hand-painted watercolor prompt. Image generation APIs may cost money or require separate quotas. Import finished illustrations yourself with R2, when configured. Source URLs still need human verification: grounding and link matching are safeguards, not proof that every assertion is true.
+**Sprint 2 editorial geography:** All eleven Southeast Asian countries are the first research and on-site discovery focus. The daily topic rotation and curated source list cover those eleven; other regions can still display guides already published. See [Southeast Asia-first roadmap](docs/SPRINT2_EDITORIAL_ROADMAP.md). Research remains in private Review until the owner approves it.\n\n**Important current limitations:** Gemini-generated artwork is *not automatically rendered* by the free daily job. It creates a ready-to-use hand-painted watercolor prompt. Image generation APIs may cost money or require separate quotas. Import finished illustrations yourself with R2, when configured. Source URLs still need human verification: grounding and link matching are safeguards, not proof that every assertion is true.
 
 ## 1. Before you deploy
 

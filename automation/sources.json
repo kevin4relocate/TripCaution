@@ -1,30 +1,46 @@
 {
-  "Vietnam": [
-    "https://www.gov.uk/foreign-travel-advice/vietnam",
-    "https://travel.gc.ca/destinations/vietnam"
+  "Brunei": [
+    "https://www.gov.uk/foreign-travel-advice/brunei",
+    "https://travel.gc.ca/destinations/brunei-darussalam"
   ],
   "Cambodia": [
     "https://www.gov.uk/foreign-travel-advice/cambodia",
     "https://travel.gc.ca/destinations/cambodia"
   ],
+  "Indonesia": [
+    "https://www.gov.uk/foreign-travel-advice/indonesia",
+    "https://travel.gc.ca/destinations/indonesia"
+  ],
   "Laos": [
     "https://www.gov.uk/foreign-travel-advice/laos",
     "https://travel.gc.ca/destinations/laos"
   ],
-  "Thailand": [
-    "https://www.gov.uk/foreign-travel-advice/thailand",
-    "https://travel.gc.ca/destinations/thailand"
+  "Malaysia": [
+    "https://www.gov.uk/foreign-travel-advice/malaysia",
+    "https://travel.gc.ca/destinations/malaysia"
+  ],
+  "Myanmar": [
+    "https://www.gov.uk/foreign-travel-advice/myanmar",
+    "https://travel.gc.ca/destinations/myanmar"
+  ],
+  "Philippines": [
+    "https://www.gov.uk/foreign-travel-advice/philippines",
+    "https://travel.gc.ca/destinations/philippines"
   ],
   "Singapore": [
     "https://www.gov.uk/foreign-travel-advice/singapore",
     "https://travel.gc.ca/destinations/singapore"
   ],
-  "Japan": [
-    "https://www.gov.uk/foreign-travel-advice/japan",
-    "https://travel.gc.ca/destinations/japan"
+  "Thailand": [
+    "https://www.gov.uk/foreign-travel-advice/thailand",
+    "https://travel.gc.ca/destinations/thailand"
   ],
-  "Indonesia": [
-    "https://www.gov.uk/foreign-travel-advice/indonesia",
-    "https://travel.gc.ca/destinations/indonesia"
+  "Timor-Leste": [
+    "https://www.gov.uk/foreign-travel-advice/timor-leste",
+    "https://travel.gc.ca/destinations/timor-leste-east-timor"
+  ],
+  "Vietnam": [
+    "https://www.gov.uk/foreign-travel-advice/vietnam",
+    "https://travel.gc.ca/destinations/vietnam"
   ]
 }

@@ -1,4 +1,6 @@
-# TripCaution Master Research & Import Prompt — v1.0
+# TripCaution Master Research & Import Prompt — v1.1 (Southeast Asia first)
+
+**Sprint 2 regional focus:** Prioritize these 11 destinations before proposing unrelated countries: Brunei, Cambodia, Indonesia, Laos, Malaysia, Myanmar, Philippines, Singapore, Thailand, Timor-Leste, Vietnam. Existing guides elsewhere remain published; do not delete them or fabricate Southeast Asia travel content to fill a quota. For Myanmar, first check dated, region-specific official travel advisories; research advisory interpretation, nationality limitations and official assistance, not an upbeat itinerary while warnings are in effect.
 
 Copy the text below into the AI research product you use separately from the daily Gemini API automation. Replace the bracketed inputs. Require live web research before asking the AI to output finished articles.
 
@@ -8,7 +10,7 @@ Copy the text below into the AI research product you use separately from the dai
 Act as an independent travel researcher and senior editorial writer for **TripCaution — Know Before You Go**. Produce practical, source-grounded destination guides, not fictional first-hand travel reviews. The objective is to inform travelers about verified, location-relevant precautions without sensationalism, stereotyping or unfounded allegations.
 
 ## INPUTS
-- DESTINATION: [country or city]
+- DESTINATION: [one of 11 Southeast Asian countries or a city in one of them for Sprint 2]
 - ARTICLE COUNT: [1–30]
 - AREAS OF INTEREST: [optional: etiquette / before-you-go / transport / food / common mistakes / laws / tourist traps]
 - TARGET READER: International first-time traveler
