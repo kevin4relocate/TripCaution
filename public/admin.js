@@ -62,12 +62,18 @@ $('json-file').addEventListener('change',async ev=>{
 $('import-btn').onclick=async()=>{
  try{
   const data=JSON.parse($('json-input').value);
-  const result=await api('/api/admin/import',{method:'POST',body:JSON.stringify(data)});
+  const revision=$('revision-mode').checked;
+  if(revision){
+    if(!Array.isArray(data.articles)||!data.articles.length)throw Error('Revision mode requires a JSON package with articles.');
+    if(!confirm('DID YOU BACK UP D1? Replacing matching articles will immediately remove them from the public website until reviewed again. Continue?'))return;
+  }
+  const request={...data,update_matching:revision,confirm_unpublish:revision};
+  const result=await api('/api/admin/import',{method:'POST',body:JSON.stringify(request)});
   const ok=result.results.filter(r=>r.ok).length;
   $('import-result').textContent=ok+' imported, '+(result.results.length-ok)+' errors';
   const errors=result.results.filter(r=>!r.ok);
   if(errors.length)toast(errors.map(e=>e.title+': '+e.error).join(' | ').slice(0,600),true);
-  else toast(ok+' articles imported. Review before publication.');
+  else toast(ok+(revision?' corrected/new articles placed in Review. Re-approve individually.':' articles imported. Review before publication.'));
   await refresh();
  }catch(e){toast(e.message,true);}
 };
