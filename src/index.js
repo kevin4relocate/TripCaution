@@ -335,7 +335,8 @@ async function applyEditorialAction(env,old,action,body,actor){
   if(body.review_confirmed!==true)
    throw Object.assign(new Error('Confirm that you have reviewed the selected article before publishing or scheduling'),{status:422});
   // Basic source gate remains. This is not a substitute for owner review.
-  if(safeParse(old.sources_json).filter(source=>safe(source.url)).length<1)
+  const sources=safeParse(old.sources_json);
+  if(!Array.isArray(sources)||!sources.some(source=>safe(source?.url)))
    throw Object.assign(new Error('Add at least one valid HTTPS source before publishing'),{status:422});
   if(action==='schedule' && (!isValidSchedule(body.scheduled_at)||Date.parse(body.scheduled_at)<=Date.now()))
    throw Object.assign(new Error('Choose a future publication date and time with timezone'),{status:422});
@@ -401,15 +402,18 @@ async function api(request,env,url,admin=false){
   if(body.action==='schedule'&&(!isValidSchedule(body.scheduled_at)||Date.parse(body.scheduled_at)<=Date.now()))
    return json({error:'Choose a valid future UTC time before scheduling'},422);
   const results=[];
+  let scheduledIndex=0;
   for(let i=0;i<body.ids.length;i++){
    const id=body.ids[i];
    try{
     const existing=await env.DB.prepare('SELECT * FROM articles WHERE id=?').bind(id).first();
     if(!existing){results.push({id,ok:false,error:'Article not found'});continue;}
     const at=body.action==='schedule'&&body.stagger_days===true?
-      new Date(Date.parse(body.scheduled_at)+86400000*i).toISOString():body.scheduled_at;
+      new Date(Date.parse(body.scheduled_at)+86400000*scheduledIndex).toISOString():body.scheduled_at;
     const item={...body,review_method:'bulk',scheduled_at:at};
-    results.push({ok:true,...await applyEditorialAction(env,existing,body.action,item,actor),scheduled_at:body.action==='schedule'?at:undefined});
+    const completed=await applyEditorialAction(env,existing,body.action,item,actor);
+    if(body.action==='schedule')scheduledIndex++;
+    results.push({ok:true,...completed,scheduled_at:body.action==='schedule'?at:undefined});
    }catch(e){results.push({id,ok:false,error:e.status&&e.status<500?e.message:'Could not process article'});}
   }
   return json({results,processed:results.filter(x=>x.ok).length,failed:results.filter(x=>!x.ok).length},207);
