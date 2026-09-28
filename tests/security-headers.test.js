@@ -35,3 +35,30 @@ test('public guide share behavior is CSP-compatible and has no inline onclick',(
  assert.ok(!source.includes('onclick="navigator.clipboard'));
  assert.match(ui,/navigator\.clipboard\.writeText/);
 });
+
+test('stored travel content and invalid dates cannot execute scripts or crash the public guide',async()=>{
+ const article={
+  id:'a0000000-0000-4000-a000-000000000001',
+  slug:'untrusted-content',status:'published',
+  title:'<svg onload=alert(1)>',country:'Singapore',city:'',
+  excerpt:'Travel <img src=x onerror=alert(1)>',
+  sources_json:JSON.stringify([{title:'Official <unsafe>',url:'https://official.example.org/'}]),
+  content_markdown:'## <script>alert(1)</script>\n\nRead [reliable](https://official.example.org/) and [unsafe](javascript:alert(1)).',
+  hero_image_url:'javascript:alert(1)',published_at:'not-a-date',verified_at:'invalid',
+  seo_title:'Safe guide',seo_description:'A useful guide'
+ };
+ const env={SITE_URL:origin,DB:{prepare(sql){
+  return {bind(){return this;},async first(){
+   return sql.includes('FROM articles a LEFT JOIN')?article:null;
+  }};
+ }}};
+ const response=await worker.fetch(new Request(origin+'/guides/untrusted-content'),env);
+ assert.equal(response.status,200);
+ const html=await response.text();
+ assert.ok(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
+ assert.ok(!html.includes('<script>alert(1)</script>'));
+ assert.ok(!html.includes('<svg onload='));
+ assert.ok(!html.includes('href="javascript:'));
+ assert.ok(!html.includes('src="javascript:'));
+ assert.ok(html.includes('Date unavailable'));
+});

@@ -50,7 +50,12 @@ function html(content,status=200,headers={}) {
   'permissions-policy':SITE_PERMISSIONS,'referrer-policy':'strict-origin-when-cross-origin',...headers
  }});
 }
-const utc = str => str?new Date(str).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric',timeZone:'UTC'}):'Not yet verified';
+const utc = str=>{
+ const timestamp=Date.parse(str||'');
+ return Number.isFinite(timestamp)?
+  new Date(timestamp).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric',timeZone:'UTC'}):
+  'Date unavailable';
+};
 function articleCard(a,variant='standard') {
  const path='/guides/'+encodeURIComponent(a.slug);
  const country=esc(a.country), category=esc(a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
@@ -211,7 +216,8 @@ function markdown(md) {
  return chunks.join('');
 }
 function renderGuideArticle(env,a,preview=false,reviewedAt=null){
- const sources=safeParse(a.sources_json).filter(s=>safe(s.url));
+ const parsedSources=safeParse(a.sources_json);
+ const sources=Array.isArray(parsedSources)?parsedSources.filter(source=>safe(source?.url)):[];
  const publicDate=a.published_at?'Published: '+esc(utc(a.published_at)):'Editorial preview';
  const reviewDate=reviewedAt?'Last reviewed: '+esc(utc(reviewedAt)):null;
  const reviewMeta=reviewDate?'<span class="article-reviewed">'+reviewDate+'</span>':'';
