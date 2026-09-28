@@ -5,7 +5,7 @@ import {
   requireKeySession, checkLoginThrottle, recordLoginFailure
 } from './auth.js';
 import { normalizeArticle, STATUSES, CATEGORIES, isValidSchedule, slugify } from './content.js';
-import { STARTER_DESTINATIONS, SOUTHEAST_ASIA_COUNTRIES, isSoutheastAsia, groupDestinationsByContinent } from './destinations.js';
+import { STARTER_DESTINATIONS, SOUTHEAST_ASIA_COUNTRIES, CONTINENT_COUNTRIES, isSoutheastAsia, groupDestinationsByContinent } from './destinations.js';
 import {CAUTION_GROUPS,cautionGroup,cautionGroupForArticle} from './cautions.js';
 import { renderArticleMarkdown, editorialQuickTakes } from './article-content.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
@@ -236,12 +236,14 @@ async function southeastAsiaPage(env){
 async function destinationIndexPage(env){
  const rows=env.DB?(await env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country ORDER BY country COLLATE NOCASE ASC LIMIT 250").all()).results:[];
  const countByCountry=new Map(rows.map(row=>[row.country.toLocaleLowerCase('en'),Number(row.total)]));
- const groups=groupDestinationsByContinent([...STARTER_DESTINATIONS,...rows.map(row=>row.country)]);
+ // Worldwide browse can include every curated country without inventing articles.
+ // Only destinations with published guides link to a content page.
+ const groups=groupDestinationsByContinent([...Object.values(CONTINENT_COUNTRIES).flat(),...rows.map(row=>row.country)]);
  const body=`<main>
  <section class="destination-hero"><div class="shell"><a href="/" class="backlink">← Back to the latest guides</a>
-   <div class="eyebrow">SOUTHEAST ASIA FIRST / FULL DESTINATION INDEX</div>
-   <h1>All 11 Southeast Asian <em>countries first.</em></h1>
-   <p>We are researching every country in Southeast Asia. Previously published guides elsewhere remain available, but our new editorial focus is this region.</p>
+   <div class="eyebrow">WORLDWIDE DESTINATIONS / SOUTHEAST ASIA EDITORIAL PRIORITY</div>
+   <h1>Travel cautions <em>around the world.</em></h1>
+   <p>Browse countries worldwide. Our first editorial publishing focus is Southeast Asia; destinations without published guidance are clearly marked Research planned.</p>
    <p><a class="all-destinations-link" href="/southeast-asia">Explore the Southeast Asia guide hub ↗</a></p>
    <form action="/search" method="get" class="destination-inline-search directory-search">
      <label for="directory-search" class="sr-only">Search destinations and guides</label>
