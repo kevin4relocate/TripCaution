@@ -26,7 +26,7 @@ function fakeDB(){
    async all(){return {results:[]};}
   };
   return q;
- }};
+ },async batch(statements){for(const statement of statements)await statement.run();return statements.map(()=>({success:true}));}};
 }
 async function ownerEnv(){const e={ADMIN_LOGIN_KEY:key,INGEST_TOKEN:token,DB:fakeDB()};return [e,(await createAdminSession(e)).split(';')[0]];}
 test('manual revision refuses to overwrite live records without explicit acknowledgment',async()=>{

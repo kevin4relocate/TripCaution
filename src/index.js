@@ -365,9 +365,11 @@ async function insertArticle(env,raw,actor){
  // Sprint 0: source URLs and an AI research timestamp are NEVER approval.
  // Ingesting any article always creates a human-review draft, including low-risk categories.
  const status='review',published=null;
- await env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
- .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at).run();
- await audit(env,actor,'created:'+status,a.id);
+ const insert = env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+ .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at);
+ const auditInsert=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
+  .bind(crypto.randomUUID(),actor,'created:'+status,a.id,'');
+ await env.DB.batch([insert,auditInsert]);
  return {id:a.id,title:a.title,slug:a.slug,status};
 }
 async function replaceArticleWithReviewDraft(env,raw,actor){
@@ -377,14 +379,16 @@ async function replaceArticleWithReviewDraft(env,raw,actor){
  if(!old)return insertArticle(env,raw,actor);
  // Only the signed-in owner can explicitly revise an existing guide. The old
  // version is withdrawn while the new revision undergoes a fresh manual review.
- await env.DB.prepare(`UPDATE articles SET title=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,
+ const revision=env.DB.prepare(`UPDATE articles SET title=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,
    tags_json=?,sources_json=?,uncertainties_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,
    hero_alt=?,source_mode='editorial-revision',verified_at=?,review_approved=0,status='review',
    scheduled_at=NULL,updated_at=datetime('now') WHERE id=?`)
  .bind(a.title,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,
    a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,
-   a.hero_prompt,a.hero_alt,a.verified_at,old.id).run();
- await audit(env,actor,'revision-imported-to-review',old.id,JSON.stringify({old_status:old.status,slug:a.slug}));
+   a.hero_prompt,a.hero_alt,a.verified_at,old.id);
+ const revisionAudit=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
+  .bind(crypto.randomUUID(),actor,'revision-imported-to-review',old.id,JSON.stringify({old_status:old.status,slug:a.slug}));
+ await env.DB.batch([revision,revisionAudit]);
  return {id:old.id,title:a.title,slug:a.slug,status:'review',updated:true};
 }
 const EDITOR_ACTIONS={
@@ -593,7 +597,7 @@ async function api(request,env,url,admin=false){
  if(method==='POST' && (pathname==='/api/ingest'||pathname==='/api/admin/import')){
   const body=await request.json();
   const list=Array.isArray(body.articles)?body.articles:[body];
-  if(list.length<1||list.length>30)return json({error:'Import requires 1–30 articles'},400);
+  if(list.length<1||list.length>10)return json({error:'Import requires 1–10 articles per request; the editor safely splits larger imports'},400);
   const revisionMode=pathname==='/api/admin/import' && body.update_matching===true;
   if(body.update_matching===true&&!revisionMode)return json({error:'Only signed-in editor can revise existing articles'},403);
   if(revisionMode&&body.confirm_unpublish!==true)return json({error:'Explicit acknowledgment required: matching live articles return to Review'},422);
@@ -621,12 +625,16 @@ async function api(request,env,url,admin=false){
   const merged={
    ...old,...body,seo_title:body.seo_title??old.seo_title,seo_description:body.seo_description??old.seo_description,
    sources:body.sources??safeParse(old.sources_json),tags:body.tags??safeParse(old.tags_json),
-   research:{verified_at:body.verified_at??old.verified_at,uncertainties:safeParse(old.uncertainties_json)}
+   research:{verified_at:body.verified_at??old.verified_at,
+    uncertainties:body.uncertainties??safeParse(old.uncertainties_json)}
   };
   const a=normalizeArticle(merged);
-  await env.DB.prepare(`UPDATE articles SET title=?,slug=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,tags_json=?,sources_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,hero_alt=?,verified_at=?,updated_at=datetime('now'),review_approved=0,scheduled_at=CASE WHEN status IN ('published','scheduled') THEN NULL ELSE scheduled_at END,status=CASE WHEN status IN ('published','scheduled') THEN 'review' ELSE status END WHERE id=?`)
-  .bind(a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,a.verified_at,id).run();
-  await audit(env,actor,'edited',id);return json({ok:true});
+  const update=env.DB.prepare(`UPDATE articles SET title=?,slug=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,tags_json=?,sources_json=?,uncertainties_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,hero_alt=?,verified_at=?,updated_at=datetime('now'),review_approved=0,scheduled_at=CASE WHEN status IN ('published','scheduled') THEN NULL ELSE scheduled_at END,status=CASE WHEN status IN ('published','scheduled') THEN 'review' ELSE status END WHERE id=?`)
+   .bind(a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,a.verified_at,id);
+  const editAudit=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
+   .bind(crypto.randomUUID(),actor,'edited',id,'');
+  await env.DB.batch([update,editAudit]);
+  return json({ok:true});
  }
  if(pathname==='/api/admin/media' && method==='POST'){
   if(!env.MEDIA)return json({error:'R2 not configured; follow README to enable uploads'},503);

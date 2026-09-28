@@ -26,6 +26,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tripcaution-public-smoke
-          path: sprint0-production-smoke.json
-          if-no-files-found: warn
+          path: sprint1-production-security.json
+          if-no-files-found: error
           retention-days: 14
