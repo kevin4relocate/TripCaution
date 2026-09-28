@@ -53,7 +53,7 @@ test('new coverage matrix is private and tracks actual database rows rather than
  }};
  const env={DB:db,ADMIN_LOGIN_KEY};
  const anonymous=await worker.fetch(new Request(origin+'/api/admin/coverage'),env);
- assert.equal(anonymous.status,302);
+ assert.equal(anonymous.status,401);
  const cookie=(await createAdminSession(env)).split(';')[0];
  const response=await worker.fetch(new Request(origin+'/api/admin/coverage',{headers:{Cookie:cookie}}),env);
  assert.equal(response.status,200);
