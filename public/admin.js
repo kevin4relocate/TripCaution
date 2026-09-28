@@ -364,9 +364,13 @@ async function action(name,extra={}){
 async function quickRowAction(id,name){
  if(quickBusy)return;
  if(name==='purge'){await permanentlyPurge([id]);return;}
- if(name==='schedule'){openSchedule('row',[id]);return;}
  const a=state.articles.find(article=>article.id===id);
  if(!a)return;
+ if(isSevere(a.caution_level)&&['publish','schedule'].includes(name)){
+  toast('High/Critical impact requires opening the saved article, verifying evidence and confirming individually.');
+  await loadArticle(id);return;
+ }
+ if(name==='schedule'){openSchedule('row',[id]);return;}
  if(name==='publish'&&!confirm('Publish "'+a.title+'"? Confirm you have already reviewed it and its source links.'))return;
  if(name==='hide'&&a.status==='published'&&!confirm('Hide "'+a.title+'" from the public website? This does not delete it.'))return;
  if(name==='delete'&&!confirm('Move "'+a.title+'" to Deleted? It can be restored.'))return;
@@ -385,6 +389,10 @@ async function runBulk(name,scheduledAt=null,stagger=false){
  if(quickBusy)return;
  const list=selectedVisible();
  if(!list.length){toast('Select at least one article in All articles.',true);return;}
+ if(['publish','schedule'].includes(name)&&list.some(a=>isSevere(a.caution_level))){
+  toast('This selection includes a High/Critical impact article. Open and approve those individually; deselect them to batch-process the rest.',true);
+  return;
+ }
  const count=list.length;
  const verb={publish:'publish',hide:'hide',schedule:'schedule',restore:'restore',delete:'move to Deleted'}[name];
  const promptText=['publish','schedule'].includes(name)?
@@ -480,6 +488,9 @@ $('bulk-purge').addEventListener('click',()=>permanentlyPurge(selectedVisible().
 $('empty-trash').addEventListener('click',()=>permanentlyPurge());
 function openSchedule(mode,ids){
  if(quickBusy||!ids.length)return;
+ if(mode==='bulk'&&ids.some(id=>isSevere(state.articles.find(a=>a.id===id)?.caution_level))){
+  toast('High/Critical impact articles require individual scheduling through the editor.',true);return;
+ }
  if(mode==='editor'&&state.dirty){toast('Save your edits before scheduling.',true);return;}
  pendingSchedule={mode,ids};
  const single=ids.length===1;
