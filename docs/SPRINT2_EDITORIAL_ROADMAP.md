@@ -1,59 +1,75 @@
-# TripCaution — Sprint 2 editorial roadmap
+# TripCaution Sprint 2 — Southeast Asia first: 11-country editorial roadmap
 
-**Status: research briefs only. Not published, not fact-checked, and not a claim that current prices, hours, laws or advisories are correct.**
-The site remains a research-led travel field guide. An AI-generated research date is never a human editorial check. Use primary sources and publish only articles you have personally reviewed. Do not fill the site's article count with near-duplicate rewrites.
+**Scope:** Brunei, Cambodia, Indonesia, Laos, Malaysia, Myanmar, Philippines, Singapore, Thailand, Timor-Leste, Vietnam. Other destinations are a *later* content-expansion phase. Existing reviewed and published guides elsewhere remain accessible. **These are proposed research briefs, not fact-checked articles or new D1 records.**
 
-## Four content clusters
+The first publishing milestone is **one substantial, independently reviewed guide for each country** (11 different countries), not eleven interchangeable travel-risk listicles. Complete the first pass across the region before starting the second pass. Do not publish a guide merely to satisfy geographic coverage if its sources are inadequate. All new AI drafts enter private **Review**, even with official-looking source URLs.
 
-| Cluster | Search intent | Editorial value |
+## Editorial categories and audience
+
+- **First-hour transport:** an arriving reader needs to find the right ground-transport instructions, check actual operator hours and know what to verify.
+- **Airport, ticket and payment decisions:** precisely compare verified operator information; distinguish national rules, regional routes, visitor nationality, card types, terminals, ticket categories and dates.
+- **Local customs and preparations:** give context without stereotyping a population or claiming a visit that did not occur.
+- **Time-sensitive travel advisories:** explicitly date official notices, distinguish consular nationality and geographical scope, and defer to each reader's home country's current official guidance. The site is not a live alert or consular service.
+
+**Special case — Myanmar:** Review the current UK, Canadian and the visitor's own government's advisories **before choosing any topic**. Government of Canada currently publishes an avoid-all-travel advisory; official advice must be shown with its *issuer, scope and review date*, not converted into an unqualified statement applying to every nationality. Start with explaining where to find and interpret current advisories and consular assistance, **not** a positive tourism itinerary. Do not write on-the-ground access or border-route claims based on generic snippets.
+
+## Pass 1 — 11 distinct country guides (one per country)
+
+| Country | First article: research question / working title | Primary evidence to collect before drafting |
 |---|---|---|
-| First-hour transport | Getting safely from airport/train station to accommodation | Operator-specific pickup points, fare structures, booking limitations and dated service notices |
-| Ticket and payment decisions | Understanding available payment methods on local transit | Exact eligible cards, separate fee categories, refunds and what to check at departure |
-| Daily-life cultural preparation | Practical behavior in public eating/transport spaces | Check venue and operator notices instead of turning rumors into local etiquette rules |
-| Time-sensitive preparation | Planning around severe weather, last service and changed visitor rules | Date every advisory, explain its limits and point to the live original source |
+| **Brunei** | Bandar Seri Begawan: what to check before choosing airport ground transport | Airport, Brunei's land-transport authority and relevant operators; nationality-scoped official visitor guidance |
+| **Cambodia** | Phnom Penh arrival: finding the correct ground-transfer information for your flight | Current airport/operator information for the actual operating airport; official entry notices by passport |
+| **Indonesia** | First arrival in Bali or Jakarta: choose ONE airport and verify the current official transfer options | Actual airport, local official transport providers and dated entry guidance; do not mix Bali and Jakarta in one presumed route |
+| **Laos** | Arriving in Vientiane: how to verify airport transport and official travel information | Airport/operator pages, dated official entry and consular notices |
+| **Malaysia** | Kuala Lumpur airport: comparing currently offered city-transfer channels | Malaysia Airports plus the operators on the specific terminal/route; current ticket and timetable source |
+| **Myanmar** | Understanding the official Myanmar travel advisories and consular limitations before any travel decision | Dated official advisories from the reader's country, UK and Canada; geographic exclusions, any urgent changes and support limits |
+| **Philippines** | Manila airport arrival: terminal-specific pickup instructions and where to find official updates | MIAA/current airport notices, verified operator instructions, official immigration guidance scoped to passport |
+| **Singapore** | First MRT ride: verifying direct bank-card travel charges against top-up charges | LTA and fare operator pages; clarify exactly which card and charge each statement concerns |
+| **Thailand** | Bangkok airport ground transfers: which official pickup and fare pages should travelers open? | Actual arrival airport and its authorized transport providers; dated operator-specific rules |
+| **Timor-Leste** | Dili airport arrival: which official entry, insurance and transfer sources to check | Relevant airport and operator notices, Timor-Leste's official entry information and the reader's consulate |
+| **Vietnam** | Your first airport pickup: choose one terminal and verify the actual meeting instructions | One airport's official terminal/transport notices and relevant operator fare procedures |
 
-## Initial 12 distinct research briefs
+Do **not** duplicate the already-published Vietnam taxi, Bangkok weather or Singapore MRT article: compare the live D1 article and revised repository copy first. Refine or replace a proposed title if it is substantially covered already. A country counts toward coverage **only** when an owner-reviewed article is actually published, not when a research brief exists.
 
-| Proposed working title (not yet a publishable claim) | Country | Cluster | Original evidence to seek |
-|---|---|---|---|
-| Singapore airport to city after the last train: what to check | Singapore | First-hour transport | Changi Airport ground transportation and operating transport providers |
-| Singapore MRT and bus operating hours: how to check the last service | Singapore | Time-sensitive preparation | LTA, relevant rail and bus operators' currently dated timetable |
-| First visit to a Singapore hawker centre: facilities, payment and seating | Singapore | Daily-life cultural preparation | NEA and venue notices; label anecdotal etiquette distinctly |
-| Bangkok's official airport taxi queue: pickup and fare questions | Thailand | First-hour transport | Airports of Thailand, authorized operator information and currently applicable fare rules |
-| Bangkok BTS versus MRT: ticket and payment methods to verify | Thailand | Ticket and payment decisions | Each rail operator's official ticketing and fare guidance; don't assume compatibility |
-| Understanding Bangkok rain notices before an airport transfer | Thailand | Time-sensitive preparation | Thai Meteorological Department, airport notices and dated TAT updates |
-| Ho Chi Minh City airport pickups: how to verify the correct collection point | Vietnam | First-hour transport | Airport and official operator pickup instructions; keep terminal-specific claims dated |
-| Vietnam intercity rail booking: comparing official purchase channels | Vietnam | Ticket and payment decisions | Vietnam Railways' own booking, ticket and refund information |
-| Vietnam motorbike travel: licensing questions by visitor nationality | Vietnam | Time-sensitive preparation | Current Vietnamese rules AND consular advice specific to nationality; high editorial scrutiny |
-| Arriving in Tokyo: train ticket and IC-card checks before boarding | Japan | Ticket and payment decisions | JR East and actual airport rail provider notices; don't conflate networks |
-| Kyoto buses and rail: official operator visitor guidance | Japan | Daily-life cultural preparation | Kyoto municipal transit and relevant private rail operator notices |
-| Japan's last-train planning: what official schedules can and cannot tell you | Japan | Time-sensitive preparation | Current route-specific operator timetables; route/day/holiday qualifiers |
+## Pass 2 — develop depth in each country only after the first pass is complete
 
-Suggested second wave, **only after** the above cluster has non-duplicative published evidence: KLIA to central Kuala Lumpur at night; Paris transit ticket fare updates; Spain regional train booking channels; Tokyo bath-house posted visitor rules. Do not add these to the database as claimed or researched content before primary sources are opened.
+| Country | Second, distinct evidence-led topic | Evidence scope and differentiation |
+|---|---|---|
+| Brunei | What visitors should check before crossing a Brunei–Malaysia land border | Current border-post opening times, passport-specific requirements, official transport guidance |
+| Cambodia | Siem Reap arrival: how to verify the airport and transfer instructions that match your ticket | Actual airport identification, airport transport notices and the visitor's carrier |
+| Indonesia | Indonesian ferry routes: how to check a specific operator and weather disruption notices | One route and operator only; dated maritime/weather source, not a countrywide claim |
+| Laos | Laos rail bookings: which official ticket, identity and timetable instructions apply to your journey? | Railway's own dated booking information; avoid unsupported blanket ticket rules |
+| Malaysia | KL urban rail: which official ticketing and interchange sources explain a visitor's journey? | Operator-specific ticket media, fare rules and route distinctions |
+| Myanmar | If a trip is planned or someone is already there: how to find current official warnings and emergency help | Official government/consular sources, access limitations and review date; **not** a recommendation to travel |
+| Philippines | Philippines official severe-weather notices: how to monitor your actual route or island | PAGASA and appropriate disaster/transport authorities; dated updates, no predictive live claims |
+| Singapore | Changi after the last train: checking current night transfer information | Changi Airport and LTA/operator updates; distinguish scheduled from real-time availability |
+| Thailand | Bangkok rail tickets: where BTS and MRT rules differ and how to verify them | Separate operators' current ticket media, card eligibility and fees |
+| Timor-Leste | Dili to another district: questions to ask official operators before leaving | Route-specific transport information and dated local official travel notices where available |
+| Vietnam | Official intercity rail purchasing and refunds: questions to check before paying | Vietnam Railways and relevant route/date/current payment/refund source |
 
-## Ready-to-draft template for each brief
+## Sources and verification
 
-1. **User's concrete question:** one traveler situation with a location, date context and route/vendor as applicable.
-2. **Official primary source log:** source URL, issuing organization, page publication/update date where shown, exact sentence/section supporting each substantive claim, and time of your own check. Secondary commentary may help identify questions but cannot replace the primary evidence.
-3. **Claim boundary:** which travelers, city, terminal, payment instruments or operating dates the claim actually describes. Explicitly label older advisories as historic examples; never recycle them as current live alerts.
-4. **Helpful alternative:** what to do when the preferred option is unavailable, without asserting an operator's real-time availability.
-5. **Originality:** at least three reader actions that are useful for this specific situation—not a paraphrased generic safety list, a route list copied from an operator or a rewording of an existing TripCaution article.
-6. **Publication QA:** editor opens the saved preview, rechecks source URLs and important fee/rule claims, chooses Publish/confirmed bulk Publish only after review; no mandatory written form.
-7. **SEO and on-page UX:** one precise original title, one plain-language excerpt and meta description; clear unique H2/H3 headings; if there are genuine concise editor-reviewed lessons, write a dedicated `## Key takeaways` section with 2–5 `- ` bullets. The sidebar displays those bullets verbatim; otherwise it shows a neutral explore-more card.
+`automation/sources.json` covers all 11 countries with an initial two-source **foreign-government research seed** per country. UK FCDO and Government of Canada pages provide different national perspectives; they are **not proof of the destination's own entry policy for every passport holder**. For Timor-Leste, the current seed contains FCDO and Canada's Timor-Leste/East Timor destination path. Visit every actual URL at drafting time—an existing link does not guarantee that its latest claims were manually checked.
 
-## Site architecture and internal links
+For operator fares, airport pickup, cultural notices, entry requirements or health claims, add a relevant **destination authority or operator's own primary document** whenever accessible. A source list is not a proxy for claims matching the cited material. If the local source cannot be found, mark the brief `NEEDS_SOURCE` or skip it rather than converting a broad foreign advisory into a fabricated granular answer.
 
-The platform now auto-links **related public** guides from the same country or category and generates a heading-based Table of Contents. Drafts, hidden articles and future scheduled content never appear as related reading. Link within the article body to another TripCaution guide only when it answers the next reader question; avoid creating chains of unrelated destination links merely for SEO.
+## Ready-to-draft checklist
 
-Start with one distinct destination-and-topic pair per new article. Keep directory pages with no public guides labelled **Research planned** instead of linking searchers to indexable empty landing pages. Add new city-specific landing pages only when that city resolver and at least one reviewed public article exist.
+1. State a concrete traveler question with a city/terminal, service/date, passport/card where relevant.
+2. Build a claim-to-source log with an HTTPS primary URL, publisher, claimed exact scope, visible revision date and the *editor's* actual check date.
+3. Record exceptions and uncertainty prominently, especially for temporary notices and geography-sensitive advisories.
+4. Contribute at least three original, actionable reader decisions specific to that topic—no substituted-country boilerplate.
+5. Use a distinct, accurate SEO title, excerpt and readable H2/H3 outline. If there are truly editor-checked concise points, use `## Key takeaways` followed by 2–5 `- ` bullets; the site shows those editor-authored bullets verbatim.
+6. Open the saved private Preview, manually verify material claims and their official links, then publish or schedule from Admin. The automation **never auto-publishes**.
+7. Recheck rapidly changing claims as needed; the CMS defaults a 30-day reminder record but an article's source may demand a much shorter interval. A research timestamp from AI is not a human editorial date.
 
-## Search and sharing expectations
+## On-site information architecture
 
-- The sitemap lists public guides only and uses their real `updated_at` timestamps; it does not invent a publication date for static pages.
-- Public article pages include descriptive Article/Breadcrumb structured data. This is not an eligibility or ranking guarantee.
-- Social sites may ignore SVG as an OG image. The site intentionally advertises **only true raster images** as `og:image`. Publish a separate licensed/self-produced 1200×630 PNG/JPEG social card later; do not automatically create a screenshot of an unrelated incident.
-- After the verified domain and mailbox are active, connect the final canonical domain in your preferred webmaster/Search Console tools and submit the dynamic sitemap. Don't configure indexing for the temporary domain and final domain as competing canonicals.
+- The homepage and regional hub `/southeast-asia` prioritize these **11** countries. Countries without a published guide are *plain Research planned tiles*, never deceptive links to empty SEO pages.
+- `/destinations` keeps a complete directory of all 11 regional countries **plus destinations with existing published guides outside the region**. Previously published content is not deleted or hidden due to a new editorial focus.
+- The regional hub and its sitemap entry are indexable only after at least one regional article is actually published. Published-country pages stay discoverable; unpopulated individual country pages stay noindex.
+- Related-reading links show published guides only. Don't insert irrelevant cross-links simply to inflate internal link count.
 
-## Human checks still required
+## Human gates and expansion
 
-The initial three starter articles in the repository may differ from currently published D1 content. Deployment **does not** edit live article rows. Independently review corrections, import the revised package only after backup, check the saved drafts, then republish as appropriate. The automated editorial package audit checks metadata, syntactic source links and structural hygiene; **it does not validate truth, first-hand reporting, ranking or eligibility for advertising**.
+The revised three starter guides live in `content/starter-guides.json`; they may **not** match existing production D1 articles. Back up and use owner-approved revision import where necessary, then inspect each private preview before publishing. **No new regional article is automatically created or published by this roadmap.** Start a new global expansion backlog only when each Southeast Asian destination has at least one accurate, independently reviewed published guide (or a clearly documented source gap making that coverage unwise).
