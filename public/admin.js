@@ -187,6 +187,21 @@ document.addEventListener('click',event=>{
 $('json-file').addEventListener('change',async ev=>{
  const file=ev.target.files[0];if(file){if(file.size>2_000_000){toast('JSON file is too large',true);return;}$('json-input').value=await file.text();}
 });
+$('research-check-btn').onclick=async()=>{
+ if(quickBusy)return;
+ const out=$('research-check-result');
+ try{
+  const data=JSON.parse($('json-input').value);
+  const result=await api('/api/admin/research-audit',{method:'POST',body:JSON.stringify(data)});
+  out.hidden=false;
+  out.textContent=(result.ok?'STRUCTURE PASS':'STRUCTURE PROBLEMS')+' · '+result.count+' draft(s) · '+result.countries.join(', ')+
+   '\nThis does NOT verify factual accuracy or assign warning levels.'+
+   (result.problems.length?'\n\nFix before import:\n- '+result.problems.join('\n- '):'')+
+   (result.warnings.length?'\n\nEditorial checks:\n- '+result.warnings.slice(0,30).join('\n- '):'')+
+   (result.warnings.length>30?'\n… additional warnings omitted.':'');
+  if(!result.ok)toast('Research package needs corrections before import.',true);
+ }catch(e){out.hidden=false;out.textContent='Preflight unavailable: '+e.message;toast(e.message,true);}
+};
 $('import-btn').onclick=async()=>{
  if(quickBusy)return;
  try{
