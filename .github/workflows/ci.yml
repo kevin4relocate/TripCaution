@@ -26,6 +26,8 @@ jobs:
         run: npm test
       - name: Editorial package metadata audit
         run: npm run audit:content
+      - name: Research package structural preflight (does not verify claims)
+        run: npm run audit:cautions
       - name: Python syntax
         run: python -m py_compile automation/daily.py automation/import_starter.py
       - name: Regional research rotation tests

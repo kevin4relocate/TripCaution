@@ -1,3 +1,4 @@
+import {cautionLevel} from './severity.js';
 export const STATUSES = ['draft','review','scheduled','published','hidden','archived','deleted'];
 export const CATEGORIES = ['things-to-avoid','tourist-traps','scams-theft','payments-money','transport','food','local-laws','etiquette','safety-health','travel-essentials','before-you-go'];
 export function slugify(input) {
@@ -36,6 +37,9 @@ export function normalizeArticle(raw) {
     tags_json:JSON.stringify(Array.isArray(raw.tags)?raw.tags.slice(0,16).map(x=>cleanString(x,50)):[]),
     sources_json:JSON.stringify(normalizeSources(raw.sources || research.sources)),
     uncertainties_json:JSON.stringify(Array.isArray(research.uncertainties)?research.uncertainties.slice(0,20):[]),
+    caution_level:cautionLevel(raw.caution_level).id,
+    severity_scope:cleanString(raw.severity_scope,500),
+    severity_rationale:cleanString(raw.severity_rationale,1500),
     seo_title:cleanString(raw.seo_title || seo.title || title,160),
     seo_description:cleanString(raw.seo_description || seo.description || raw.excerpt,300),
     hero_image_url:normalizeURL(raw.hero_image_url || images.hero_image_url),

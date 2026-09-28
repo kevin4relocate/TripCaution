@@ -8,6 +8,8 @@ import { normalizeArticle, STATUSES, CATEGORIES, isValidSchedule, slugify } from
 import { STARTER_DESTINATIONS, SOUTHEAST_ASIA_COUNTRIES, CONTINENT_COUNTRIES, isSoutheastAsia, groupDestinationsByContinent } from './destinations.js';
 import { renderArticleMarkdown, editorialQuickTakes } from './article-content.js';
 import { CAUTION_TOPICS, cautionTopic, cautionTopicForCategory } from './cautions.js';
+import {CAUTION_LEVELS,cautionLevel,isRatedCaution,severeCaution} from './severity.js';
+import {auditCautionPackage} from './research-audit.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
 
 const json = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -64,10 +66,12 @@ function articleCard(a,variant='standard') {
  const path='/guides/'+encodeURIComponent(a.slug);
  const country=esc(a.country), category=esc(cautionTopicForCategory(a.category_id)?.title||a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
  const cls=variant==='lead'?' guide-card-lead':variant==='side'?' guide-card-side':'';
+ const level=isRatedCaution(a.caution_level)?cautionLevel(a.caution_level):null;
+ const badge=level&&a.severity_scope?.length>=12&&a.severity_rationale?.length>=40?'<span class="impact-pill impact-'+level.id+'">'+esc(level.label)+'</span>':'';
  return `<article class="guide-card${cls}"><a class="card-visual" href="${path}" aria-label="Read ${esc(a.title)}">
  ${safe(a.hero_image_url)?'<img loading="lazy" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
  <span class="visual-tag">${category}</span></a><div class="card-body"><div class="eyebrow">${country}${a.city?' <span>·</span> '+esc(a.city):''}</div>
- <h3><a href="${path}">${esc(a.title)}</a></h3><p>${esc(a.excerpt||'A practical guide to help you plan more confidently.')}</p>
+ ${badge}<h3><a href="${path}">${esc(a.title)}</a></h3><p>${esc(a.excerpt||'A practical guide to help you plan more confidently.')}</p>
  <div class="card-bottom"><a class="card-read" href="${path}" aria-label="Read ${esc(a.title)}">Read guide <span aria-hidden="true">↗</span></a></div></div></article>`;
 }
 // An overview is helpful before all eleven countries have live guides.
@@ -171,6 +175,12 @@ async function publishedTopicCounts(env){
  const rows=await env.DB.prepare("SELECT category_id,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY category_id").all();
  return new Map((rows.results||[]).map(row=>[row.category_id,Number(row.total)||0]));
 }
+function impactLegend(){
+ return '<aside class="impact-legend" aria-label="How impact labels work"><strong>Impact levels explain consequences if a specific problem happens—not the likelihood or the safety of a country.</strong>'+
+  '<div class="impact-legend-chips">'+CAUTION_LEVELS.filter(item=>item.id!=='unassessed')
+   .map(item=>'<span class="impact-pill impact-'+item.id+'">'+esc(item.label)+'</span>').join('')+'</div>'+
+  '<small>Editors only assign a level after checking the exact situation and sources. Other guides remain not assessed; these are not live safety alerts.</small></aside>';
+}
 async function cautionIndexPage(env){
  const counts=await publishedTopicCounts(env);
  const cards=CAUTION_TOPICS.map(topic=>{
@@ -183,7 +193,7 @@ async function cautionIndexPage(env){
  const hasPublished=[...counts.values()].some(n=>n>0);
  const body='<main class="shell simple caution-directory"><div class="eyebrow">GLOBAL TRAVEL CAUTIONS</div><h1>Travel problems worth checking before you go.</h1>'+
  '<p>Choose a type of problem, then review the guidance for your destination. A payment method, theft warning or local rule in one place does not automatically apply elsewhere.</p>'+
- '<div class="caution-topic-grid">'+cards+'</div><p>Our content research starts in Southeast Asia, but the platform covers every destination with a researched and published guide. For changing rules and urgent warnings, consult the relevant authority.</p>'+
+ impactLegend()+'<div class="caution-topic-grid">'+cards+'</div><p>Our content research starts in Southeast Asia, but the platform covers every destination with a researched and published guide. For changing rules and urgent warnings, consult the relevant authority.</p>'+
  '<a class="all-destinations-link" href="/destinations">Browse destinations ↗</a></main>';
  return html(layout(env,'Global travel cautions',body,{path:'/cautions',noindex:!hasPublished,
   description:'Research scams, theft, payment difficulties, transport, local rules and other travel problems by topic and destination.'}));
@@ -199,20 +209,27 @@ async function cautionTopicPage(env,topic,url){
  const requested=String(url.searchParams.get('country')||'').trim().slice(0,90);
  // Never use arbitrary, unverified country labels in page headings or SQL filters.
  selectedCountry=countries.find(name=>name.toLocaleLowerCase('en')===requested.toLocaleLowerCase('en'))||'';
- const conditions=selectedCountry?' AND a.country=?':'';
- const args=selectedCountry?[...ids,selectedCountry]:ids;
+ const requestedLevel=String(url.searchParams.get('level')||'').trim();
+ const selectedLevel=CAUTION_LEVELS.some(x=>x.id===requestedLevel&&x.id!=='unassessed')?requestedLevel:'';
+ const conditions=(selectedCountry?' AND a.country=?':'')+(selectedLevel?' AND a.caution_level=?':'');
+ const args=[...ids,...(selectedCountry?[selectedCountry]:[]),...(selectedLevel?[selectedLevel]:[])];
  const rows=env.DB?(await env.DB.prepare("SELECT a.*,c.name category_name"+sql+conditions+" ORDER BY a.published_at DESC,a.id DESC LIMIT 40").bind(...args).all()).results||[]:[];
  const countryOptions=countries.map(name=>'<option value="'+esc(name)+'"'+(name===selectedCountry?' selected':'')+'>'+esc(name)+'</option>').join('');
- const filter=countries.length?'<form method="get" action="/cautions/'+esc(topic.slug)+'" class="caution-country-filter"><label for="caution-country">Destination</label><select id="caution-country" name="country"><option value="">All countries</option>'+countryOptions+'</select><button type="submit">Filter ↗</button></form>':'';
+ const levelOptions=CAUTION_LEVELS.filter(item=>item.id!=='unassessed')
+  .map(item=>'<option value="'+item.id+'"'+(item.id===selectedLevel?' selected':'')+'>'+esc(item.label)+'</option>').join('');
+ const filter=countries.length?'<form method="get" action="/cautions/'+esc(topic.slug)+'" class="caution-country-filter">'+
+  '<label for="caution-country">Destination</label><select id="caution-country" name="country"><option value="">All countries</option>'+countryOptions+'</select>'+
+  '<label for="caution-level">Potential impact</label><select id="caution-level" name="level"><option value="">All levels / Not assessed</option>'+levelOptions+'</select>'+
+  '<button type="submit">Filter ↗</button></form>':'';
  const body='<main class="shell simple caution-topic-page"><a class="backlink" href="/cautions">← All travel cautions</a>'+
  '<div class="eyebrow">DESTINATION-SPECIFIC PROBLEMS</div><h1>'+esc(topic.title)+'</h1><p>'+esc(topic.description)+
- ' Each article applies to the stated location and situation. Check its original sources for changes.</p>'+filter+
+ ' Each article applies to the stated location and situation. Check its original sources for changes.</p>'+impactLegend()+filter+
  (rows.length?'<p>'+rows.length+' published '+(rows.length===1?'guide':'guides')+(rows.length===40?' shown (latest first)':'')+'</p><div class="guide-grid">'+rows.map(row=>articleCard(row)).join('')+'</div>':
  '<div class="empty-state"><h2>No published guidance for this selection yet.</h2><p>Research is planned; consult official authorities for immediate travel decisions.</p></div>')+
  '<p><a href="/destinations">Browse destinations worldwide ↗</a></p></main>';
  // Empty and country-filtered combinations should not create thin indexable pages.
  return html(layout(env,topic.title+' travel cautions',body,{
-  path:'/cautions/'+topic.slug,noindex:!rows.length||Boolean(selectedCountry)||Boolean(requested&&!selectedCountry),
+  path:'/cautions/'+topic.slug,noindex:!rows.length||Boolean(selectedCountry)||Boolean(requested&&!selectedCountry)||Boolean(requestedLevel),
   description:topic.description
  }));
 }
@@ -301,6 +318,14 @@ function renderGuideArticle(env,a,preview=false,related=[]){
  const parsedSources=safeParse(a.sources_json);
  const sources=Array.isArray(parsedSources)?parsedSources.filter(source=>safe(source?.url)):[];
  const rendered=renderArticleMarkdown(a.content_markdown);
+ const rating=isRatedCaution(a.caution_level)?cautionLevel(a.caution_level):null;
+ // Severity describes only documented impact for this particular scenario.
+ const rated=rating && String(a.severity_scope||'').trim().length>=12 &&
+  String(a.severity_rationale||'').trim().length>=40;
+ const severityPanel=rated?'<section class="impact-panel impact-'+rating.id+'" aria-label="Potential impact in the described situation">'+
+  '<div class="impact-panel-head"><strong>Potential impact · '+esc(rating.label)+'</strong><span>For this situation only</span></div>'+
+  '<p><strong>When this applies:</strong> '+esc(a.severity_scope)+'</p><p><strong>Why this level:</strong> '+esc(a.severity_rationale)+'</p>'+
+  '<small>Impact if this problem occurs—not its likelihood, a live alert, or a safety rating for the country. Consult linked sources for changes.</small></section>':'';
  const takes=editorialQuickTakes(a.content_markdown);
  const tocHTML=rendered.headings.length>=2?'<details class="article-toc" data-article-toc open><summary>In this guide <span aria-hidden="true">⌄</span></summary><nav aria-label="On this page"><ol>'+
   rendered.headings.map(h=>'<li class="toc-level-'+h.level+'"><a href="#'+esc(h.id)+'">'+esc(h.label)+'</a></li>').join('')+
@@ -314,7 +339,7 @@ function renderGuideArticle(env,a,preview=false,related=[]){
  // Article JSON-LD and the original source records; no visible top metadata bar.
  const body=`<main><div class="article-top"><div class="shell article-head"><a href="/destinations/${slugify(a.country)}" class="backlink">← ${esc(a.country)} guides</a><div class="eyebrow">${esc(a.country.toUpperCase())}${a.city?' / '+esc(a.city.toUpperCase()):''} / ${esc((a.category_name||'GUIDE').toUpperCase())}</div><h1>${esc(a.title)}</h1><p class="article-deck">${esc(a.excerpt)}</p></div></div>
  <div class="shell article-wrap"><article class="article-content">${safe(a.hero_image_url)?'<figure class="hero-image"><img src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial illustration')+'"><figcaption>AI-generated editorial illustration; not a photograph or evidence of an incident.</figcaption></figure>':''}
- <div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
+ ${severityPanel}<div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
  ${tocHTML}<div class="prose">${rendered.html}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
  </section></article>
  <aside class="article-aside">${asideTakeaways}<div class="aside-share">SHARE THIS GUIDE <button type="button" data-copy-guide>Copy link ↗</button></div></aside></div>${relatedHTML}</main>`;
@@ -370,6 +395,7 @@ function staticPage(env,type){
  const blocks={
    about:['About & editorial policy',`<p>TripCaution is an independent, research-led travel guide. Our articles describe practical travel questions and point readers to original sources. We do not claim personal visits, personal interviews or firsthand incident reports. We are not an emergency-alert service.</p>
      <h2>Our research process</h2><p>We prioritize official operators, local tourism authorities, government guidance and dated primary evidence. AI tools may assist with research and initial drafts; source lists and AI-generated timestamps are not proof that an editor has checked a claim. Every new article must be checked and approved by an editor before publishing.</p>
+     <h2>What our impact levels mean</h2><p>Low, Moderate, High and Critical describe the potential consequence of one carefully described situation <strong>if it happens</strong>. They are not predictions of how likely it is, a ranking of countries or a live government travel alert. Guides without an explicit editor-reviewed assessment remain Not assessed. Our editors must document the exact scope, potential consequence and supporting original sources. High and Critical cases receive individual approval and earlier review reminders. A warning about one venue, payment instrument or route must not be generalized to a whole country. Check the original linked sources and your government's current advisories before relying on time-sensitive information.</p>
      <h2>Corrections and limitations</h2><p>Conditions, fees, routes and rules can change. Readers should confirm time-sensitive details with the responsible operator or authority. If we receive a well-supported correction, we may clarify, update or withdraw the affected content. Share the article URL, exact statement, supporting source and relevant dates with the editorial desk.</p><p><strong>Editorial contact:</strong> ${contact}</p>`],
    privacy:['Privacy notice',`<p>This notice describes the services currently enabled. TripCaution publishes travel information using Cloudflare Workers and D1, without public accounts. At present we do not run third-party advertising, sell user data or deliberately deploy marketing-analytics trackers. We will revise this notice before enabling new tracking or advertising.</p>
      <h2>Hosting and essential cookies</h2><p>Our hosting and security provider, Cloudflare, may process IP addresses, request details and technical security data to deliver and protect this website. The private editorial area uses a signed, essential session cookie that expires after 12 hours. It is Secure and HttpOnly, and not used for marketing.</p>
@@ -428,11 +454,16 @@ async function insertArticle(env,raw,actor){
  const a=normalizeArticle(raw);
  const found=await env.DB.prepare("SELECT id,title FROM articles WHERE slug=?").bind(a.slug).first();
  if(found)throw Object.assign(new Error('Duplicate slug: '+a.slug),{status:409});
+ // The importer cannot judge semantic similarity. It can still prevent an
+ // accidentally repeated exact title within one country under a new slug.
+ const duplicate=await env.DB.prepare("SELECT id,title FROM articles WHERE lower(country)=lower(?) AND lower(title)=lower(?) AND status!='deleted' LIMIT 1").bind(a.country,a.title).first();
+ if(duplicate)throw Object.assign(new Error('Possible duplicate title for '+a.country+': review existing article '+duplicate.id+' before creating another'),{status:409});
  // Sprint 0: source URLs and an AI research timestamp are NEVER approval.
  // Ingesting any article always creates a human-review draft, including low-risk categories.
+ // AI research, imported drafts and revisions cannot assign a public severity.
  const status='review',published=null;
- const insert = env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
- .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at);
+ const insert = env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at,caution_level,severity_scope,severity_rationale) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+ .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at,'unassessed','','');
  const auditInsert=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
   .bind(crypto.randomUUID(),actor,'created:'+status,a.id,'');
  await env.DB.batch([insert,auditInsert]);
@@ -448,7 +479,7 @@ async function replaceArticleWithReviewDraft(env,raw,actor){
  const revision=env.DB.prepare(`UPDATE articles SET title=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,
    tags_json=?,sources_json=?,uncertainties_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,
    hero_alt=?,source_mode='editorial-revision',verified_at=?,review_approved=0,status='review',
-   scheduled_at=NULL,updated_at=datetime('now') WHERE id=?`)
+   scheduled_at=NULL,caution_level='unassessed',severity_scope='',severity_rationale='',updated_at=datetime('now') WHERE id=?`)
  .bind(a.title,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,
    a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,
    a.hero_prompt,a.hero_alt,a.verified_at,old.id);
@@ -485,6 +516,19 @@ async function applyEditorialAction(env,old,action,body,actor){
   const sources=safeParse(old.sources_json);
   if(!Array.isArray(sources)||!sources.some(source=>safe(source?.url)))
    throw Object.assign(new Error('Add at least one valid HTTPS source before publishing'),{status:422});
+  const level=cautionLevel(old.caution_level).id;
+  if(isRatedCaution(level)){
+   // Avoid turning a headline, country or bot-provided draft into a danger
+   // rating. Scope and rationale are persisted by a human editor.
+   if(String(old.severity_scope||'').trim().length<12||String(old.severity_rationale||'').trim().length<40)
+    throw Object.assign(new Error('Explain the specific situation (12+ characters) and evidence-backed potential impact (40+ characters) before publishing a warning level'),{status:422});
+   if(severeCaution(level)){
+    if(body.review_method==='bulk')
+     throw Object.assign(new Error('High and critical impact articles must be reviewed and published individually'),{status:422});
+    if(body.severity_confirmed!==true)
+     throw Object.assign(new Error('Explicitly confirm the evidence, scope and impact before publishing high or critical impact'),{status:422});
+   }
+  }
   if(action==='schedule' && (!isValidSchedule(body.scheduled_at)||Date.parse(body.scheduled_at)<=Date.now()))
    throw Object.assign(new Error('Choose a future publication date and time with timezone'),{status:422});
  }
@@ -493,13 +537,18 @@ async function applyEditorialAction(env,old,action,body,actor){
  const approve=['publish','schedule'].includes(action)?1:
   ['review','hide','archive','delete','restore'].includes(action)?0:old.review_approved;
  const reviewed=['publish','schedule'].includes(action);
+ // Serious, change-sensitive warnings enter the human recheck queue earlier.
+ // These windows are editorial reminders, not a live safety-monitoring promise.
+ const windowDays=old.caution_level==='critical'?2:old.caution_level==='high'?7:30;
  const auditAction=reviewed?'owner-reviewed-and-'+(action==='publish'?'published':'scheduled'):action;
  const details=reviewed?JSON.stringify({
   review_confirmed:true,method:body.review_method==='bulk'?'bulk':'single',
   source_count:safeParse(old.sources_json).length,
-  editor_reviewed_at:new Date().toISOString(),review_window_days:30,
-  next_review_due_at:new Date(Date.now()+30*86400000).toISOString(),
-  evidence_note_collected:false
+  editor_reviewed_at:new Date().toISOString(),review_window_days:windowDays,
+  next_review_due_at:new Date(Date.now()+windowDays*86400000).toISOString(),
+  evidence_note_collected:false,
+  impact_level:cautionLevel(old.caution_level).id,
+  severity_confirmed:severeCaution(old.caution_level)?body.severity_confirmed===true:null
  }):'';
  // Atomic: when an audit write fails, publication and scheduling roll back too.
  const stateChange=env.DB.prepare("UPDATE articles SET status=?,review_approved=?,scheduled_at=?,published_at=CASE WHEN ?='published' THEN COALESCE(published_at,datetime('now')) ELSE published_at END,updated_at=datetime('now') WHERE id=?")
@@ -566,11 +615,11 @@ async function api(request,env,url,admin=false){
   const count=await env.DB.prepare('SELECT COUNT(*) count FROM articles'+where).bind(...args).first();
   const total=Number(count?.count||0),pageSize=30,pages=Math.max(1,Math.ceil(total/pageSize));
   const current=Math.min(page,pages);
-  const rows=await env.DB.prepare('SELECT id,title,slug,country,city,category_id,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles'+where+' ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?').bind(...args,pageSize,(current-1)*pageSize).all();
+  const rows=await env.DB.prepare('SELECT id,title,slug,country,city,category_id,caution_level,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles'+where+' ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?').bind(...args,pageSize,(current-1)*pageSize).all();
   return json({articles:rows.results||[],page:current,pages,pageSize,total});
  }
  if(method==='GET' && pathname==='/api/admin/queue'){
-  const rows=await env.DB.prepare("SELECT id,title,slug,country,city,category_id,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles WHERE status IN ('review','scheduled','draft') ORDER BY CASE WHEN status='scheduled' THEN 0 ELSE 1 END,coalesce(scheduled_at,created_at) ASC,id ASC LIMIT 100").all();
+  const rows=await env.DB.prepare("SELECT id,title,slug,country,city,category_id,caution_level,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles WHERE status IN ('review','scheduled','draft') ORDER BY CASE WHEN status='scheduled' THEN 0 ELSE 1 END,coalesce(scheduled_at,created_at) ASC,id ASC LIMIT 100").all();
   const result=await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status IN ('review','scheduled','draft')").first();
   const total=Number(result?.count||0);
   return json({articles:rows.results||[],total,limited:total>100});
@@ -615,6 +664,10 @@ async function api(request,env,url,admin=false){
     const at=body.action==='schedule'&&body.stagger_days===true?
       new Date(Date.parse(body.scheduled_at)+86400000*scheduledIndex).toISOString():body.scheduled_at;
     const item={...body,review_method:'bulk',scheduled_at:at};
+    if(['publish','schedule'].includes(body.action)&&severeCaution(existing.caution_level)){
+     results.push({id,ok:false,error:'High and critical impact articles require individual review and explicit impact confirmation'});
+     continue;
+    }
     const completed=await applyEditorialAction(env,existing,body.action,item,actor);
     if(body.action==='schedule')scheduledIndex++;
     results.push({ok:true,...completed,scheduled_at:body.action==='schedule'?at:undefined});
@@ -683,13 +736,20 @@ async function api(request,env,url,admin=false){
        OR (l.action IN ('owner-reviewed-and-published','owner-reviewed-and-scheduled')
         AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1))
       ORDER BY l.created_at DESC LIMIT 1) next_review_due_at
-   FROM articles a WHERE a.status='published' ORDER BY a.created_at DESC LIMIT 100`).all()).results;
+   FROM articles a WHERE a.status='published' ORDER BY CASE a.caution_level WHEN 'critical' THEN 0 WHEN 'high' THEN 1 ELSE 2 END, a.created_at DESC LIMIT 100`).all()).results;
   const publishedRow=await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published'").first();
   return json({status,auditLogs,reviewDue,reviewScanLimited:Number(publishedRow?.count||0)>100});
+ }
+ if(method==='POST' && pathname==='/api/admin/research-audit'){
+  if(actor==='github-automation')return json({error:'Private editor required'},403);
+  const body=await request.json();
+  return json(auditCautionPackage(body));
  }
  if(method==='POST' && (pathname==='/api/ingest'||pathname==='/api/admin/import')){
   const body=await request.json();
   const list=Array.isArray(body.articles)?body.articles:[body];
+  const researchCheck=auditCautionPackage(body);
+  if(!researchCheck.ok)return json({error:'Research package contains duplicate or invalid entries',problems:researchCheck.problems},422);
   if(list.length<1||list.length>10)return json({error:'Import requires 1–10 articles per request; the editor safely splits larger imports'},400);
   const revisionMode=pathname==='/api/admin/import' && body.update_matching===true;
   if(body.update_matching===true&&!revisionMode)return json({error:'Only signed-in editor can revise existing articles'},403);
@@ -721,9 +781,11 @@ async function api(request,env,url,admin=false){
    research:{verified_at:body.verified_at??old.verified_at,
     uncertainties:body.uncertainties??safeParse(old.uncertainties_json)}
   };
+  if(body.caution_level!==undefined && !['unassessed','low','moderate','high','critical'].includes(body.caution_level))
+   return json({error:'Invalid impact level'},422);
   const a=normalizeArticle(merged);
-  const update=env.DB.prepare(`UPDATE articles SET title=?,slug=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,tags_json=?,sources_json=?,uncertainties_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,hero_alt=?,verified_at=?,updated_at=datetime('now'),review_approved=0,scheduled_at=CASE WHEN status IN ('published','scheduled') THEN NULL ELSE scheduled_at END,status=CASE WHEN status IN ('published','scheduled') THEN 'review' ELSE status END WHERE id=?`)
-   .bind(a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,a.verified_at,id);
+  const update=env.DB.prepare(`UPDATE articles SET title=?,slug=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,tags_json=?,sources_json=?,uncertainties_json=?,caution_level=?,severity_scope=?,severity_rationale=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,hero_alt=?,verified_at=?,updated_at=datetime('now'),review_approved=0,scheduled_at=CASE WHEN status IN ('published','scheduled') THEN NULL ELSE scheduled_at END,status=CASE WHEN status IN ('published','scheduled') THEN 'review' ELSE status END WHERE id=?`)
+   .bind(a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.caution_level,a.severity_scope,a.severity_rationale,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,a.verified_at,id);
   const editAudit=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
    .bind(crypto.randomUUID(),actor,'edited',id,'');
   await env.DB.batch([update,editAudit]);
