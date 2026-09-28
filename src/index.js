@@ -9,6 +9,7 @@ import { STARTER_DESTINATIONS, SOUTHEAST_ASIA_COUNTRIES, CONTINENT_COUNTRIES, is
 import { renderArticleMarkdown, editorialQuickTakes } from './article-content.js';
 import { CAUTION_TOPICS, cautionTopic, cautionTopicForCategory } from './cautions.js';
 import {CAUTION_LEVELS,cautionLevel,isRatedCaution,severeCaution} from './severity.js';
+import {auditCautionPackage} from './research-audit.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
 
 const json = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -735,9 +736,16 @@ async function api(request,env,url,admin=false){
   const publishedRow=await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published'").first();
   return json({status,auditLogs,reviewDue,reviewScanLimited:Number(publishedRow?.count||0)>100});
  }
+ if(method==='POST' && pathname==='/api/admin/research-audit'){
+  if(actor==='github-automation')return json({error:'Private editor required'},403);
+  const body=await request.json();
+  return json(auditCautionPackage(body));
+ }
  if(method==='POST' && (pathname==='/api/ingest'||pathname==='/api/admin/import')){
   const body=await request.json();
   const list=Array.isArray(body.articles)?body.articles:[body];
+  const researchCheck=auditCautionPackage(body);
+  if(!researchCheck.ok)return json({error:'Research package contains duplicate or invalid entries',problems:researchCheck.problems},422);
   if(list.length<1||list.length>10)return json({error:'Import requires 1–10 articles per request; the editor safely splits larger imports'},400);
   const revisionMode=pathname==='/api/admin/import' && body.update_matching===true;
   if(body.update_matching===true&&!revisionMode)return json({error:'Only signed-in editor can revise existing articles'},403);
