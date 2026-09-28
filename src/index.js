@@ -626,7 +626,8 @@ async function api(request,env,url,admin=false){
         AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1))
       ORDER BY l.created_at DESC LIMIT 1) next_review_due_at
    FROM articles a WHERE a.status='published' ORDER BY a.created_at DESC LIMIT 100`).all()).results;
-  return json({status,auditLogs,reviewDue});
+  const publishedRow=await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published'").first();
+  return json({status,auditLogs,reviewDue,reviewScanLimited:Number(publishedRow?.count||0)>100});
  }
  if(method==='POST' && (pathname==='/api/ingest'||pathname==='/api/admin/import')){
   const body=await request.json();
