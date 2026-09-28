@@ -60,7 +60,14 @@ function updateBulkToolbar(){
  all.disabled=visible.length===0||quickBusy;
  $('bulk-count').textContent=selected.length+' selected';
  const has=selected.length>0&&!quickBusy;
- for(const name of ['publish','hide','schedule','restore','delete'])$('bulk-'+name).disabled=!has;
+ const any=predicate=>has&&selected.some(predicate);
+ // Suppress actions that cannot apply to any selected article; mixed-status
+ // batches still return explicit per-article skipped/error results.
+ $('bulk-publish').disabled=!any(a=>['review','draft','hidden','scheduled'].includes(a.status));
+ $('bulk-schedule').disabled=!any(a=>['review','draft','hidden','scheduled'].includes(a.status));
+ $('bulk-hide').disabled=!any(a=>!['hidden','deleted','archived'].includes(a.status));
+ $('bulk-restore').disabled=!any(a=>['hidden','deleted','archived'].includes(a.status));
+ $('bulk-delete').disabled=!any(a=>a.status!=='deleted');
  const selectedDeleted=has&&selected.every(a=>a.status==='deleted');
  $('bulk-purge').hidden=$('article-filter').value!=='deleted';
  $('bulk-purge').disabled=!selectedDeleted;
