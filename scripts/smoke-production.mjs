@@ -1,4 +1,4 @@
-/* Public-only production smoke test. No login keys or editorial data are sent.
+/* Sprint 0 release-gate rerun. Public-only: no login keys or editorial data are sent.
    Run with SITE_URL=https://your-production-origin node scripts/smoke-production.mjs
    Failing cases represent launch blockers until diagnosed. */
 import {writeFileSync} from 'node:fs';
