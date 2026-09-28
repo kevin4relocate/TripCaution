@@ -35,6 +35,23 @@ TOPICS = [
     ("Vietnam", "transport", "First airport pickup in Vietnam: terminal-specific official pickup notices and fare-check steps")
 ]
 
+def choose_first_pass_topic(topics, existing_rows, day_of_year):
+    """Research countries lacking ANY existing non-deleted article before revisiting others.
+
+    Creating drafts is not publication. After all 11 countries have at least
+    one queued/reviewed/live article, stop and let the owner approve coverage.
+    The server's topics endpoint excludes Deleted rows.
+    """
+    present = {
+        str(row.get("country") or "").strip().casefold()
+        for row in existing_rows
+        if isinstance(row, dict) and str(row.get("country") or "").strip()
+    }
+    missing = [topic for topic in topics if topic[0].casefold() not in present]
+    if not missing:
+        return None
+    return missing[(int(day_of_year) - 1) % len(missing)]
+
 def request_json(url, payload=None, headers=None, timeout=110):
     data=json.dumps(payload).encode() if payload is not None else None
     req=urllib.request.Request(url,data=data,headers=headers or {"Content-Type":"application/json"},method="POST" if data is not None else "GET")
@@ -114,13 +131,20 @@ def main():
     if existing.get("upcoming",0)>=2:
         print("Upcoming manually scheduled articles already fill the queue; skip to save API quota.")
         return
-    old_titles=[row.get("title","") for row in existing.get("titles",[])]
+    existing_rows=existing.get("titles",[])
+    old_titles=[row.get("title","") for row in existing_rows]
     now=datetime.now(timezone.utc)
-    # Daily rotating seed, filtered against existing content; never publish duplicates.
-    country,category,idea=TOPICS[now.timetuple().tm_yday % len(TOPICS)]
-    print("Researching category:",category,"destination:",country)
+    # Complete the 11-country private-draft research pass before generating
+    # additional drafts in already represented countries. No auto-publishing.
+    selected=choose_first_pass_topic(TOPICS,existing_rows,now.timetuple().tm_yday)
+    if selected is None:
+        print("All eleven Southeast Asian countries have an existing non-deleted guide or draft.")
+        print("First-pass research paused until the owner reviews quality and approves a second-pass topic list.")
+        return
+    country,category,idea=selected
+    print("First-pass research (missing country):",country,"category:",category)
     research_prompt=f"""Research in English for TripCaution: {idea}.
-Previously published or scheduled article titles (DO NOT REPEAT):
+Previously drafted, reviewed, published or scheduled article titles (DO NOT REPEAT):
 {json.dumps(old_titles[:180],ensure_ascii=False)[:6500]}
 Choose a differentiated practical research angle appropriate to this destination. Focus the editorial roadmap on all 11 Southeast Asian countries only. UK and Canadian official travel advice is nationality-specific for entry and visas: NEVER imply it is universal. For Myanmar, prioritize dated, region-specific official warnings and consular limitations; do not produce a general tourism itinerary.
 Use fresh Google Search grounding. Provide five or more concrete, useful findings supported by official authorities
