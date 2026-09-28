@@ -8,6 +8,7 @@ import { normalizeArticle, STATUSES, CATEGORIES, isValidSchedule, slugify } from
 import { STARTER_DESTINATIONS, SOUTHEAST_ASIA_COUNTRIES, CONTINENT_COUNTRIES, isSoutheastAsia, groupDestinationsByContinent } from './destinations.js';
 import { renderArticleMarkdown, editorialQuickTakes } from './article-content.js';
 import { CAUTION_TOPICS, cautionTopic, cautionTopicForCategory } from './cautions.js';
+import {cautionLevel,isRatedCaution,severeCaution} from './severity.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
 
 const json = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -64,10 +65,12 @@ function articleCard(a,variant='standard') {
  const path='/guides/'+encodeURIComponent(a.slug);
  const country=esc(a.country), category=esc(cautionTopicForCategory(a.category_id)?.title||a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
  const cls=variant==='lead'?' guide-card-lead':variant==='side'?' guide-card-side':'';
+ const level=isRatedCaution(a.caution_level)?cautionLevel(a.caution_level):null;
+ const badge=level&&a.severity_scope?.length>=12&&a.severity_rationale?.length>=40?'<span class="impact-pill impact-'+level.id+'">'+esc(level.label)+'</span>':'';
  return `<article class="guide-card${cls}"><a class="card-visual" href="${path}" aria-label="Read ${esc(a.title)}">
  ${safe(a.hero_image_url)?'<img loading="lazy" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
  <span class="visual-tag">${category}</span></a><div class="card-body"><div class="eyebrow">${country}${a.city?' <span>·</span> '+esc(a.city):''}</div>
- <h3><a href="${path}">${esc(a.title)}</a></h3><p>${esc(a.excerpt||'A practical guide to help you plan more confidently.')}</p>
+ ${badge}<h3><a href="${path}">${esc(a.title)}</a></h3><p>${esc(a.excerpt||'A practical guide to help you plan more confidently.')}</p>
  <div class="card-bottom"><a class="card-read" href="${path}" aria-label="Read ${esc(a.title)}">Read guide <span aria-hidden="true">↗</span></a></div></div></article>`;
 }
 // An overview is helpful before all eleven countries have live guides.
@@ -301,6 +304,14 @@ function renderGuideArticle(env,a,preview=false,related=[]){
  const parsedSources=safeParse(a.sources_json);
  const sources=Array.isArray(parsedSources)?parsedSources.filter(source=>safe(source?.url)):[];
  const rendered=renderArticleMarkdown(a.content_markdown);
+ const rating=isRatedCaution(a.caution_level)?cautionLevel(a.caution_level):null;
+ // Severity describes only documented impact for this particular scenario.
+ const rated=rating && String(a.severity_scope||'').trim().length>=12 &&
+  String(a.severity_rationale||'').trim().length>=40;
+ const severityPanel=rated?'<section class="impact-panel impact-'+rating.id+'" aria-label="Potential impact in the described situation">'+
+  '<div class="impact-panel-head"><strong>Potential impact · '+esc(rating.label)+'</strong><span>For this situation only</span></div>'+
+  '<p><strong>When this applies:</strong> '+esc(a.severity_scope)+'</p><p><strong>Why this level:</strong> '+esc(a.severity_rationale)+'</p>'+
+  '<small>Impact if this problem occurs—not its likelihood, a live alert, or a safety rating for the country. Consult linked sources for changes.</small></section>':'';
  const takes=editorialQuickTakes(a.content_markdown);
  const tocHTML=rendered.headings.length>=2?'<details class="article-toc" data-article-toc open><summary>In this guide <span aria-hidden="true">⌄</span></summary><nav aria-label="On this page"><ol>'+
   rendered.headings.map(h=>'<li class="toc-level-'+h.level+'"><a href="#'+esc(h.id)+'">'+esc(h.label)+'</a></li>').join('')+
@@ -314,7 +325,7 @@ function renderGuideArticle(env,a,preview=false,related=[]){
  // Article JSON-LD and the original source records; no visible top metadata bar.
  const body=`<main><div class="article-top"><div class="shell article-head"><a href="/destinations/${slugify(a.country)}" class="backlink">← ${esc(a.country)} guides</a><div class="eyebrow">${esc(a.country.toUpperCase())}${a.city?' / '+esc(a.city.toUpperCase()):''} / ${esc((a.category_name||'GUIDE').toUpperCase())}</div><h1>${esc(a.title)}</h1><p class="article-deck">${esc(a.excerpt)}</p></div></div>
  <div class="shell article-wrap"><article class="article-content">${safe(a.hero_image_url)?'<figure class="hero-image"><img src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial illustration')+'"><figcaption>AI-generated editorial illustration; not a photograph or evidence of an incident.</figcaption></figure>':''}
- <div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
+ ${severityPanel}<div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
  ${tocHTML}<div class="prose">${rendered.html}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
  </section></article>
  <aside class="article-aside">${asideTakeaways}<div class="aside-share">SHARE THIS GUIDE <button type="button" data-copy-guide>Copy link ↗</button></div></aside></div>${relatedHTML}</main>`;
@@ -430,9 +441,10 @@ async function insertArticle(env,raw,actor){
  if(found)throw Object.assign(new Error('Duplicate slug: '+a.slug),{status:409});
  // Sprint 0: source URLs and an AI research timestamp are NEVER approval.
  // Ingesting any article always creates a human-review draft, including low-risk categories.
+ // AI research, imported drafts and revisions cannot assign a public severity.
  const status='review',published=null;
- const insert = env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
- .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at);
+ const insert = env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at,caution_level,severity_scope,severity_rationale) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+ .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at,'unassessed','','');
  const auditInsert=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
   .bind(crypto.randomUUID(),actor,'created:'+status,a.id,'');
  await env.DB.batch([insert,auditInsert]);
@@ -448,7 +460,7 @@ async function replaceArticleWithReviewDraft(env,raw,actor){
  const revision=env.DB.prepare(`UPDATE articles SET title=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,
    tags_json=?,sources_json=?,uncertainties_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,
    hero_alt=?,source_mode='editorial-revision',verified_at=?,review_approved=0,status='review',
-   scheduled_at=NULL,updated_at=datetime('now') WHERE id=?`)
+   scheduled_at=NULL,caution_level='unassessed',severity_scope='',severity_rationale='',updated_at=datetime('now') WHERE id=?`)
  .bind(a.title,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,
    a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,
    a.hero_prompt,a.hero_alt,a.verified_at,old.id);
