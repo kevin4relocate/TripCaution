@@ -23,6 +23,22 @@ BRIEFS = (
     ("essentials", "travel-essentials", "Investigate a specific connectivity, booking, entry-preparation or other travel-essential problem using authoritative current information."),
 )
 FIRST_PASS = ("transport-arrival", "scams-common", "safety")
+# Geographic research leads are candidate questions, NEVER claims of an incident
+# or promises that a given safety hazard is widespread in a country.
+COUNTRY_NOTES = {
+ "Brunei": "Check the relevant Bandar Seri Begawan and Brunei International Airport authorities; avoid asserting an unverified scam exists.",
+ "Cambodia": "Check which airport currently serves each city, especially current capital/Siem Reap terminals, and use local operator information.",
+ "Indonesia": "Narrow travel problems to a city or island such as Jakarta or Bali; national rules must not be assumed to describe local operators.",
+ "Laos": "For airport and road issues, research the exact Vientiane arrival service or named onward route; avoid unverified prevalence claims.",
+ "Malaysia": "Separate KL International Airport options and any other city-specific route or ticket system; use current named operator policies.",
+ "Myanmar": "Prioritize dated and region-specific official travel advisories, transport disruption and consular-access limitations; do not market leisure tourism where authoritative warnings apply.",
+ "Philippines": "Check terminal-specific Manila arrival information and clarify which island, carrier or route any disruption concerns.",
+ "Singapore": "Separate Changi airport options, operator ticketing and card-network acceptance; NETS, bank cards and QR acceptance are different.",
+ "Thailand": "Identify Bangkok airport and exact pickup/ticketing operator; distinguish airport rules from citywide claims.",
+ "Timor-Leste": "Check current Dili airport services and specific published local operator instructions; do not fill unsupported scam slots.",
+ "Vietnam": "Distinguish Noi Bai and Tan Son Nhat terminals, named pickup services and current route/operator rules.",
+}
+
 VALID_PHASES = (1, 2)
 LEGACY_CATEGORY_TOPIC = {
     "transport": "transport",
