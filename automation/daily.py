@@ -57,11 +57,19 @@ def main():
         print("Missing GitHub secrets or variables; no content generated.",file=sys.stderr);sys.exit(2)
     if not SITE.startswith("https://"):
         raise ValueError("TRIPCAUTION_API_URL must use HTTPS")
+    existing=request_json(SITE+"/api/ingest/topics",None,{"Authorization":"Bearer "+TOKEN},timeout=25)
+    if existing.get("upcoming",0)>=2:
+        print("Upcoming manually scheduled articles already fill the queue; skip to save API quota.")
+        return
+    old_titles=[row.get("title","") for row in existing.get("titles",[])]
     now=datetime.now(timezone.utc)
-    # Daily rotating seed, with additional similarity checks at the CMS.
+    # Daily rotating seed, filtered against existing content; never publish duplicates.
     country,category,idea=TOPICS[now.timetuple().tm_yday % len(TOPICS)]
     print("Researching category:",category,"destination:",country)
     research_prompt=f"""Research in English for TripCaution: {idea}.
+Previously published or scheduled article titles (DO NOT REPEAT):
+{json.dumps(old_titles[:180],ensure_ascii=False)[:6500]}
+Choose a differentiated practical research angle appropriate to this destination.
 Use fresh Google Search grounding. Provide five or more concrete, useful findings supported by official authorities
 and reputable reporting where possible. Clearly note each source's publisher, actual URL, publication date
 and specific scope. Do not invent claims or sources. Do not make safety, legal, health or crime assertions
@@ -93,6 +101,11 @@ SOURCE LIST:
 """
     drafted,_=api_request(drafting_prompt)
     obj=read_json(drafted)
+    new_slug=re.sub(r"[^a-z0-9]+","-",obj.get("slug","").lower()).strip("-")
+    old_slugs={re.sub(r"[^a-z0-9]+","-",t.lower()).strip("-") for t in old_titles}
+    if new_slug in old_slugs or obj.get("title","").lower() in [t.lower() for t in old_titles]:
+        print("Draft duplicates an existing title; skip.")
+        return
     if obj.get("category")!=category or obj.get("country")!=country:
         raise ValueError("Draft category/country mismatch")
     content=obj.get("content_markdown","")
