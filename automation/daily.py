@@ -56,7 +56,7 @@ class TextExtractor(HTMLParser):
         if tag in ("script","style","noscript","svg"):
             self.skip+=1
         if tag in ("h1","h2","h3","p","li"):
-            self.parts.append("\\n")
+            self.parts.append("\n")
     def handle_endtag(self,tag):
         if tag in ("script","style","noscript","svg") and self.skip:
             self.skip-=1
@@ -78,18 +78,18 @@ def curated_research(country):
                 if "text/html" not in res.headers.get("Content-Type",""):
                     raise ValueError("Source did not return HTML")
                 page=res.read(500_000).decode("utf-8",errors="replace")
-            main=re.search(r"<main\\b[^>]*>(.*?)</main>",page,flags=re.I|re.S)
+            main=re.search(r"<main\b[^>]*>(.*?)</main>",page,flags=re.I|re.S)
             extract=TextExtractor();extract.feed(main.group(1) if main else page)
-            content=re.sub(r"\\s+"," "," ".join(extract.parts)).strip()[:11500]
+            content=re.sub(r"\s+"," "," ".join(extract.parts)).strip()[:11500]
             if len(content)<550:
                 print("Official source had insufficient readable content:",url)
                 continue
-            collected.append("SOURCE "+url+"\\n"+content)
+            collected.append("SOURCE "+url+"\n"+content)
             publisher="UK Foreign, Commonwealth & Development Office" if "gov.uk" in url else "Government of Canada"
             source_refs.append({"title":country+" travel advice","publisher":publisher,"url":url,"published_at":None})
         except Exception as e:
             print("Could not read curated source",url,type(e).__name__)
-    return "\\n\\n".join(collected),source_refs
+    return "\n\n".join(collected),source_refs
 
 def read_json(text):
     clean=re.sub(r"^\s*```(?:json)?|```\s*$","",text.strip(),flags=re.IGNORECASE).strip()
