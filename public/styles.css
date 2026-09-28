@@ -674,3 +674,9 @@ a.caution-topic:hover,a.caution-topic:focus-visible{border-color:#526d53;transfo
 .impact-panel p{margin:0 0 9px;font-size:14px;line-height:1.65;max-width:75ch}
 .impact-panel small{display:block;font-size:12px;line-height:1.6;border-top:1px solid currentColor;padding-top:11px;margin-top:13px;opacity:.85}
 @media(max-width:620px){.impact-panel{padding:18px}.impact-panel-head strong{font-size:16px}}
+
+.impact-legend{padding:18px 20px;margin:20px 0 26px;border:1px solid #d6ded2;border-radius:8px;background:#fafbf7;max-width:850px}
+.impact-legend>strong{display:block;font-size:14px;line-height:1.65}
+.impact-legend-chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 3px}
+.impact-legend small{display:block;color:#53675a;font-size:12px;line-height:1.65}
+.caution-country-filter select[name="level"]{min-width:150px}
