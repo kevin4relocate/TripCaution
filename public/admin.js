@@ -5,6 +5,7 @@ const escapeHTML=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 async function api(path,options={}){
  const response=await fetch(path,{...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})},credentials:'same-origin'});
  const data=await response.json().catch(()=>({error:'Invalid server response'}));
+ if(response.status===401){window.location.replace('/sign-in');throw Error('Please sign in again');}
  if(!response.ok && response.status!==207)throw Error(data.error||'Request failed');
  return data;
 }
@@ -125,3 +126,14 @@ $('upload-btn').onclick=async()=>{
  }catch(e){toast(e.message,true);}
 };
 refresh().catch(e=>{toast('Could not load dashboard: '+e.message,true);$('activities').textContent='Check Cloudflare Access and D1 setup.';});
+
+const logoutButton=document.getElementById('logout-btn');
+if(logoutButton)logoutButton.addEventListener('click',async()=>{
+ logoutButton.disabled=true;
+ try{
+  await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});
+ }finally{
+  // Even on network error, force a fresh sign-in rather than leaving the editor open.
+  window.location.replace('/sign-in');
+ }
+});
