@@ -61,6 +61,11 @@ function updateBulkToolbar(){
  $('bulk-count').textContent=selected.length+' selected';
  const has=selected.length>0&&!quickBusy;
  for(const name of ['publish','hide','schedule','restore','delete'])$('bulk-'+name).disabled=!has;
+ const selectedDeleted=has&&selected.every(a=>a.status==='deleted');
+ $('bulk-purge').hidden=$('article-filter').value!=='deleted';
+ $('bulk-purge').disabled=!selectedDeleted;
+ $('empty-trash').hidden=$('article-filter').value!=='deleted'||Boolean($('article-search').value.trim());
+ $('empty-trash').disabled=quickBusy;
  $('bulk-clear').disabled=!has;
 }
 function quickOptions(a){
@@ -72,6 +77,7 @@ function quickOptions(a){
  if(['hidden','archived','deleted'].includes(a.status))ops.push('<option value="restore">Restore draft</option>');
  if(['published','scheduled','draft','hidden'].includes(a.status))ops.push('<option value="review">Move to Review</option>');
  if(a.status!=='deleted')ops.push('<option value="delete">Delete · recoverable</option>');
+ else ops.push('<option value="purge">Permanently delete…</option>');
  return ops.join('');
 }
 function renderArticles(){
@@ -246,6 +252,7 @@ async function action(name,extra={}){
 }
 async function quickRowAction(id,name){
  if(quickBusy)return;
+ if(name==='purge'){await permanentlyPurge([id]);return;}
  if(name==='schedule'){openSchedule('row',[id]);return;}
  const a=state.articles.find(article=>article.id===id);
  if(!a)return;
@@ -292,6 +299,42 @@ async function runBulk(name,scheduledAt=null,stagger=false){
  }catch(e){toast(e.message,true);}
  finally{quickBusy=false;renderArticles();updateReviewGate();}
 }
+async function permanentlyPurge(ids=null){
+ if(quickBusy)return;
+ const selected=ids?ids.map(id=>state.articles.find(a=>a.id===id)).filter(Boolean):null;
+ if(selected&&(!selected.length||selected.some(a=>a.status!=='deleted'))){
+  toast('Only articles already in Deleted can be permanently erased.',true);return;
+ }
+ if(!selected && ($('article-filter').value!=='deleted'||$('article-search').value.trim())){
+  toast('Select the Deleted filter and clear search before emptying the entire trash.',true);return;
+ }
+ try{
+  const mode=selected?'selected':'trash';
+  // For "all trash", the authoritative count comes from the server, not the
+  // currently loaded paginated/list-limited table.
+  const count=selected?selected.length:Number((await api('/api/admin/trash-count')).count);
+  if(!count){toast('Trash is already empty.');return;}
+  const warning=(selected?'Permanently erase '+count+' selected deleted article(s)?':
+   'EMPTY ALL TRASH: Permanently erase '+count+' deleted article(s), including any not loaded in this table?')+
+   '\\n\\nThis removes the articles and their article-linked audit entries from D1. It cannot be undone through Admin. Save a D1 backup before continuing. Cloudflare R2 image objects are NOT deleted.'+
+   '\\n\\nType PERMANENTLY DELETE to confirm:';
+  if(window.prompt(warning)!=='PERMANENTLY DELETE'){
+   toast('Permanent deletion canceled.');return;
+  }
+  quickBusy=true;updateBulkToolbar();
+  const body={mode,confirmation:'PERMANENTLY DELETE',confirm_count:count};
+  if(selected)body.ids=selected.map(a=>a.id);
+  const result=await api('/api/admin/purge',{method:'POST',body:JSON.stringify(body)});
+  if(selected)for(const a of selected)selectedIds.delete(a.id);
+  else selectedIds.clear();
+  toast(result.purged+' deleted article(s) permanently erased from D1. R2 images are unchanged.');
+  $('bulk-result').textContent=result.purged+' permanently deleted. To remove image files, review R2 separately.';
+  await refresh();
+ }catch(e){toast(e.message,true);}
+ finally{quickBusy=false;renderArticles();updateBulkToolbar();}
+}
+$('bulk-purge').addEventListener('click',()=>permanentlyPurge(selectedVisible().map(a=>a.id)));
+$('empty-trash').addEventListener('click',()=>permanentlyPurge());
 function openSchedule(mode,ids){
  if(quickBusy||!ids.length)return;
  if(mode==='editor'&&state.dirty){toast('Save your edits before scheduling.',true);return;}
