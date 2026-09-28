@@ -77,7 +77,9 @@ test('full directory starts with all 11 regional countries, labelling unpublishe
  assert.match(page,/Research planned/);
  assert.match(page,/Southeast Asia guide hub/);
  assert.doesNotMatch(page,/<a[^>]+href="\/destinations\/cambodia"/);
- assert.doesNotMatch(page,/id="continent-europe"/);
+ assert.match(page,/id="continent-europe"/);
+ assert.match(page,/class="destination-name">Kenya<\/span>/);
+ assert.doesNotMatch(page,/href="\/destinations\/kenya"/);
 });
 test('responsive design includes compact layouts and reduced vertical spacing',()=>{
   const css=readFileSync(new URL('../public/styles.css',import.meta.url),'utf8');
