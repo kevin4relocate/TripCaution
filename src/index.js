@@ -169,6 +169,13 @@ async function api(request,env,url,admin=false){
  let actor;
  if(pathname==='/api/ingest' && method==='POST')actor=await requireIngest(request,env);
  else actor=await requireAdmin(request,env);
+ if(method==='GET' && pathname==='/api/ingest/topics'){
+  // Bot-only overview prevents re-creating the same guide and avoids competing with manual scheduling.
+  if(actor!=='github-automation')return json({error:'Bot token required'},403);
+  const titles=(await env.DB.prepare("SELECT title,country,city,status FROM articles WHERE status!='deleted' ORDER BY created_at DESC LIMIT 400").all()).results;
+  const upcoming=(await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='scheduled' AND julianday(scheduled_at) BETWEEN julianday('now') AND julianday('now','+2 days')").first()).count;
+  return json({titles,upcoming});
+ }
  if(method==='GET' && pathname==='/api/admin/articles'){
   const rows=await env.DB.prepare("SELECT id,title,slug,country,city,category_id,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles ORDER BY created_at DESC LIMIT 300").all();
   return json({articles:rows.results});
