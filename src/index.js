@@ -852,7 +852,10 @@ export default {
     const rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at,published_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
     const countries=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
     const hasContact=Boolean(editorialEmail(env))&&env.EDITORIAL_CONTACT_VERIFIED==='true';
-    return new Response(sitemapXML(siteURL(env),rows,countries,hasContact,countries.some(row=>isSoutheastAsia(row.country))),{
+    const publishedCategories=env.DB?(await env.DB.prepare("SELECT DISTINCT category_id FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+    const active=new Set(publishedCategories.map(row=>row.category_id));
+    const publishedTopics=CAUTION_TOPICS.filter(topic=>topic.ids.some(id=>active.has(id))).map(topic=>topic.slug);
+    return new Response(sitemapXML(siteURL(env),rows,countries,hasContact,countries.some(row=>isSoutheastAsia(row.country)),publishedTopics),{
      headers:{'content-type':'application/xml;charset=utf-8','cache-control':'public,max-age=300','x-content-type-options':'nosniff'}
     });
    }
