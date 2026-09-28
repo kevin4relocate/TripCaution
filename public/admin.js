@@ -1,6 +1,10 @@
 
 const $=id=>document.getElementById(id);
 const state={articles:[],categories:[],queue:[],page:1,pages:1,total:0,selected:null,dirty:false};
+const isSevere=level=>level==='high'||level==='critical';
+const isAssessed=level=>['low','moderate','high','critical'].includes(level);
+const assessmentComplete=a=>!isAssessed(a?.caution_level)||(String(a?.severity_scope||'').trim().length>=12&&String(a?.severity_rationale||'').trim().length>=40);
+
 let libraryRequestSerial=0;
 async function loadArticlePage(page=state.page){
  const serial=++libraryRequestSerial;
@@ -233,7 +237,10 @@ function hasSources(a){
 function updateReviewGate(){
  const a=state.selected;
  const eligible=a&&['review','draft','hidden','scheduled'].includes(a.status);
- const ready=Boolean(eligible&&!state.dirty&&hasSources(a)&&!quickBusy);
+ const severe=Boolean(isSevere(a?.caution_level));
+ $('severity-confirm-label').hidden=!severe;
+ const ready=Boolean(eligible&&!state.dirty&&hasSources(a)&&assessmentComplete(a)&&
+  (!severe||$('severity-confirm').checked)&&!quickBusy);
  $('review-publish-btn').hidden=!eligible;
  $('review-publish-btn').disabled=!ready;
  $('publish-btn').disabled=!ready;
@@ -244,6 +251,8 @@ function updateReviewGate(){
  $('review-guidance').textContent=!a?'Select an article to review.':
   state.dirty?'Save your changes first. Preview always displays the last saved version.':
   !hasSources(a)?'Add at least one valid HTTPS source and save before publishing.':
+  !assessmentComplete(a)?'Explain the precise scope (12+ characters) and evidence-backed impact (40+ characters), then save.':
+  severe&&!$('severity-confirm').checked?'Individually verify the scope and potential impact, then tick the confirmation above.':
   !eligible?'This article is already published or needs to be restored. You can still edit or hide it.':
   'Review the article and its source links. Publish only when you are satisfied, or leave it private.';
 }
@@ -264,6 +273,8 @@ function populateReviewEvidence(a){
  flags.hidden=unresolved.length===0;
  flags.innerHTML=unresolved.length?'<strong>OPEN RESEARCH QUESTIONS · VERIFY BEFORE PUBLISHING</strong><ul>'+
   unresolved.slice(0,20).map(item=>'<li>'+escapeHTML((typeof item==='string'?item:JSON.stringify(item)).slice(0,500))+'</li>').join('')+'</ul>':'';
+ $('severity-confirm').checked=false;
+ $('severity-confirm-label').hidden=!isSevere(a.caution_level);
  $('editor-preview-link').href='/admin/preview/'+encodeURIComponent(a.id);
 }
 $('editor-preview-link').addEventListener('click',event=>{
@@ -276,8 +287,9 @@ function markDirty(event){
 }
 editorForm.addEventListener('input',markDirty);
 editorForm.addEventListener('change',markDirty);
+$('severity-confirm').addEventListener('change',updateReviewGate);
 $('review-publish-btn').onclick=()=>action('publish');
-const fields=['title','slug','excerpt','country','city','content_markdown','verified_at','seo_title','seo_description','hero_image_url','hero_alt','hero_prompt'];
+const fields=['title','slug','excerpt','country','city','content_markdown','verified_at','seo_title','seo_description','hero_image_url','hero_alt','hero_prompt','caution_level','severity_scope','severity_rationale'];
 function refreshSEOPreview(){
  const form=$('article-form');
  if(!form)return;
@@ -337,7 +349,7 @@ async function action(name,extra={}){
   updateReviewGate();
   if($('publish-btn').disabled){toast('Save changes and include a valid source before publishing.',true);return;}
   if(!confirm('Have you reviewed this article and its sources, and do you want to '+(name==='publish'?'publish it now':'schedule it')+'?'))return;
-  extra={...extra,review_confirmed:true,review_method:'single'};
+  extra={...extra,review_confirmed:true,review_method:'single',severity_confirmed:isSevere(state.selected.caution_level)?$('severity-confirm').checked:false};
  }
  if(name==='delete'&&!confirm('Move this article to Deleted? Its text is retained and you can Restore draft later.'))return;
  if(name==='hide'&&state.selected.status==='published'&&!confirm('Hide this live article from the public website? It will remain in Admin.'))return;
