@@ -418,6 +418,53 @@ async function api(request,env,url,admin=false){
   }
   return json({results,processed:results.filter(x=>x.ok).length,failed:results.filter(x=>!x.ok).length},207);
  }
+ if(method==='GET' && pathname==='/api/admin/trash-count'){
+  const row=await env.DB.prepare("SELECT COUNT(*) AS count FROM articles WHERE status='deleted'").first();
+  return json({count:Number(row?.count||0)});
+ }
+ if(method==='POST' && pathname==='/api/admin/purge'){
+  // Owner-only irreversible deletion. This intentionally never accepts a bot token,
+  // unchecked status, a broad status other than deleted, or a generic "purge all" flag.
+  const body=await request.json();
+  if(body?.confirmation!=='PERMANENTLY DELETE')
+   return json({error:'Type PERMANENTLY DELETE to confirm irreversible deletion'},422);
+  if(body?.mode!=='selected'&&body?.mode!=='trash')
+   return json({error:'Unknown purge mode'},400);
+  const selected=body.mode==='selected';
+  if(selected&&(!Array.isArray(body.ids)||body.ids.length<1||body.ids.length>300||
+    body.ids.some(id=>typeof id!=='string'||!/^[a-f0-9-]{36}$/.test(id))||
+    new Set(body.ids).size!==body.ids.length))
+   return json({error:'Select 1–300 unique valid article IDs'},400);
+  if(body.mode==='trash'&&body.ids!==undefined)
+   return json({error:'Empty trash never accepts an article ID list'},400);
+  // Require a fresh server-confirmed count so "Empty Trash" cannot erase items
+  // added after the owner opened the dialog.
+  const list=selected?
+   (await env.DB.prepare('SELECT id,status FROM articles WHERE id IN ('+body.ids.map(()=>'?').join(',')+')').bind(...body.ids).all()).results:
+   null;
+  if(selected&&(!Array.isArray(list)||list.length!==body.ids.length||list.some(row=>row.status!=='deleted')))
+   return json({error:'Every selected article must already be in Deleted; refresh the list'},409);
+  const count=selected?list.length:
+   Number((await env.DB.prepare("SELECT COUNT(*) AS count FROM articles WHERE status='deleted'").first())?.count||0);
+  if(count===0)return json({error:'Trash is empty; nothing to permanently delete'},409);
+  if(!Number.isInteger(body.confirm_count)||body.confirm_count!==count)
+   return json({error:'The number of deleted articles has changed. Refresh and confirm again'},409);
+  // D1 batch executes a transaction; if the DELETE fails, old article records
+  // and their associated audit history should remain together.
+  const binds=selected?body.ids:[];
+  const where=selected?'id IN ('+binds.map(()=>'?').join(',')+') AND status=\'deleted\'':"status='deleted'";
+  const auditWhere=selected?'article_id IN ('+binds.map(()=>'?').join(',')+')':
+   "article_id IN (SELECT id FROM articles WHERE status='deleted')";
+  const cleanupAudit=env.DB.prepare('DELETE FROM audit_logs WHERE '+auditWhere);
+  const cleanupArticles=env.DB.prepare('DELETE FROM articles WHERE '+where);
+  const record=env.DB.prepare("INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)")
+   .bind(crypto.randomUUID(),actor,'permanently-purged',null,
+    JSON.stringify({mode:body.mode,count,occurred_at:new Date().toISOString()}));
+  const statements=[selected?cleanupAudit.bind(...binds):cleanupAudit,
+   selected?cleanupArticles.bind(...binds):cleanupArticles,record];
+  await env.DB.batch(statements);
+  return json({ok:true,purged:count,mode:body.mode,r2_unchanged:true});
+ }
  if(method==='POST' && pathname==='/api/admin/auto-schedule'){
   // Sprint 0 launch freeze: no bulk publishing without a per-article evidence record.
   return json({error:'Bulk scheduling disabled. Review and schedule each article individually.'},403);
