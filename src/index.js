@@ -69,13 +69,19 @@ async function homepage(env){
 async function destinationPage(env,slug){
  const all=env.DB?await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND lower(replace(a.country,' ','-'))=? ORDER BY a.published_at DESC LIMIT 100").bind(slug).all():{results:[]};
  const common={'vietnam':'Vietnam','cambodia':'Cambodia','thailand':'Thailand','laos':'Laos','japan':'Japan','singapore':'Singapore','france':'France','indonesia':'Indonesia','malaysia':'Malaysia','italy':'Italy','spain':'Spain','united-states':'United States'};
- const country=common[slug]||all.results[0]?.country;
+ const cityMap={'bangkok':{name:'Bangkok',country:'Thailand'}};
+ const city=cityMap[slug]||null;
+ const country=common[slug]||city?.country||all.results[0]?.country;
  if(!country)return html(layout(env,'Destination not found','<main class="shell simple"><h1>We could not find that destination.</h1><a href="/">Explore destinations ↗</a></main>'),404);
- const articles=all.results, grouped=Object.groupBy?Object.groupBy(articles,a=>a.city||'All areas'):{};
- const body=`<main><div class="destination-hero"><div class="shell"><a class="backlink" href="/">← All destinations</a><div class="eyebrow">DESTINATION GUIDE / ${esc(country.toUpperCase())}</div><h1>${esc(country)}<span class="title-star"> ✳</span></h1><p>What to know, what to double-check, and how to travel with more confidence.</p><span class="dest-count">${articles.length} RESEARCHED GUIDES</span></div></div><section class="section shell">
+ let articles=all.results;
+ if(city && env.DB) {
+  articles=(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND lower(a.city)=? ORDER BY a.published_at DESC LIMIT 100").bind(city.name.toLowerCase()).all()).results;
+ }
+ const heading=city?.name||country;
+ const body=`<main><div class="destination-hero"><div class="shell"><a class="backlink" href="/">← All destinations</a><div class="eyebrow">DESTINATION GUIDE / ${esc(country.toUpperCase())}${city?' / '+esc(city.name.toUpperCase()):''}</div><h1>${esc(heading)}<span class="title-star"> ✳</span></h1><p>What to know, what to double-check, and how to travel with more confidence.</p><span class="dest-count">${articles.length} RESEARCHED GUIDES</span></div></div><section class="section shell">
  ${articles.length?'<div class="guide-grid">'+articles.map(a=>articleCard(a)).join('')+'</div>':'<div class="empty-state"><span>✳</span><h3>Research in progress.</h3><p>We are building carefully sourced guides for this destination. No warnings are published until evidence is checked.</p></div>'}
  </section></main>`;
- return html(layout(env,country+' travel precautions',body,{path:'/destinations/'+slug,description:'Travel precautions, cultural considerations and researched guides for '+country+'.'}));
+ return html(layout(env,heading+' travel precautions',body,{path:'/destinations/'+slug,description:'Travel precautions, cultural considerations and researched guides for '+heading+', '+country+'.'}));
 }
 function renderInline(s){
  let out=esc(s);
@@ -167,7 +173,7 @@ async function api(request,env,url,admin=false){
  if(!env.DB)throw Object.assign(new Error('D1 database missing'),{status:503});
  const pathname=url.pathname,method=request.method;
  let actor;
- if(pathname==='/api/ingest' && method==='POST')actor=await requireIngest(request,env);
+ if((pathname==='/api/ingest' && method==='POST') || (pathname==='/api/ingest/topics' && method==='GET'))actor=await requireIngest(request,env);
  else actor=await requireAdmin(request,env);
  if(method==='GET' && pathname==='/api/ingest/topics'){
   // Bot-only overview prevents re-creating the same guide and avoids competing with manual scheduling.
@@ -298,6 +304,12 @@ export default {
    if(path==='/search')return await searchPage(env,url);
    if(path.startsWith('/destinations/'))return await destinationPage(env,decodeURIComponent(path.split('/')[2]||''));
    if(path.startsWith('/guides/'))return await guidePage(env,decodeURIComponent(path.split('/')[2]||''));
+   if(path==='/health'){
+    if(!env.DB) return json({status:'not-ready',database:'unbound'},503);
+    try {await env.DB.prepare("SELECT COUNT(*) total FROM articles").first();
+      return json({status:'ok',database:'ready'});}
+    catch {return json({status:'not-ready',database:'schema-missing'},503);}
+   }
    if(path==='/sitemap.xml'){
     const rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
     const urls=['/','/about',...rows.map(x=>'/guides/'+encodeURIComponent(x.slug))];
