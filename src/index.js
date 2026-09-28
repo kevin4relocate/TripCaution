@@ -9,7 +9,7 @@ const safe = (url) => { try {const u=new URL(url);return u.protocol==='https:'?u
 const safeParse = (value, fallback=[]) => {try {return JSON.parse(value);}catch{return fallback;}};
 const link = (href,text,cls='') => '<a href="'+esc(href)+'" class="'+cls+'">'+esc(text)+'</a>';
 const siteURL = env => (env.SITE_URL||'https://tripcaution.com').replace(/\/$/,'');
-const nav = '<a href="/">Explore</a><a href="/#destinations">Destinations</a><a href="/#latest">Latest guides</a><a href="/about">Our approach</a>';
+const nav = '<a href="/">Explore</a><a href="/#destinations">Destinations</a><a href="/#latest">Field notes</a><a href="/about">About</a>';
 function layout(env, title, body, meta={}) {
  const description=meta.description||'Evidence-led travel precautions and practical guides. Know before you go.';
  const url=siteURL(env)+(meta.path||'/');
@@ -21,7 +21,7 @@ function layout(env, title, body, meta={}) {
  ${image?'<meta property="og:image" content="'+esc(image)+'">':''}
  <link rel="stylesheet" href="/styles.css"><link rel="icon" type="image/svg+xml" href="/favicon.svg">
  </head><body><header class="header"><div class="shell nav-wrap"><a class="brand" href="/" aria-label="TripCaution homepage"><span class="brand-mark">!</span>TRIP<span>CAUTION</span></a>
- <nav aria-label="Main navigation">${nav}</nav><a href="/#destinations" class="header-cta">Explore destinations <span>↗</span></a></div></header>
+ <nav aria-label="Main navigation">${nav}</nav><a href="/#destinations" class="header-cta">Explore <span>↗</span></a></div></header>
  ${body}<footer><div class="shell footer-grid"><div><div class="footer-brand">TRIP<span>CAUTION</span><span class="tiny-star"> ✳</span></div>
  <p>Know before you go. Independent travel information with linked sources. Not an emergency alert service.</p></div>
  <div><strong>EXPLORE</strong><a href="/#destinations">Destinations</a><a href="/#latest">Latest guides</a></div>
@@ -50,20 +50,57 @@ async function homepage(env){
   latest=a.results;countryRows=c.results;count=n.count;
  }
  const destinationGroups=groupDestinationsByContinent([...STARTER_DESTINATIONS,...countryRows.map(x=>x.country)]);
- const body=`<main><section class="hero"><div class="hero-texture"></div><div class="shell hero-content">
- <div class="pill"><span class="live-dot"></span> THE SMARTER WAY TO EXPLORE</div>
- <h1>The world is beautiful.<br><em>Know what to avoid.</em></h1>
- <p class="hero-description">Honest, well-researched travel precautions, common mistakes and local know-how. So the only surprises you bring home are the good ones.</p>
- <form class="destination-search" action="/search" method="get"><span class="search-icon">⌕</span><label class="sr-only" for="q">Search destinations and guides</label><input id="q" type="search" name="q" placeholder="Where are you heading?" required maxlength="80">
- <button type="submit">Explore guides <span>↗</span></button></form>
- <div class="search-hints"><span>POPULAR:</span>${['Vietnam','Bangkok','Cambodia'].map(x=>link('/destinations/'+slugify(x),x)).join('')}</div>
- </div><div class="hero-art" aria-hidden="true"><div class="circle-one"></div><div class="circle-two"></div><div class="hero-landscape"><div class="sun"></div><div class="mountain m1"></div><div class="mountain m2"></div><div class="road"></div></div><div class="hero-stamp">BE CURIOUS.<br>BE PREPARED. <span>↗</span></div></div></section>
- <section class="value-bar"><div class="shell value-grid"><div><span>01 /</span><b>Research first</b><small>Information linked to sources</small></div><div><span>02 /</span><b>Stay aware</b><small>Practical advice, not fear</small></div><div><span>03 /</span><b>Go confidently</b><small>Know what matters before you go</small></div></div></section>
- <section class="section shell" id="destinations"><div class="section-heading"><div><div class="eyebrow">YOUR NEXT STOP</div><h2>Everywhere starts <em>somewhere.</em></h2><p>Browse countries alphabetically, organized by continent. Explore local customs, common pitfalls and practical precautions.</p></div><span class="section-icon">✳</span></div>
- <div class="continent-directory">${destinationGroups.map(group=>`<section class="continent-section" aria-labelledby="continent-${slugify(group.continent)}"><div class="continent-heading"><h3 id="continent-${slugify(group.continent)}">${esc(group.continent)}</h3><span class="continent-count">${group.countries.length} ${group.countries.length===1?'COUNTRY':'COUNTRIES'} · A–Z</span></div><div class="destination-grid">${group.countries.map((country,i)=>`<a class="destination-tile tone-${i%6}" href="/destinations/${slugify(country)}"><span class="destination-number">${String(i+1).padStart(2,'0')}</span><span class="destination-name">${esc(country)}</span><span class="destination-arrow">↗</span></a>`).join('')}</div></section>`).join('')}</div></section>
- <section class="section alt-section" id="latest"><div class="shell"><div class="section-heading"><div><div class="eyebrow">THE FIELD NOTES</div><h2>Good to know <em>before you go.</em></h2><p>Carefully sourced articles on everyday travel decisions.</p></div><span class="guide-count">${count} PUBLISHED GUIDES</span></div>
- ${latest.length?'<div class="guide-grid">'+latest.map(a=>articleCard(a)).join('')+'</div>':'<div class="empty-state"><span>✳</span><h3>Our first field notes are on their way.</h3><p>We publish only when research and source checks meet our editorial standards. Explore a destination or return soon.</p></div>'}
- </div></section><section class="shell prefooter"><span>THE TRIPCAUTION PHILOSOPHY</span><h2>More wonder.<br><em>Less worry.</em></h2><p>Travel caution isn't about staying home. It's about arriving informed and experiencing more.</p><a href="/about" class="pill-button">How we research <span>↗</span></a></section></main>`;
+ const body=`<main>
+ <section class="hero"><div class="shell hero-inner"><div class="hero-content">
+   <div class="hero-label"><span class="label-line"></span> THE INDEPENDENT TRAVEL FIELD GUIDE <span class="hero-label-star">✳</span></div>
+   <h1>Go somewhere new.<br><em>Know what to avoid.</em></h1>
+   <p class="hero-description">Curious about a place? Get practical things to check, common travel mistakes, and advice backed by sources — before you pack.</p>
+   <form class="destination-search" action="/search" method="get">
+     <label class="sr-only" for="q">Search destinations and guides</label><span class="search-icon" aria-hidden="true">⌕</span>
+     <input id="q" type="search" name="q" placeholder="Country, city or topic..." required maxlength="80">
+     <button type="submit">Find a guide <span aria-hidden="true">↗</span></button>
+   </form>
+   <div class="search-hints"><span>EXPLORE</span>${['Vietnam','Bangkok','Cambodia'].map(x=>link('/destinations/'+slugify(x),x)).join('')}</div>
+  </div>
+  <div class="hero-visual" aria-hidden="true">
+    <div class="paper-layer paper-layer-back"></div><div class="paper-layer paper-layer-mid"></div>
+    <div class="postcard">
+      <div class="postcard-top"><span>NOTES FROM THE ROAD</span><span>NO. 001 ↗</span></div>
+      <img src="/illustrations/travel-journal.svg" width="720" height="440" alt="">
+      <div class="postcard-bottom"><span>GO CURIOUS. STAY INFORMED.</span><span>✳</span></div>
+    </div>
+    <div class="postcard-sticker">BEFORE<br>YOU GO <span>↗</span></div>
+  </div></div></section>
+ <div class="editorial-strip"><div class="shell editorial-strip-inner">
+   <span class="strip-label">TRAVEL NOTES /</span>
+   <span>Real research. Practical takeaways. No made-up travel stories.</span>
+   <a href="/about">Read our approach <span aria-hidden="true">↗</span></a>
+ </div></div>
+ <section class="section shell destinations-section" id="destinations">
+   <div class="section-heading"><div><div class="eyebrow">01 — THE DESTINATION INDEX</div>
+     <h2>Where to <em>next?</em></h2>
+     <p>Choose a place. Countries are grouped by continent and sorted A–Z.</p></div>
+     <a class="section-action" href="/search">Search all guides <span aria-hidden="true">↗</span></a>
+   </div>
+   <nav class="continent-nav" aria-label="Jump to continent">
+     ${destinationGroups.map(group=>`<a href="#continent-${slugify(group.continent)}">${esc(group.continent)} <small>${group.countries.length}</small></a>`).join('')}
+   </nav>
+   <div class="continent-directory">
+   ${destinationGroups.map(group=>`<section class="continent-section" aria-labelledby="continent-${slugify(group.continent)}">
+     <div class="continent-heading"><h3 id="continent-${slugify(group.continent)}">${esc(group.continent)}</h3><span class="continent-count">${group.countries.length} ${group.countries.length===1?'DESTINATION':'DESTINATIONS'} / A–Z</span></div>
+     <div class="destination-grid">${group.countries.map(country=>`<a class="destination-tile" href="/destinations/${slugify(country)}"><span class="destination-name">${esc(country)}</span><span class="destination-arrow" aria-hidden="true">↗</span></a>`).join('')}</div>
+    </section>`).join('')}
+   </div>
+ </section>
+ <section class="section alt-section latest-section" id="latest"><div class="shell">
+   <div class="section-heading"><div><div class="eyebrow">02 — READ BEFORE YOU ROAM</div><h2>The latest <em>field notes.</em></h2>
+     <p>Source-backed guidance, minus the fear-mongering.</p></div>
+     <span class="guide-count">${count} PUBLISHED ${count===1?'GUIDE':'GUIDES'}</span></div>
+   ${latest.length?'<div class="guide-grid">'+latest.map(a=>articleCard(a)).join('')+'</div>':
+     '<div class="inline-empty"><span class="empty-icon" aria-hidden="true">✳</span><div><small>THE FIRST ISSUE IS IN THE WORKS</small><h3>Good advice is worth checking twice.</h3><p>Our first researched guides will appear here once their sources have been verified.</p></div><a href="/#destinations">Browse places <span aria-hidden="true">↗</span></a></div>'}
+ </div></section>
+ <aside class="site-signoff"><div class="shell"><span>✳ A LITTLE PREPARATION GOES A LONG WAY.</span><a href="/about">Get to know TripCaution <span aria-hidden="true">↗</span></a></div></aside>
+ </main>`;
  return html(layout(env,'Know before you go',body,{path:'/'}),200,{'cache-control':'public, max-age=60'});
 }
 async function destinationPage(env,slug){
