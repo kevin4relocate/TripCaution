@@ -498,7 +498,7 @@ async function media(env,key){
 async function publishDue(env){
  if(!env.DB)return;
  // Publish only records manually approved and explicitly scheduled. Idempotent conditional update.
- await env.DB.prepare("UPDATE articles SET status='published',published_at=datetime('now'),updated_at=datetime('now') WHERE status='scheduled' AND review_approved=1 AND julianday(scheduled_at)<=julianday('now') AND verified_at IS NOT NULL AND json_array_length(sources_json)>0 AND EXISTS (SELECT 1 FROM audit_logs l WHERE l.article_id=articles.id AND ((l.action='reviewed-and-scheduled' AND json_valid(l.details) AND length(json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.evidence_note'))>=30) OR (l.action='owner-reviewed-and-scheduled' AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1)))").run();
+ await env.DB.prepare("UPDATE articles SET status='published',published_at=datetime('now'),updated_at=datetime('now') WHERE status='scheduled' AND review_approved=1 AND julianday(scheduled_at)<=julianday('now') AND json_array_length(sources_json)>0 AND EXISTS (SELECT 1 FROM audit_logs l WHERE l.article_id=articles.id AND ((l.action='reviewed-and-scheduled' AND json_valid(l.details) AND length(json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.evidence_note'))>=30) OR (l.action='owner-reviewed-and-scheduled' AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1)))").run();
 }
 export default {
  async fetch(request,env){
