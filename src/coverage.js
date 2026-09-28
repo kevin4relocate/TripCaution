@@ -27,6 +27,11 @@ export function summarizeCountryTopicCounts(rows, countries, topicForCategory){
  for(const item of map.values()){
   item.published=item.topics.reduce((n,t)=>n+t.published,0);
   item.pipeline=item.topics.reduce((n,t)=>n+t.pipeline,0);
+  // Target-capped topic coverage avoids counting three generic transport
+  // guides as three distinct first-phase issues or exceeding the 88 goal.
+  item.firstPassCovered=['transport','scams-theft','safety-health']
+   .reduce((sum,slug)=>sum+Math.min(1,item.topics.find(t=>t.slug===slug)?.published||0),0);
+  item.depthCovered=item.topics.reduce((sum,t)=>sum+Math.min(t.target,t.published),0);
   item.firstPassGoal=FIRST_PASS_TARGET;
   item.depthGoal=COUNTRY_ARTICLE_TARGET;
  }
