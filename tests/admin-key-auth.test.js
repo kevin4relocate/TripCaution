@@ -20,6 +20,7 @@ function fakeD1(){
           if(sql.includes("FROM audit_logs")&&sql.includes("admin_login_failed")){
             return {count:failed.filter(v=>v.actor===bound[0]).length};
           }
+          if(sql.includes('COUNT(*) count FROM articles'))return {count:0};
           return null;
         },
         async run(){
@@ -115,7 +116,8 @@ test('session signature is tamper resistant and changing the private key revokes
  const e=env();
  const setCookie=await createAdminSession(e),cookie=setCookie.split(';')[0];
  assert.equal(await hasAdminSession(request('/admin',{headers:{Cookie:cookie}}),e),true);
- const tampered=cookie.slice(0,-1)+(cookie.endsWith('A')?'B':'A');
+ const dot=cookie.lastIndexOf('.');
+ const tampered=cookie.slice(0,dot+1)+(cookie[dot+1]==='A'?'B':'A')+cookie.slice(dot+2);
  assert.equal(await hasAdminSession(request('/admin',{headers:{Cookie:tampered}}),e),false);
  const changed=env(key+'ROTATED');
  assert.equal(await hasAdminSession(request('/admin',{headers:{Cookie:cookie}}),changed),false);
