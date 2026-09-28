@@ -309,16 +309,30 @@ function staticPage(env,type){
 }
 async function searchPage(env,url){
  const q=String(url.searchParams.get('q')||'').slice(0,80).trim();
- const known=[...STARTER_DESTINATIONS,'Bangkok'];
- const exact=known.find(x=>x.toLocaleLowerCase('en')===q.toLocaleLowerCase('en'));
- if(exact) return Response.redirect(url.origin+'/destinations/'+slugify(exact),302);
- const matches=q?known.filter(x=>x.toLocaleLowerCase('en').includes(q.toLocaleLowerCase('en'))):[];
- const rows=q&&env.DB?(await env.DB.prepare("SELECT * FROM articles WHERE status='published' AND published_at<=datetime('now') AND (title LIKE ? OR country LIKE ? OR city LIKE ?) ORDER BY published_at DESC LIMIT 30").bind(...Array(3).fill('%'+q+'%')).all()).results:[];
- const destinations=matches.length?`<section class="search-destinations"><h2>Matching destinations</h2><div class="destination-grid">${matches.map(x=>`<a class="destination-tile" href="/destinations/${slugify(x)}"><span class="destination-name">${esc(x)}</span><span class="destination-arrow" aria-hidden="true">↗</span></a>`).join('')}</div></section>`:'';
- const details=rows.length?`<p>${rows.length} published ${rows.length===1?'guide':'guides'}</p><div class="guide-grid">${rows.map(a=>articleCard(a)).join('')}</div>`:`<p>${q?'No published guides found for that query yet. Try one of the destinations above.':'Enter a country, city or topic to start searching.'}</p>`;
+ const countryRows=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+ const ready=new Set(countryRows.map(row=>String(row.country).toLocaleLowerCase('en')));
+ const countries=[...new Set([...STARTER_DESTINATIONS,...countryRows.map(row=>row.country)].filter(Boolean))];
+ const exactCountry=countries.find(country=>country.toLocaleLowerCase('en')===q.toLocaleLowerCase('en'));
+ // Don't send readers to an empty/noindex page just because research is planned.
+ if(exactCountry&&ready.has(exactCountry.toLocaleLowerCase('en')))
+  return Response.redirect(url.origin+'/destinations/'+slugify(exactCountry),302);
+ const matches=q?countries.filter(country=>country.toLocaleLowerCase('en').includes(q.toLocaleLowerCase('en'))).slice(0,12):[];
+ // ESCAPE literal LIKE wildcards; searching "%" must not reveal the entire index.
+ const pattern='%'+q.replace(/[!%_]/g,char=>'!'+char)+'%';
+ const rows=q&&env.DB?(await env.DB.prepare("SELECT * FROM articles WHERE status='published' AND published_at<=datetime('now') AND (title LIKE ? ESCAPE '!' OR country LIKE ? ESCAPE '!' OR city LIKE ? ESCAPE '!' OR excerpt LIKE ? ESCAPE '!') ORDER BY published_at DESC LIMIT 30").bind(...Array(4).fill(pattern)).all()).results:[];
+ // City route currently exists for Bangkok only; add new city routes explicitly
+ // alongside their destination resolver rather than creating dead-end links.
+ if(q.toLocaleLowerCase('en')==='bangkok'&&rows.some(row=>String(row.city||'').toLocaleLowerCase('en')==='bangkok'))
+  return Response.redirect(url.origin+'/destinations/bangkok',302);
+ const destinations=matches.length?'<section class="search-destinations"><h2>Matching destinations</h2><div class="destination-grid">'+
+  matches.map(country=>ready.has(country.toLocaleLowerCase('en'))?
+   '<a class="destination-tile" href="/destinations/'+slugify(country)+'"><span class="destination-name">'+esc(country)+'</span><span class="directory-tile-meta">Published guides ↗</span></a>':
+   '<div class="destination-tile destination-pending"><span class="destination-name">'+esc(country)+'</span><span class="directory-tile-meta">Research planned</span></div>'
+  ).join('')+'</div></section>':'';
+ const details=rows.length?'<p>'+rows.length+' published '+(rows.length===1?'guide':'guides')+'</p><div class="guide-grid">'+rows.map(row=>articleCard(row)).join('')+'</div>':
+  '<p>'+(q?'No published guides match your search yet. Try another topic or browse our destinations.':'Enter a country, city or topic to start searching.')+'</p>';
  return html(layout(env,'Search',`<main class="shell simple search-results"><div class="eyebrow">DISCOVER</div><h1>Search TripCaution</h1><form action="/search" class="inline-search"><label for="search-query" class="sr-only">Search destinations and guides</label><input id="search-query" name="q" maxlength="80" placeholder="Country, city or topic" value="${esc(q)}"><button>Search ↗</button></form>${destinations}${details}</main>`,{path:'/search',noindex:true}),200,{'x-robots-tag':'noindex'});
 }
-
 // Single-editor key sessions replace the previous Cloudflare Access JWT dependency.
 const requireAdmin=requireKeySession;
 async function requireIngest(request,env){
