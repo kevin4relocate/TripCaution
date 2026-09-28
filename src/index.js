@@ -4,7 +4,7 @@ import {
   createAdminSession, clearAdminSession, hasAdminSession,
   requireKeySession, checkLoginThrottle, recordLoginFailure
 } from './auth.js';
-import { normalizeArticle, STATUSES, CATEGORIES, canAutoPublish, isValidSchedule, slugify } from './content.js';
+import { normalizeArticle, STATUSES, CATEGORIES, isValidSchedule, slugify } from './content.js';
 import { STARTER_DESTINATIONS, groupDestinationsByContinent } from './destinations.js';
 
 const json = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -267,9 +267,9 @@ async function insertArticle(env,raw,actor){
  const a=normalizeArticle(raw);
  const found=await env.DB.prepare("SELECT id,title FROM articles WHERE slug=?").bind(a.slug).first();
  if(found)throw Object.assign(new Error('Duplicate slug: '+a.slug),{status:409});
- // Any imported article needs explicit human approval; automation may publish only low-risk evidence-backed content.
- const automatic=actor==='github-automation' && a.source_mode==='github-automation' && canAutoPublish(a);
- const status=automatic?'published':'review', published=automatic?new Date().toISOString().replace('T',' ').slice(0,19):null;
+ // Sprint 0: source URLs and an AI research timestamp are NEVER approval.
+ // Ingesting any article always creates a human-review draft, including low-risk categories.
+ const status='review',published=null;
  await env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
  .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at).run();
  await audit(env,actor,'created:'+status,a.id);
@@ -477,6 +477,10 @@ export default {
     try {await env.DB.prepare("SELECT COUNT(*) total FROM articles").first();
       return json({status:'ok',database:'ready'});}
     catch {return json({status:'not-ready',database:'schema-missing'},503);}
+   }
+   if(path==='/robots.txt'){
+    return new Response('User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /sign-in\nDisallow: /api/\nSitemap: '+siteURL(env)+'/sitemap.xml\n',
+      {headers:{'content-type':'text/plain; charset=utf-8','cache-control':'public, max-age=300','x-content-type-options':'nosniff'}});
    }
    if(path==='/sitemap.xml'){
     const rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
