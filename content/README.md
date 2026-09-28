@@ -14,7 +14,7 @@ Cover art at `public/illustrations/vietnam-arrival.svg`, `bangkok-rain-rail.svg`
 
 ## Import
 
-**Dashboard route:** Configure Cloudflare Access first, then open your live site's `/admin` > Import content. Paste the raw JSON object from `content/starter-guides.json` or upload the downloaded JSON file. Imported guides go to `review`. Check each one and click **Approve & publish** or **Approve & schedule**.
+**Dashboard route:** Set the Cloudflare Worker secret `ADMIN_LOGIN_KEY`, remove the old TripCaution Access app after the new `/sign-in` page is working, then sign in at `/admin` > Import content. Paste the raw JSON object from `content/starter-guides.json` or upload the downloaded JSON file. Imported guides go to `review`. Check each one and click **Approve & publish** or **Approve & schedule**.
 
 **One-click bot import:** Once the Cloudflare Worker has `INGEST_TOKEN` as an encrypted secret and GitHub has matching `TRIPCAUTION_INGEST_TOKEN` plus `TRIPCAUTION_API_URL`, run GitHub Actions > **Import TripCaution starter guides** > Run workflow. The importer checks source count and ensures every imported item reaches **review**, not immediate public publication.
 
