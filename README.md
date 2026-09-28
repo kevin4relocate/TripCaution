@@ -129,6 +129,7 @@ Create **Repository variables**:
 - `TRIPCAUTION_API_URL` = the deployed site's HTTPS origin **without a final slash**.
 - `GEMINI_MODEL` = an available text model (defaults to `gemini-3.5-flash-lite`; confirm free-tier quota in your Google project).
 - `TRIPCAUTION_RESEARCH_MODE` = `curated` (default, uses official pages in `automation/sources.json` without search-grounding charges) or `grounded` (opt-in, only when your key/model supports Search grounding and its pricing).
+- `TRIPCAUTION_AUTOMATION_ENABLED` = `true` **only after your Cloudflare site, D1 database, ingest secret and model quotas have been configured and tested**. The scheduled workflow deliberately skips its job until this variable is set.
 
 Put the **same** ingestion secret on the Worker, **not in Git**. Use **Workers & Pages > tripcaution > Settings > Variables and Secrets > Add** `INGEST_TOKEN` as an encrypted **secret**, then deploy or save settings as Cloudflare requests.
 
