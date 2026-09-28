@@ -1,0 +1,21 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const html=readFileSync(new URL('../public/admin.html',import.meta.url),'utf8');
+const js=readFileSync(new URL('../public/admin.js',import.meta.url),'utf8');
+const css=readFileSync(new URL('../public/admin.css',import.meta.url),'utf8');
+test('optional editor-authored takeaways have instructions without extra mandatory approval',()=>{
+ assert.match(html,/## Key takeaways/);
+ assert.match(html,/2–5 bullet points/);
+ assert.doesNotMatch(html,/STEP 2 · EDITORIAL CHECKLIST|STEP 3 · CLAIM–SOURCE REVIEW RECORD/);
+ assert.match(html,/id="review-publish-btn"/);
+});
+test('SEO preview tracks title, slug and description but never blocks owner action',()=>{
+ for(const id of ['seo-preview-title','seo-preview-url','seo-preview-desc','seo-length'])
+  assert.ok(html.includes('id="'+id+'"'),id);
+ assert.match(js,/function refreshSEOPreview\(/);
+ assert.match(js,/refreshSEOPreview\(\);/);
+ assert.match(js,/location\.origin\+'\/guides\/'/);
+ assert.match(html,/Search engines may rewrite titles and snippets/);
+ assert.match(css,/\.seo-preview-title/);
+});
