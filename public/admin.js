@@ -83,18 +83,18 @@ function quickOptions(a){
 function renderArticles(){
  const rows=visibleArticles();
  $('article-rows').innerHTML=rows.map(a=>{
-  const published=a.status==='published',deleted=a.status==='deleted';
-  const link=published?'/guides/'+encodeURIComponent(a.slug):'/admin/preview/'+encodeURIComponent(a.id);
-  const trackPreview=published||deleted?'':' data-preview-id="'+escapeHTML(a.id)+'" data-preview-update="'+escapeHTML(a.updated_at||'')+'"';
-  const viewLink=deleted?'<span class="deleted-label">Deleted</span>':
-   '<a class="preview-row-link" href="'+escapeHTML(link)+'" target="_blank" rel="noopener noreferrer"'+trackPreview+'>'+(published?'View live ↗':'Preview ↗')+'</a>';
+  const published=a.status==='published';
+  // Exactly one draft preview entry point: Review/Edit → Preview saved article.
+  // Published guides get a small View live text link beside the destination.
+  const liveLink=published?
+   ' <a class="preview-row-link" href="/guides/'+encodeURIComponent(a.slug)+'" target="_blank" rel="noopener noreferrer">View live ↗</a>':'';
   const statusLabel=a.status==='review'?'AWAITING REVIEW':a.status.toUpperCase();
   return '<tr><td class="select-col"><input type="checkbox" class="row-select" data-id="'+escapeHTML(a.id)+'" aria-label="Select '+escapeHTML(a.title)+'"'+(selectedIds.has(a.id)?' checked':'')+'></td>'+
-   '<td><strong>'+escapeHTML(a.title)+'</strong><small>'+escapeHTML([a.city,a.country].filter(Boolean).join(', '))+'</small></td>'+
+   '<td class="article-info"><strong>'+escapeHTML(a.title)+'</strong><small>'+escapeHTML([a.city,a.country].filter(Boolean).join(', '))+liveLink+'</small></td>'+
    '<td>'+escapeHTML(a.category_id)+'</td><td><span class="status '+escapeHTML(a.status)+'">'+escapeHTML(statusLabel)+'</span></td>'+
-   '<td>'+escapeHTML(a.scheduled_at||a.published_at||'—')+'</td>'+
-   '<td><div class="row-actions">'+viewLink+
-   '<button type="button" class="review-row-btn edit-link" data-id="'+escapeHTML(a.id)+'">'+(a.status==='review'?'Review →':'Edit →')+'</button>'+
+   '<td class="publish-date">'+escapeHTML(a.scheduled_at||a.published_at||'—')+'</td>'+
+   '<td><div class="row-actions">'+
+   '<button type="button" class="review-row-btn edit-link" data-id="'+escapeHTML(a.id)+'">'+(a.status==='review'?'Review':'Edit')+'</button>'+
    '<select class="row-quick" data-id="'+escapeHTML(a.id)+'" aria-label="Quick actions for '+escapeHTML(a.title)+'">'+quickOptions(a)+'</select></div></td></tr>';
  }).join('')||'<tr><td colspan="6">No articles match this view.</td></tr>';
  document.querySelectorAll('#article-rows .edit-link').forEach(btn=>btn.onclick=()=>loadArticle(btn.dataset.id));
@@ -131,6 +131,13 @@ $('select-all-visible').addEventListener('change',event=>{
  renderArticles();
 });
 $('bulk-clear').addEventListener('click',clearSelection);
+/* Native details/summary keeps destructive secondary actions in one compact
+   menu; clicking elsewhere closes it without making the controls inaccessible. */
+document.addEventListener('click',event=>{
+ const menu=$('bulk-more');
+ if(menu.open&&!menu.contains(event.target))menu.open=false;
+});
+
 $('json-file').addEventListener('change',async ev=>{
  const file=ev.target.files[0];if(file){if(file.size>2_000_000){toast('JSON file is too large',true);return;}$('json-input').value=await file.text();}
 });
