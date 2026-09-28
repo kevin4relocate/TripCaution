@@ -284,7 +284,7 @@ async function runBulk(name,scheduledAt=null,stagger=false){
   const res=await api('/api/admin/bulk',{method:'POST',body:JSON.stringify(body)});
   for(const row of res.results)if(row.ok)selectedIds.delete(row.id);
   const errors=res.results.filter(row=>!row.ok);
-  const summary=res.processed+' of '+count+' articles '+verb+(res.processed===1?'d':'d')+'.'+
+  const summary=res.processed+' of '+count+' selected article'+(count===1?'':'s')+' processed ('+verb+').'+
    (errors.length?' '+errors.length+' skipped: '+errors.slice(0,4).map(r=>r.error).join('; '):'');
   $('bulk-result').textContent=summary;
   toast(summary,errors.length>0);
