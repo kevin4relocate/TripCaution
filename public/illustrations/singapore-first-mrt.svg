@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="t d">
+<title id="t">A calm Singapore MRT platform with a contactless payment card</title><desc id="d">AI-authored editorial illustration. Not a photograph.</desc>
+<defs>
+ <linearGradient id="paper" x2=".8" y2="1"><stop stop-color="#f4ecd8"/><stop offset="1" stop-color="#c5d9cb"/></linearGradient>
+ <linearGradient id="sky" x2=".6" y2="1"><stop stop-color="#f4ecd8"/><stop offset="1" stop-color="#e9e4d7"/></linearGradient>
+ <filter id="water"><feTurbulence baseFrequency=".012" numOctaves="3" seed="13" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.3"/></filter>
+ <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".52" numOctaves="3" seed="23" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".11"/></feComponentTransfer></filter>
+</defs>
+<rect width="1200" height="675" fill="url(#paper)"/>
+<rect width="1200" height="675" fill="url(#sky)" opacity=".6"/>
+
+<circle cx="870" cy="144" r="74" fill="#e7c49c" opacity=".67"/>
+<path d="M0 324l104-65 99 62 105-98 112 100 91-85 123 83 137-96 124 91 117-66 88 64v355H0Z" fill="#d5ddce" opacity=".76"/>
+<path d="M0 404Q228 397 444 408T886 398Q1051 403 1200 391v284H0Z" fill="#d4d6c6"/>
+<!-- open airy station -->
+<g stroke="#6c8881" stroke-width="10" fill="none" stroke-linejoin="round"><path d="M0 244Q296 163 593 218T1200 196"/><path d="M0 266Q294 186 593 240T1200 217"/><path d="M127 251v290M510 241v293M921 227v313"/></g>
+<path d="M0 501l1200-38v212H0Z" fill="#bbbfae" stroke="#81938b" stroke-width="5"/>
+<path d="M0 523l1200-34" stroke="#f1dfbd" stroke-width="10" opacity=".8"/>
+<!-- train -->
+<g stroke="#537b70" stroke-width="5" filter="url(#water)">
+<path d="M186 284q8-32 50-35h692q57 8 61 54v166H180Z" fill="#f5f2e6"/>
+<rect x="240" y="271" width="145" height="121" rx="13" fill="#a8c5bd"/><rect x="415" y="271" width="139" height="121" rx="13" fill="#a8c5bd"/>
+<rect x="586" y="271" width="145" height="121" rx="13" fill="#a8c5bd"/><path d="M765 272h138q44 0 52 50v70H765Z" fill="#a8c5bd"/>
+<path d="M183 410h809" stroke="#8eab9e" stroke-width="22"/>
+<path d="M182 443h809" stroke="#cd9874" stroke-width="8"/>
+</g>
+<!-- close-up card and notebook subtly editorial rather than copied signage -->
+<g transform="translate(130 438) rotate(-9)" filter="url(#water)">
+<path d="M-40 47q0-17 20-21L375-8q22 0 25 20l20 171q-2 19-21 20L17 225q-18 0-24-19Z" fill="#f0dec4" stroke="#9a8a78" stroke-width="4"/>
+<path d="M48 92h245" stroke="#b2a28c" stroke-width="5" opacity=".62"/><path d="M49 116h219" stroke="#b2a28c" stroke-width="4" opacity=".62"/>
+<rect x="245" y="37" width="128" height="91" rx="14" fill="#b1c9bc" stroke="#678b7e" stroke-width="4"/>
+<path d="M333 65q-24 17 0 34M344 55q-39 27 0 54" stroke="#f6f0dd" stroke-width="5" fill="none" stroke-linecap="round"/>
+</g>
+<path d="M650 617q145-18 262-12" stroke="#e9e8db" stroke-width="9" fill="none" opacity=".8"/>
+
+<rect width="1200" height="675" filter="url(#grain)" opacity=".4"/>
+</svg>
