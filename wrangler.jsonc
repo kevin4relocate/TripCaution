@@ -4,11 +4,25 @@
   "keep_vars": true,
   "main": "./src/index.js",
   "compatibility_date": "2026-09-25",
-  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "none"
+  },
   "d1_databases": [
-    { "binding": "DB", "database_name": "tripcaution-db", "database_id": "5ab8ab1c-2442-4501-a824-9dc1ff924e93", "migrations_dir": "migrations" }
+    {
+      "binding": "DB",
+      "database_name": "tripcaution-db",
+      "database_id": "5ab8ab1c-2442-4501-a824-9dc1ff924e93",
+      "migrations_dir": "migrations"
+    }
   ],
-  "triggers": { "crons": ["0 * * * *"] },
+  "triggers": {
+    "crons": [
+      "0 * * * *"
+    ]
+  },
   "vars": {
     "SITE_NAME": "TripCaution",
     "SITE_URL": "https://tripcaution.nghiep4tube.workers.dev"
