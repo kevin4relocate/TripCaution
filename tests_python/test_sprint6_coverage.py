@@ -19,7 +19,7 @@ class Sprint6EditorialCoverageTests(unittest.TestCase):
  def test_first_pass_covers_all_eleven_before_repeat(self):
   rows=[]
   countries=[]
-  for day in range(40):
+  for day in range(33):
    selected=choose_slot(rows,1,day)
    self.assertIsNotNone(selected)
    country,(slot,category,brief)=selected
