@@ -24,7 +24,7 @@ function layout(env, title, body, meta={}) {
  <meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}"><meta property="og:type" content="website">
  ${image?'<meta property="og:image" content="'+esc(image)+'">':''}
  <link rel="stylesheet" href="/styles.css"><link rel="icon" type="image/svg+xml" href="/favicon.svg">
- </head><body><header class="header"><div class="shell nav-wrap"><a class="brand" href="/" aria-label="TripCaution homepage"><span class="brand-mark">!</span>TRIP<span>CAUTION</span></a>
+ </head><body${meta.preview?' class="private-preview"':''}><header class="header"><div class="shell nav-wrap"><a class="brand" href="/" aria-label="TripCaution homepage"><span class="brand-mark">!</span>TRIP<span>CAUTION</span></a>
  <nav aria-label="Main navigation">${nav}</nav><a href="/#destinations" class="header-cta">Explore <span>↗</span></a></div></header>
  ${body}<footer><div class="shell footer-grid"><div><div class="footer-brand">TRIP<span>CAUTION</span><span class="tiny-star"> ✳</span></div>
  <p>Know before you go. Independent travel information with linked sources. Not an emergency alert service.</p></div>
@@ -245,7 +245,7 @@ async function api(request,env,url,admin=false){
   return a?json({article:a}):json({error:'Not found'},404);
  }
  if(method==='POST' && pathname==='/api/admin/auto-schedule'){
-  // Explicit admin action: bulk-approve only low-risk editorial guides with adequate sources.
+  // Legacy batch route: only previously reviewed and approved records may enter the schedule.
   const eligible=(await env.DB.prepare("SELECT id,category_id,sources_json,verified_at,scheduled_at FROM articles WHERE status='review' AND review_approved=1 AND category_id IN ('before-you-go','etiquette') ORDER BY created_at ASC LIMIT 30").all()).results
    .filter(a=>safeParse(a.sources_json).length>=2 && Boolean(a.verified_at));
   const existing=(await env.DB.prepare("SELECT scheduled_at FROM articles WHERE status='scheduled'").all()).results;

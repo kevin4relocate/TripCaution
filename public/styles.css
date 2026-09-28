@@ -324,3 +324,6 @@ footer {padding-top:36px;background:#26392f;}
 .search-destinations{margin:18px 0 26px}.search-destinations h2{font:400 25px/1.2 'DM Serif Display',Georgia,serif;margin:0 0 12px}.search-destinations .destination-grid{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:600px){.search-destinations .destination-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .editorial-preview-banner{position:sticky;top:0;z-index:20;background:#244633;color:#f7f5e9;box-shadow:0 3px 18px #1d372d38}.editorial-preview-inner{display:flex;justify-content:space-between;align-items:center;gap:25px;padding:13px 0}.editorial-preview-inner strong{letter-spacing:1px;font-size:11px;color:#f0ce8c}.editorial-preview-inner p{font-size:12px;color:#e2eadd;margin:6px 0 0;max-width:690px}.editorial-preview-inner a{background:#f6f2e6;color:#214431;text-decoration:none;padding:12px 15px;border-radius:4px;font-size:12px;font-weight:800;white-space:nowrap}@media(max-width:670px){.editorial-preview-inner{flex-direction:column;align-items:stretch}.editorial-preview-inner a{text-align:center}}
+
+/* Private unpublished previews never expose public share actions. */
+.private-preview .aside-share{display:none!important}
