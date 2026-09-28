@@ -21,6 +21,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Diagnose API connectivity without exposing any secrets
+        env:
+          TRIPCAUTION_API_URL: ${{ vars.TRIPCAUTION_API_URL }}
+          TRIPCAUTION_INGEST_TOKEN: ${{ secrets.TRIPCAUTION_INGEST_TOKEN }}
+        run: python scripts/diagnose-ingest.py
       - name: Generate one researched article
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
