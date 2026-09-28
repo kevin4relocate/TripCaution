@@ -13,6 +13,19 @@
  <label><input type="checkbox" data-review-check><span>I checked time-sensitive facts, dates, fees, transport and uncertainty for this destination.</span></label>
  <label><input type="checkbox" data-review-check><span>I checked language, image descriptions and claims that could unfairly identify people or businesses.</span></label>
  </fieldset></div>
+ <div class="review-record">
+   <div><label for="review-evidence-note-input"><strong>STEP 3 · CLAIM–SOURCE REVIEW RECORD</strong></label>
+     <p>Write which claims you verified and which primary sources you opened. An AI research timestamp is not editorial verification.</p>
+     <textarea id="review-evidence-note-input" rows="3" minlength="30" maxlength="1500" placeholder="For example: Checked the published card-fee amount against the official fare FAQ and matched the operator's wording."></textarea>
+   </div>
+   <label for="review-window-days">Review this article again in
+     <select id="review-window-days">
+       <option value="7">7 days — weather, incidents or frequently changing fees</option>
+       <option value="30" selected>30 days — transport details and visitor guidance</option>
+       <option value="90">90 days — stable general preparation advice</option>
+     </select>
+   </label>
+ </div>
  <div class="review-bottom"><div><strong id="review-progress">0 of 4 checks complete</strong><p id="review-guidance" role="status" aria-live="polite">Open the preview and confirm the checklist after checking the sources.</p></div><button type="button" class="primary review-publish" id="review-publish-btn" disabled>Approve &amp; publish ↗</button></div>
 </section>
 <form id="article-form"><div class="editor-grid"><div class="panel">
