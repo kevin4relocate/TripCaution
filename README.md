@@ -88,6 +88,14 @@ The key is stored encrypted on Cloudflare; it is never returned to the browser o
 
 The bot's `/api/ingest` continues to use a separate `INGEST_TOKEN` Bearer secret. Never reuse your admin key as the bot token.
 
+### Review and preview an imported guide
+
+Open `/admin` after signing in. In **All articles**, use **Preview** on a draft or an imported guide to see the *last saved* version in the actual public-site layout. This preview is private: only holders of a valid editor session can open `/admin/preview/<article-uuid>`, which has noindex and no-store protections. It does not publish an article.
+
+Select **Review** to open the guided editorial workspace. There you can open the sources individually, check the stored verification timestamp, and complete four manual checks covering (1) article/layout preview, (2) evidence, (3) freshness/time-sensitive travel details and (4) language and images. **Approve & publish** and **Approve & schedule** remain disabled until the saved article has been previewed and the checklist completed. The backend also requires the reviewer confirmation for these actions; simply visiting a URL cannot publish a guide.
+
+If you edit the article or upload a new image, **Save changes** first, open the preview again and redo the checklist. Previously published articles that have been edited move back into review. Publishing-queue bulk approval is disabled in the UI, so imported guides need to be reviewed individually.
+
 ## 5. Configure custom domain
 
 After a successful `workers.dev` launch:
