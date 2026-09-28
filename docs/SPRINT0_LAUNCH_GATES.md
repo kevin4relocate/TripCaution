@@ -36,6 +36,10 @@ The smoke run was performed against the deployment available at that time. Do no
 3. Follow `content/SPRINT0_EDITORIAL_REVIEW.md`. Check ALL important source links and claims independently, inspect private preview, and publish each satisfactory article. If you previously reviewed the complete batch, you can select all three in **All articles** and confirm **Publish selected** once; this confirmation does not replace actual fact-checking. The next recheck date defaults to 30 days (Bangkok's weather example should be manually revisited sooner). If a claim cannot be verified, leave the affected guide in Review.
 4. Return to the public URLs for Vietnam, Bangkok and Singapore and confirm they show the revised text, corrected fee distinction and date-sensitive caveats. The live published category for Singapore should now read Transport Cautions.
 
+## Owner-controlled permanent deletion (optional)
+
+Use **All articles → Deleted** to find recoverable deleted articles. **Restore selected** returns them to drafts. When genuinely ready to free database storage, **Delete permanently** removes only checked rows already in Deleted; **Empty Trash** removes *all* Deleted articles (not merely those loaded or filtered in the list). A prompt requires the exact phrase `PERMANENTLY DELETE`, and the server independently checks the selected IDs and current count before executing an atomic D1 batch. The operation also removes audit entries attached to those articles but keeps a small aggregate purge event for operational accountability. It does not delete R2 images, other database tables, or any Cloudflare backups. **Export and retain a D1 backup before using permanent deletion.** This action is not equivalent to resetting the entire D1 database.
+
 ## OWNER ACTION C — Final production confirmation
 
 1. Cloudflare → Workers & Pages → tripcaution → **Deployments**. Compare the active deployment to the current tested GitHub commit. A green GitHub check alone does not prove Cloudflare deployed that commit.
