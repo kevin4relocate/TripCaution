@@ -228,14 +228,30 @@ async function previewGuidePage(request,env,id){
  if(!a || a.status==='deleted')return html('<h1>Preview unavailable.</h1>',404,{'cache-control':'private, no-store','x-robots-tag':'noindex'});
  return renderGuideArticle(env,a,true,await latestEditorialReview(env,a.id));
 }
+function editorialEmail(env) {
+ const email=String(env.EDITORIAL_CONTACT_EMAIL||'').trim();
+ return /^[^\s@"<>]+@[^\s@"<>]+\.[^\s@"<>]+$/.test(email)?email:null;
+}
 function staticPage(env,type){
- const pages={
- about:['About & editorial policy','We believe awareness makes better journeys. TripCaution publishes research-based guides, not first-hand reviews. Our articles explain relevant precautions, provide practical steps, and link to their sources.','We avoid naming individual small businesses as unsafe or fraudulent without strong verified evidence. High-impact claims, including legal and safety alerts, require human editorial approval. We correct or withdraw material if the supporting evidence changes. AI may assist research and drafting, but published claims are the responsibility of our editorial process. AI-generated illustrations are labeled and never presented as photos or evidence.'],
- privacy:['Privacy policy','This website uses essential technical processing to provide its pages and protect admin access. We do not currently provide user accounts or sell visitor data.','If analytics, advertising, or affiliate programs are enabled, this policy must be updated before those tools are activated. Admin access uses a secure signed session cookie after the owner enters a private admin key.'],
- contact:['Contact & corrections','To request a correction, report an outdated source, or inquire about TripCaution, please use the contact details we publish once the site is configured.','Until an editorial contact address is configured, do not treat this site as an emergency reporting channel. Contact local authorities in an emergency.']
+ const email=editorialEmail(env);
+ const contact=email?'<a class="editorial-email" href="mailto:'+esc(email)+'?subject=TripCaution%20correction">'+esc(email)+'</a>':
+   '<strong class="contact-not-ready">The editorial inbox has not been configured yet. This site is completing pre-launch setup.</strong>';
+ const blocks={
+   about:['About & editorial policy',`<p>TripCaution is an independent, research-led travel guide. Our articles describe practical travel questions and point readers to original sources. We do not claim personal visits, personal interviews or firsthand incident reports. We are not an emergency-alert service.</p>
+     <h2>Our research process</h2><p>We prioritize official operators, local tourism authorities, government guidance and dated primary evidence. AI tools may assist with research and initial drafts; source lists and AI-generated timestamps are not proof that an editor has checked a claim. Every new article must be checked and approved by an editor before publishing.</p>
+     <h2>Corrections and limitations</h2><p>Conditions, fees, routes and rules can change. Readers should confirm time-sensitive details with the responsible operator or authority. If we receive a well-supported correction, we may clarify, update or withdraw the affected content. Share the article URL, exact statement, supporting source and relevant dates with the editorial desk.</p><p><strong>Editorial contact:</strong> ${contact}</p>`],
+   privacy:['Privacy notice',`<p>This notice describes the services currently enabled. TripCaution publishes travel information using Cloudflare Workers and D1, without public accounts. At present we do not run third-party advertising, sell user data or deliberately deploy marketing-analytics trackers. We will revise this notice before enabling new tracking or advertising.</p>
+     <h2>Hosting and essential cookies</h2><p>Our hosting and security provider, Cloudflare, may process IP addresses, request details and technical security data to deliver and protect this website. The private editorial area uses a signed, essential session cookie that expires after 12 hours. It is Secure and HttpOnly, and not used for marketing.</p>
+     <h2>Third-party fonts</h2><p>This site loads Google Fonts from an external service. Your browser may contact the font provider to retrieve typefaces, which can reveal technical connection data including your IP address. We do not receive a Google account identity through these font requests.</p>
+     <h2>Editorial correspondence</h2><p>If you choose to email us, your email service and ours will process your message, email address and associated metadata. We use this information to investigate and answer your inquiry or correction. Correspondence is kept only as long as reasonably needed for handling the matter and editorial accountability and is then deleted. Please avoid sending sensitive personal information.</p>
+     <h2>Privacy questions</h2><p>For privacy-related inquiries, please contact the editorial desk: ${contact}</p>`],
+   contact:['Contact & corrections',`<p>Found a broken source, outdated travel fee or statement that needs clarification? Please send us a correction request. Corrections help keep our travel guidance useful and evidence-based.</p>
+     <h2>How to request a correction</h2><p>Include the article URL, exact wording you question, original supporting source and relevant date. We investigate well-supported requests and may correct, clarify or withdraw the material. We cannot promise a response time or provide real-time travel advice.</p>
+     <p class="contact-action"><strong>Editorial desk:</strong><br>${contact}</p>
+     <p>In an emergency while traveling, contact local emergency services, your transport operator or your consulate rather than this editorial website.</p>`]
  };
- const p=pages[type];
- return html(layout(env,p[0],'<main class="shell simple"><div class="eyebrow">TRIPCAUTION / INFORMATION</div><h1>'+esc(p[0])+'</h1><p>'+esc(p[1])+'</p><p>'+esc(p[2])+'</p><a href="/">← Back home</a></main>',{path:'/'+type}));
+ const [title,body]=blocks[type];
+ return html(layout(env,title,'<main class="shell simple editorial-policy"><div class="eyebrow">TRIPCAUTION / INFORMATION</div><h1>'+esc(title)+'</h1>'+body+'<a class="backlink" href="/">← Back home</a></main>',{path:'/'+type,noindex:type==='contact'&&!email}),200,{'cache-control':'public,max-age=300'});
 }
 async function searchPage(env,url){
  const q=String(url.searchParams.get('q')||'').slice(0,80).trim();
