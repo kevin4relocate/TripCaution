@@ -718,11 +718,12 @@ export default {
       {headers:{'content-type':'text/plain; charset=utf-8','cache-control':'public, max-age=300','x-content-type-options':'nosniff'}});
    }
    if(path==='/sitemap.xml'){
-    const rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
-    const urls=['/','/about','/destinations',...rows.map(x=>'/guides/'+encodeURIComponent(x.slug))];
-    const countries=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published'").all()).results:[];
-    urls.push(...countries.map(x=>'/destinations/'+slugify(x.country)));
-    return new Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.map(p=>'<url><loc>'+esc(siteURL(env)+p)+'</loc></url>').join('')+'</urlset>',{headers:{'content-type':'application/xml;charset=utf-8'}});
+    const rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at,published_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
+    const countries=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+    const hasContact=Boolean(editorialEmail(env))&&env.EDITORIAL_CONTACT_VERIFIED==='true';
+    return new Response(sitemapXML(siteURL(env),rows,countries,hasContact),{
+     headers:{'content-type':'application/xml;charset=utf-8','cache-control':'public,max-age=300','x-content-type-options':'nosniff'}
+    });
    }
    const asset=await env.ASSETS.fetch(request);
    if(asset.status!==404)return asset;
