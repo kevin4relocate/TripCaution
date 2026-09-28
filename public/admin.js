@@ -131,9 +131,11 @@ const logoutButton=document.getElementById('logout-btn');
 if(logoutButton)logoutButton.addEventListener('click',async()=>{
  logoutButton.disabled=true;
  try{
-  await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});
- }finally{
-  // Even on network error, force a fresh sign-in rather than leaving the editor open.
+  const response=await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});
+  if(!response.ok)throw Error('Sign-out request failed');
   window.location.replace('/sign-in');
+ }catch{
+  logoutButton.disabled=false;
+  toast('Could not sign out. Please retry or close the browser window.',true);
  }
 });
