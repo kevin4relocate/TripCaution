@@ -593,11 +593,11 @@ async function api(request,env,url,admin=false){
   const count=await env.DB.prepare('SELECT COUNT(*) count FROM articles'+where).bind(...args).first();
   const total=Number(count?.count||0),pageSize=30,pages=Math.max(1,Math.ceil(total/pageSize));
   const current=Math.min(page,pages);
-  const rows=await env.DB.prepare('SELECT id,title,slug,country,city,category_id,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles'+where+' ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?').bind(...args,pageSize,(current-1)*pageSize).all();
+  const rows=await env.DB.prepare('SELECT id,title,slug,country,city,category_id,caution_level,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles'+where+' ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?').bind(...args,pageSize,(current-1)*pageSize).all();
   return json({articles:rows.results||[],page:current,pages,pageSize,total});
  }
  if(method==='GET' && pathname==='/api/admin/queue'){
-  const rows=await env.DB.prepare("SELECT id,title,slug,country,city,category_id,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles WHERE status IN ('review','scheduled','draft') ORDER BY CASE WHEN status='scheduled' THEN 0 ELSE 1 END,coalesce(scheduled_at,created_at) ASC,id ASC LIMIT 100").all();
+  const rows=await env.DB.prepare("SELECT id,title,slug,country,city,category_id,caution_level,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles WHERE status IN ('review','scheduled','draft') ORDER BY CASE WHEN status='scheduled' THEN 0 ELSE 1 END,coalesce(scheduled_at,created_at) ASC,id ASC LIMIT 100").all();
   const result=await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status IN ('review','scheduled','draft')").first();
   const total=Number(result?.count||0);
   return json({articles:rows.results||[],total,limited:total>100});
