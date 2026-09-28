@@ -4,19 +4,16 @@ import { STARTER_DESTINATIONS, CONTINENT_ORDER, groupDestinationsByContinent } f
 
 test('starter countries appear in continent sections and alphabetical order', () => {
   const groups = groupDestinationsByContinent(STARTER_DESTINATIONS);
-  assert.deepEqual(groups.map(group => group.continent), ['Asia','Europe','North America']);
+  assert.deepEqual(groups.map(group => group.continent), ['Asia']);
   assert.deepEqual(groups.find(group => group.continent === 'Asia').countries,
-    ['Cambodia','Indonesia','Japan','Laos','Malaysia','Singapore','Thailand','Vietnam']);
-  assert.deepEqual(groups.find(group => group.continent === 'Europe').countries,
-    ['France','Italy','Spain']);
-  assert.deepEqual(groups.find(group => group.continent === 'North America').countries,
-    ['United States']);
+    ['Brunei','Cambodia','Indonesia','Laos','Malaysia','Myanmar',
+     'Philippines','Singapore','Thailand','Timor-Leste','Vietnam']);
 });
 
 test('published new destinations are included, deduplicated and grouped', () => {
   const groups = groupDestinationsByContinent([...STARTER_DESTINATIONS,'Canada','canada','Brazil','Australia','Kenya','Atlantis']);
   assert.equal(groups.find(group => group.continent === 'North America').countries.filter(x => x.toLowerCase() === 'canada').length, 1);
-  assert.deepEqual(groups.slice(3).map(group => group.continent),['South America','Africa','Oceania','Other destinations']);
+  assert.deepEqual(groups.slice(1).map(group => group.continent),['South America','Africa','Oceania','Other destinations']);
   assert.deepEqual(groups.find(group => group.continent === 'Other destinations').countries,['Atlantis']);
   assert.equal(groups.flatMap(group => group.countries).length, STARTER_DESTINATIONS.length + 5);
 });

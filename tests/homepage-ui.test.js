@@ -41,7 +41,7 @@ test('homepage puts fresh published guides before the condensed destination expl
  assert.match(page,/class="guide-card guide-card-lead"/);
  assert.match(page,/guide-card-side/);
  assert.doesNotMatch(page,/Verified Sep|Verified \+|Last reviewed:/);
- assert.doesNotMatch(page,/Research planned/);
+ assert.match(page,/Research planned/);
  assert.match(page,/View all destinations/);
  assert.match(page,/Thailand/);
  assert.doesNotMatch(page,/continent-directory/);
@@ -58,25 +58,25 @@ test('homepage adapts gracefully before the first guide has been published',asyn
  assert.doesNotMatch(page,/guide-card-lead/);
 });
 
-test('full destination index groups the countries by continent, labels unpublished destinations',async()=>{
+test('full directory starts with all 11 regional countries, labelling unpublished destinations',async()=>{
  const response=await app.fetch(new Request('https://example.test/destinations'),{
-   SITE_URL:'https://example.test',ASSETS:{fetch:async()=>new Response('not found',{status:404})}
+  SITE_URL:'https://example.test',ASSETS:{fetch:async()=>new Response('not found',{status:404})}
  });
  const page=await response.text();
  assert.equal(response.status,200);
- const i=page.slice(page.indexOf('class="continent-directory"'));
- const asia=i.indexOf('id="continent-asia"'),europe=i.indexOf('id="continent-europe"');
- const northAmerica=i.indexOf('id="continent-north-america"');
- assert.ok(asia>=0&&europe>asia&&northAmerica>europe);
- const names=['Cambodia','Indonesia','Japan','Laos','Malaysia','Singapore','Thailand','Vietnam'];
- const asiaIndex=i.slice(asia,europe);
- const positions=names.map(n=>asiaIndex.indexOf('class="destination-name">'+n+'</span>'));
- assert.ok(positions.every(x=>x>=0));
+ const region=page.slice(page.indexOf('class="continent-directory"'));
+ const asia=region.indexOf('id="continent-asia"');
+ assert.ok(asia>=0);
+ const expected=['Brunei','Cambodia','Indonesia','Laos','Malaysia','Myanmar',
+  'Philippines','Singapore','Thailand','Timor-Leste','Vietnam'];
+ const positions=expected.map(name=>region.indexOf('class="destination-name">'+name+'</span>'));
+ assert.ok(positions.every(pos=>pos>asia));
  assert.deepEqual(positions,[...positions].sort((a,b)=>a-b));
  assert.match(page,/Research planned/);
+ assert.match(page,/Southeast Asia guide hub/);
  assert.doesNotMatch(page,/<a[^>]+href="\/destinations\/cambodia"/);
+ assert.doesNotMatch(page,/id="continent-europe"/);
 });
-
 test('responsive design includes compact layouts and reduced vertical spacing',()=>{
   const css=readFileSync(new URL('../public/styles.css',import.meta.url),'utf8');
   assert.match(css,/\.home-hero \.hero-inner\s*\{[^}]*min-height:31[0-9]px/s);
