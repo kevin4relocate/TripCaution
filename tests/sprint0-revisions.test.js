@@ -51,7 +51,8 @@ test('approved revision pulls existing article back into private Review and keep
  assert.equal(out.results[0].id,'a0000000-0000-4000-a000-000000000001');
  const sql=e.DB.changes.find(v=>v.sql.includes('UPDATE articles SET'));
  assert.ok(sql?.sql.includes("status='review'"));
- assert.ok(sql?.sql.includes('published_at=NULL'));
+ assert.ok(!sql?.sql.includes('published_at=NULL'), 'Revision must retain the original publication timestamp for truthful SEO history');
+ assert.ok(sql?.sql.includes('scheduled_at=NULL'));
  assert.ok(sql?.sql.includes('review_approved=0'));
  assert.ok(e.DB.changes.some(v=>v.sql.includes('INSERT INTO audit_logs')));
 });

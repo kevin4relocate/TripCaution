@@ -380,7 +380,7 @@ async function replaceArticleWithReviewDraft(env,raw,actor){
  await env.DB.prepare(`UPDATE articles SET title=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,
    tags_json=?,sources_json=?,uncertainties_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,
    hero_alt=?,source_mode='editorial-revision',verified_at=?,review_approved=0,status='review',
-   published_at=NULL,scheduled_at=NULL,updated_at=datetime('now') WHERE id=?`)
+   scheduled_at=NULL,updated_at=datetime('now') WHERE id=?`)
  .bind(a.title,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,
    a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,
    a.hero_prompt,a.hero_alt,a.verified_at,old.id).run();
@@ -432,7 +432,7 @@ async function applyEditorialAction(env,old,action,body,actor){
   evidence_note_collected:false
  }):'';
  // Atomic: when an audit write fails, publication and scheduling roll back too.
- const stateChange=env.DB.prepare("UPDATE articles SET status=?,review_approved=?,scheduled_at=?,published_at=CASE WHEN ?='published' THEN datetime('now') ELSE published_at END,updated_at=datetime('now') WHERE id=?")
+ const stateChange=env.DB.prepare("UPDATE articles SET status=?,review_approved=?,scheduled_at=?,published_at=CASE WHEN ?='published' THEN COALESCE(published_at,datetime('now')) ELSE published_at END,updated_at=datetime('now') WHERE id=?")
   .bind(target,approve,target==='scheduled'?body.scheduled_at:null,target,old.id);
  const auditEvent=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
   .bind(crypto.randomUUID(),actor,auditAction,old.id,details);
@@ -656,7 +656,7 @@ async function media(env,key){
 async function publishDue(env){
  if(!env.DB)return;
  // Publish only records manually approved and explicitly scheduled. Idempotent conditional update.
- await env.DB.prepare("UPDATE articles SET status='published',published_at=datetime('now'),updated_at=datetime('now') WHERE status='scheduled' AND review_approved=1 AND julianday(scheduled_at)<=julianday('now') AND json_array_length(sources_json)>0 AND EXISTS (SELECT 1 FROM audit_logs l WHERE l.article_id=articles.id AND ((l.action='reviewed-and-scheduled' AND json_valid(l.details) AND length(json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.evidence_note'))>=30) OR (l.action='owner-reviewed-and-scheduled' AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1)))").run();
+ await env.DB.prepare("UPDATE articles SET status='published',published_at=COALESCE(published_at,datetime('now')),updated_at=datetime('now') WHERE status='scheduled' AND review_approved=1 AND julianday(scheduled_at)<=julianday('now') AND json_array_length(sources_json)>0 AND EXISTS (SELECT 1 FROM audit_logs l WHERE l.article_id=articles.id AND ((l.action='reviewed-and-scheduled' AND json_valid(l.details) AND length(json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.evidence_note'))>=30) OR (l.action='owner-reviewed-and-scheduled' AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1)))").run();
 }
 export default {
  async fetch(request,env){
