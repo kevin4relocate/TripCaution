@@ -411,9 +411,9 @@ async function api(request,env,url,admin=false){
   const body=await request.json();
   const allowed=['publish','hide','schedule','delete','restore','review'];
   if(!allowed.includes(body?.action))return json({error:'Unsupported bulk action'},400);
-  if(!Array.isArray(body.ids)||body.ids.length<1||body.ids.length>300||
+  if(!Array.isArray(body.ids)||body.ids.length<1||body.ids.length>10||
     body.ids.some(id=>typeof id!=='string'||! /^[a-f0-9-]{36}$/.test(id))||
-    new Set(body.ids).size!==body.ids.length)return json({error:'Select 1–300 unique article IDs'},400);
+    new Set(body.ids).size!==body.ids.length)return json({error:'Select 1–10 unique article IDs per request; the editor processes larger selections in safe batches'},400);
   if(body.confirm_selection!==true||body.confirm_count!==body.ids.length)
    return json({error:'Explicit confirmation of the exact selected count is required'},422);
   if(['publish','schedule'].includes(body.action)&&body.review_confirmed!==true)
@@ -450,10 +450,10 @@ async function api(request,env,url,admin=false){
   if(body?.mode!=='selected'&&body?.mode!=='trash')
    return json({error:'Unknown purge mode'},400);
   const selected=body.mode==='selected';
-  if(selected&&(!Array.isArray(body.ids)||body.ids.length<1||body.ids.length>300||
+  if(selected&&(!Array.isArray(body.ids)||body.ids.length<1||body.ids.length>50||
     body.ids.some(id=>typeof id!=='string'||!/^[a-f0-9-]{36}$/.test(id))||
     new Set(body.ids).size!==body.ids.length))
-   return json({error:'Select 1–300 unique valid article IDs'},400);
+   return json({error:'Select 1–50 unique valid deleted article IDs per request'},400);
   if(body.mode==='trash'&&body.ids!==undefined)
    return json({error:'Empty trash never accepts an article ID list'},400);
   // Require a fresh server-confirmed count so "Empty Trash" cannot erase items

@@ -288,30 +288,48 @@ async function runBulk(name,scheduledAt=null,stagger=false){
  if(quickBusy)return;
  const list=selectedVisible();
  if(!list.length){toast('Select at least one article in All articles.',true);return;}
- const count=list.length,verb={publish:'publish',hide:'make private',schedule:'schedule',restore:'restore to draft',delete:'move to Deleted'}[name];
+ const count=list.length;
+ const verb={publish:'publish',hide:'hide',schedule:'schedule',restore:'restore',delete:'move to Deleted'}[name];
  const promptText=['publish','schedule'].includes(name)?
   'Confirm that you have reviewed all '+count+' selected articles and their sources. '+(name==='publish'?'They will become PUBLIC immediately.':'They will become PUBLIC on their scheduled dates.')+' Continue?':
   name==='delete'?'Move all '+count+' selected articles to Deleted? You can restore them later. Continue?':
   name==='hide'?'Make all '+count+' selected articles PRIVATE (not deleted)? Continue?':
   'Restore '+count+' selected articles to drafts? Continue?';
  if(!confirm(promptText))return;
- const body={
-  action:name,ids:list.map(a=>a.id),confirm_selection:true,confirm_count:count,
-  review_confirmed:['publish','schedule'].includes(name)
- };
- if(name==='schedule'){body.scheduled_at=scheduledAt;body.stagger_days=stagger;}
+ let processed=0,errors=[];
  try{
   quickBusy=true;updateBulkToolbar();
-  const res=await api('/api/admin/bulk',{method:'POST',body:JSON.stringify(body)});
-  for(const row of res.results)if(row.ok)selectedIds.delete(row.id);
-  const errors=res.results.filter(row=>!row.ok);
-  const summary=res.processed+' of '+count+' selected article'+(count===1?'':'s')+' processed ('+verb+').'+
-   (errors.length?' '+errors.length+' skipped: '+errors.slice(0,4).map(r=>r.error).join('; '):'');
+  // D1 Free limits queries per Worker invocation. Use small, sequential requests
+  // while preserving a SINGLE owner confirmation for the whole visible selection.
+  for(let start=0;start<list.length;start+=10){
+   const batch=list.slice(start,start+10),ids=batch.map(a=>a.id);
+   const body={action:name,ids,confirm_selection:true,confirm_count:ids.length,
+    review_confirmed:['publish','schedule'].includes(name)};
+   if(name==='schedule'){
+    const successfulOffset=stagger?processed:0;
+    body.scheduled_at=new Date(Date.parse(scheduledAt)+86400000*successfulOffset).toISOString();
+    body.stagger_days=stagger;
+   }
+   const res=await api('/api/admin/bulk',{method:'POST',body:JSON.stringify(body)});
+   if(!Array.isArray(res.results))throw Error('Invalid bulk response from server');
+   for(const row of res.results)if(row.ok)selectedIds.delete(row.id);
+   processed+=res.processed;
+   errors.push(...res.results.filter(row=>!row.ok));
+   $('bulk-result').textContent='Processed '+(start+batch.length)+' / '+count+'; succeeded '+processed+'.';
+  }
+  const summary=processed+' of '+count+' selected articles processed ('+verb+').'+
+   (errors.length?' '+errors.length+' skipped: '+errors.slice(0,4).map(row=>row.error).join('; '):'');
   $('bulk-result').textContent=summary;
   toast(summary,errors.length>0);
-  await refresh();
- }catch(e){toast(e.message,true);}
- finally{quickBusy=false;renderArticles();updateReviewGate();}
+ }catch(e){
+  // Never retry blindly: a dropped response may hide a successful server write.
+  $('bulk-result').textContent='Bulk operation interrupted after '+processed+
+   ' confirmed successes. Refresh statuses before selecting articles to retry.';
+  toast('Bulk operation stopped: '+e.message+'. Refresh statuses before retrying.',true);
+ }finally{
+  try{await refresh();}catch(e){toast('Could not refresh article list: '+e.message,true);}
+  quickBusy=false;renderArticles();updateReviewGate();
+ }
 }
 async function permanentlyPurge(ids=null){
  if(quickBusy)return;
@@ -336,16 +354,30 @@ async function permanentlyPurge(ids=null){
    toast('Permanent deletion canceled.');return;
   }
   quickBusy=true;updateBulkToolbar();
-  const body={mode,confirmation:'PERMANENTLY DELETE',confirm_count:count};
-  if(selected)body.ids=selected.map(a=>a.id);
-  const result=await api('/api/admin/purge',{method:'POST',body:JSON.stringify(body)});
-  if(selected)for(const a of selected)selectedIds.delete(a.id);
-  else selectedIds.clear();
-  toast(result.purged+' deleted article(s) permanently erased from D1. R2 images are unchanged.');
-  $('bulk-result').textContent=result.purged+' permanently deleted. To remove image files, review R2 separately.';
-  await refresh();
- }catch(e){toast(e.message,true);}
- finally{quickBusy=false;renderArticles();updateBulkToolbar();}
+  let purged=0;
+  if(selected){
+   // D1's SQL bound-parameter ceiling is 100 per statement.
+   for(let start=0;start<selected.length;start+=50){
+    const chunk=selected.slice(start,start+50),body={mode,confirmation:'PERMANENTLY DELETE',
+     confirm_count:chunk.length,ids:chunk.map(a=>a.id)};
+    const result=await api('/api/admin/purge',{method:'POST',body:JSON.stringify(body)});
+    purged+=result.purged;
+    for(const a of chunk)selectedIds.delete(a.id);
+   }
+  }else{
+   const result=await api('/api/admin/purge',{method:'POST',
+    body:JSON.stringify({mode,confirmation:'PERMANENTLY DELETE',confirm_count:count})});
+   purged=result.purged;selectedIds.clear();
+  }
+  toast(purged+' deleted article(s) permanently erased from D1. R2 images are unchanged.');
+  $('bulk-result').textContent=purged+' permanently deleted. R2 images must be checked separately.';
+ }catch(e){
+  $('bulk-result').textContent='Permanent deletion interrupted. Some selected rows may have been erased. Refresh Trash before any retry.';
+  toast('Permanent deletion interrupted: '+e.message+'. Refresh Trash before retry.',true);
+ }finally{
+  try{await refresh();}catch(e){toast('Could not refresh Trash: '+e.message,true);}
+  quickBusy=false;renderArticles();updateBulkToolbar();
+ }
 }
 $('bulk-purge').addEventListener('click',()=>permanentlyPurge(selectedVisible().map(a=>a.id)));
 $('empty-trash').addEventListener('click',()=>permanentlyPurge());

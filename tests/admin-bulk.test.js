@@ -159,3 +159,19 @@ test('quick review layout includes source-preview links and visible-only select-
  assert.match(js,/review_confirmed:\['publish','schedule'\]/);
  assert.match(js,/openSchedule\('bulk',selectedVisible\(\)/);
 });
+
+test('bulk API caps per-request work to fit D1 Free invocation limits',async()=>{
+ const e=createEnv([make(ids[0])]),cookie=await ownerCookie(e);
+ const over=Array.from({length:11},(_,i)=>'a0000000-0000-4000-a000-'+String(i+1).padStart(12,'0'));
+ const res=await bulk(e,requestBody('hide',over),{cookie});
+ assert.equal(res.status,400);
+ assert.match(await res.text(),/1–10/);
+ assert.equal(e.commands.length,0);
+});
+test('client breaks selected bulk operations into safe ten-article chunks',()=>{
+ const js=readFileSync(new URL('../public/admin.js',import.meta.url),'utf8');
+ assert.match(js,/start\+=10/);
+ assert.match(js,/confirm_count:ids\.length/);
+ assert.match(js,/86400000\*successfulOffset/);
+ assert.match(js,/Refresh statuses before selecting articles to retry/);
+});

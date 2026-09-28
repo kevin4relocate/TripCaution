@@ -142,3 +142,12 @@ test('only Deleted-filter UI offers hard deletion and confirms typing',()=>{
  assert.match(js,/api\/admin\/trash-count/);
  assert.match(js,/Only articles already in Deleted/);
 });
+
+test('permanent purge rejects >50 bound article IDs per request',async()=>{
+ const e=fakeEnv(),cookie=await authenticated(e);
+ const over=Array.from({length:51},(_,i)=>'a0000000-0000-4000-a000-'+String(i+1).padStart(12,'0'));
+ const response=await post(e,payload('selected',over.length,over),cookie);
+ assert.equal(response.status,400);
+ assert.match(await response.text(),/1–50/);
+ assert.equal(e.batches,0);
+});
