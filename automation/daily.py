@@ -11,6 +11,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 import urllib.error
 import urllib.request
+import urllib.parse
 from datetime import datetime, timezone
 if __package__:
     from .coverage import COUNTRIES, BRIEFS, FIRST_PASS, COUNTRY_NOTES, choose_slot, coverage_summary
@@ -61,8 +62,20 @@ def choose_first_pass_topic(topics, existing_rows, day_of_year):
 def request_json(url, payload=None, headers=None, timeout=110):
     data=json.dumps(payload).encode() if payload is not None else None
     req=urllib.request.Request(url,data=data,headers=headers or {"Content-Type":"application/json"},method="POST" if data is not None else "GET")
-    with urllib.request.urlopen(req,timeout=timeout) as resp:
-        return json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req,timeout=timeout) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as err:
+        # Log only safe troubleshooting metadata: never print the authorization
+        # header, request payload, response body or Gemini key-bearing URL.
+        stage = ("TripCaution API " + urllib.parse.urlparse(url).path
+                 if url.startswith(SITE + "/") else "research provider")
+        print("Request failed:", stage, "HTTP", err.code,
+              "server:", str(err.headers.get("Server", "unknown"))[:50],
+              "content-type:", str(err.headers.get("Content-Type", "unknown"))[:65],
+              "cf-ray:", str(err.headers.get("CF-Ray", "none"))[:75],
+              file=sys.stderr)
+        raise
 
 def api_request(prompt, grounding=False):
     tools={"tools":[{"google_search":{}}]} if grounding else {}
