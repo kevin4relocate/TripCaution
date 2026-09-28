@@ -348,8 +348,6 @@ async function applyEditorialAction(env,old,action,body,actor){
  // Any return from hidden/deleted/archived requires explicit owner action.
  const approve=['publish','schedule'].includes(action)?1:
   ['review','hide','archive','delete','restore'].includes(action)?0:old.review_approved;
- await env.DB.prepare("UPDATE articles SET status=?,review_approved=?,scheduled_at=?,published_at=CASE WHEN ?='published' THEN datetime('now') ELSE published_at END,updated_at=datetime('now') WHERE id=?")
-  .bind(target,approve,target==='scheduled'?body.scheduled_at:null,target,old.id).run();
  const reviewed=['publish','schedule'].includes(action);
  const auditAction=reviewed?'owner-reviewed-and-'+(action==='publish'?'published':'scheduled'):action;
  const details=reviewed?JSON.stringify({
@@ -359,7 +357,12 @@ async function applyEditorialAction(env,old,action,body,actor){
   next_review_due_at:new Date(Date.now()+30*86400000).toISOString(),
   evidence_note_collected:false
  }):'';
- await audit(env,actor,auditAction,old.id,details);
+ // Atomic: when an audit write fails, publication and scheduling roll back too.
+ const stateChange=env.DB.prepare("UPDATE articles SET status=?,review_approved=?,scheduled_at=?,published_at=CASE WHEN ?='published' THEN datetime('now') ELSE published_at END,updated_at=datetime('now') WHERE id=?")
+  .bind(target,approve,target==='scheduled'?body.scheduled_at:null,target,old.id);
+ const auditEvent=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
+  .bind(crypto.randomUUID(),actor,auditAction,old.id,details);
+ await env.DB.batch([stateChange,auditEvent]);
  return {id:old.id,title:old.title,status:target};
 }
 async function api(request,env,url,admin=false){

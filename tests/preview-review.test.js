@@ -33,6 +33,9 @@ function env(a=article()){
    async all(){return {results:[]};}
   };
   return query;
+ },async batch(statements){
+  for(const statement of statements)await statement.run();
+  return statements.map(()=>({success:true}));
  }};
  return {ADMIN_LOGIN_KEY:key,DB:db,updates,ASSETS:{fetch:async()=>new Response('<h1>Private editor</h1>')}};
 }
@@ -152,4 +155,21 @@ test('owner confirmation and at least one HTTPS source are required; written not
  }),empty);
  assert.equal(denied.status,422);
  assert.equal(empty.updates.length,0);
+});
+
+test('a failed D1 transaction must never leave an unaudited publish',async()=>{
+ const e=env(),auth=await cookie(e);
+ let calls=0;
+ e.DB.batch=async statements=>{
+  calls++;
+  assert.equal(statements.length,2);
+  throw Error('Simulated failed D1 audit transaction');
+ };
+ const response=await worker.fetch(new Request(origin+'/api/admin/article/'+id,{
+  method:'PATCH',headers:{Cookie:auth,Origin:origin,'Content-Type':'application/json'},
+  body:JSON.stringify({action:'publish',review_confirmed:true})
+ }),e);
+ assert.equal(response.status,500);
+ assert.equal(calls,1);
+ assert.equal(e.updates.length,0);
 });

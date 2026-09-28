@@ -44,6 +44,10 @@ function createEnv(rows){
     async all(){return {results:[]};}
    };
    return q;
+  },
+  async batch(statements){
+   for(const statement of statements)await statement.run();
+   return statements.map(()=>({success:true}));
   }
  };
  return {data,audits,commands,DB:db,ADMIN_LOGIN_KEY:ownerKey};
