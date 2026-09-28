@@ -12,7 +12,10 @@ from pathlib import Path
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
-from automation.coverage import COUNTRIES, BRIEFS, FIRST_PASS, choose_slot, coverage_summary
+if __package__:
+    from .coverage import COUNTRIES, BRIEFS, FIRST_PASS, choose_slot, coverage_summary
+else:
+    from coverage import COUNTRIES, BRIEFS, FIRST_PASS, choose_slot, coverage_summary
 
 API_KEY = os.getenv("GEMINI_API_KEY", "")
 MODEL = os.getenv("GEMINI_MODEL") or "gemini-3.5-flash-lite"
