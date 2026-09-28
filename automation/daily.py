@@ -13,9 +13,9 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 if __package__:
-    from .coverage import COUNTRIES, BRIEFS, FIRST_PASS, choose_slot, coverage_summary
+    from .coverage import COUNTRIES, BRIEFS, FIRST_PASS, COUNTRY_NOTES, choose_slot, coverage_summary
 else:
-    from coverage import COUNTRIES, BRIEFS, FIRST_PASS, choose_slot, coverage_summary
+    from coverage import COUNTRIES, BRIEFS, FIRST_PASS, COUNTRY_NOTES, choose_slot, coverage_summary
 
 API_KEY = os.getenv("GEMINI_API_KEY", "")
 MODEL = os.getenv("GEMINI_MODEL") or "gemini-3.5-flash-lite"
@@ -156,6 +156,7 @@ def main():
     print("Queue coverage",coverage_summary(existing_rows,CONTENT_PHASE))
     if country=="Myanmar":
         idea+=" For Myanmar prioritize region-specific dated official advisories, consular access constraints and current change-sensitive limitations; never write a tourist itinerary."
+    idea+=" Research lead (not an established fact): "+COUNTRY_NOTES[country]
     research_prompt=f"""Research in English for TripCaution: {idea}.
 Previously drafted, reviewed, published or scheduled article titles (DO NOT REPEAT):
 {json.dumps(old_titles[:180],ensure_ascii=False)[:6500]}
