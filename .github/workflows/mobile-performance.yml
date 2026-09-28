@@ -1,0 +1,85 @@
+name: TripCaution mobile performance baseline
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/mobile-performance.yml'
+permissions:
+  contents: read
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SITE_URL: ${{ vars.TRIPCAUTION_API_URL || 'https://tripcaution.nghiep4tube.workers.dev' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve public article from production sitemap
+        id: target
+        run: |
+          node --input-type=module <<'NODE' >> "$GITHUB_OUTPUT"
+          const origin=process.env.SITE_URL.replace(/\/$/,'');
+          const response=await fetch(origin+'/sitemap.xml',{signal:AbortSignal.timeout(15000)});
+          if(!response.ok)throw Error('Could not read production sitemap: '+response.status);
+          const xml=await response.text();
+          const guides=[...xml.matchAll(/<loc>([^<]+)<\/loc>/g)]
+            .map(x=>x[1]).filter(url=>url.startsWith(origin+'/guides/'));
+          if(!guides.length)throw Error('No published guide in sitemap; cannot establish article baseline');
+          console.log('guide_url='+guides[0]);
+          console.error('Mobile audit target:',guides[0]);
+          NODE
+      - name: Install pinned Lighthouse CLI
+        run: npm install --global lighthouse@12
+      - name: Run mobile audits for homepage, guide and destination index
+        run: |
+          mkdir -p audits
+          for page in home article destinations; do
+            case "$page" in
+              home) target="$SITE_URL/";;
+              article) target="${{ steps.target.outputs.guide_url }}";;
+              destinations) target="$SITE_URL/destinations";;
+            esac
+            echo "Auditing $page: $target"
+            lighthouse "$target" \
+              --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+              --form-factor=mobile \
+              --only-categories=performance,accessibility,best-practices,seo \
+              --throttling-method=simulate \
+              --output=json \
+              --output-path="./audits/$page.json" \
+              --quiet
+          done
+      - name: Summarize mobile metrics
+        if: always()
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync,existsSync} from 'node:fs';
+          let report='# TripCaution mobile Lighthouse baseline\n\n';
+          report+='Source SHA: '+process.env.GITHUB_SHA+'\n\n';
+          report+='Scores are diagnostics, not a launch-ready certification. Real iPhone/Android checks are still required.\n\n';
+          report+='| Page | Performance | Accessibility | Best practices | SEO | LCP | CLS | TBT |\n';
+          report+='|---|---:|---:|---:|---:|---:|---:|---:|\n';
+          for(const page of ['home','article','destinations']){
+            const path='./audits/'+page+'.json';
+            if(!existsSync(path)){report+='| '+page+' | Failed | — | — | — | — | — | — |\n';continue;}
+            const lhr=JSON.parse(readFileSync(path,'utf8'));
+            const score=key=>lhr.categories?.[key]?.score==null?'—':Math.round(lhr.categories[key].score*100);
+            const metric=key=>lhr.audits?.[key]?.displayValue||'—';
+            report+='| '+page+' | '+score('performance')+' | '+score('accessibility')+' | '+score('best-practices')+' | '+score('seo')+' | '+metric('largest-contentful-paint')+' | '+metric('cumulative-layout-shift')+' | '+metric('total-blocking-time')+' |\n';
+          }
+          writeFileSync('./audits/summary.md',report);
+          console.log(report);
+          NODE
+          cat audits/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload mobile performance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tripcaution-mobile-lighthouse
+          path: audits/
+          if-no-files-found: warn
+          retention-days: 14
