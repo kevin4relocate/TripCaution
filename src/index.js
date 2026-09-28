@@ -8,7 +8,7 @@ import { normalizeArticle, STATUSES, CATEGORIES, isValidSchedule, slugify } from
 import { STARTER_DESTINATIONS, SOUTHEAST_ASIA_COUNTRIES, CONTINENT_COUNTRIES, isSoutheastAsia, groupDestinationsByContinent } from './destinations.js';
 import { renderArticleMarkdown, editorialQuickTakes } from './article-content.js';
 import { CAUTION_TOPICS, cautionTopic, cautionTopicForCategory } from './cautions.js';
-import {cautionLevel,isRatedCaution,severeCaution} from './severity.js';
+import {CAUTION_LEVELS,cautionLevel,isRatedCaution,severeCaution} from './severity.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
 
 const json = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -174,6 +174,12 @@ async function publishedTopicCounts(env){
  const rows=await env.DB.prepare("SELECT category_id,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY category_id").all();
  return new Map((rows.results||[]).map(row=>[row.category_id,Number(row.total)||0]));
 }
+function impactLegend(){
+ return '<aside class="impact-legend" aria-label="How impact labels work"><strong>Impact levels explain consequences if a specific problem happens—not the likelihood or the safety of a country.</strong>'+
+  '<div class="impact-legend-chips">'+CAUTION_LEVELS.filter(item=>item.id!=='unassessed')
+   .map(item=>'<span class="impact-pill impact-'+item.id+'">'+esc(item.label)+'</span>').join('')+'</div>'+
+  '<small>Editors only assign a level after checking the exact situation and sources. Other guides remain not assessed; these are not live safety alerts.</small></aside>';
+}
 async function cautionIndexPage(env){
  const counts=await publishedTopicCounts(env);
  const cards=CAUTION_TOPICS.map(topic=>{
@@ -186,7 +192,7 @@ async function cautionIndexPage(env){
  const hasPublished=[...counts.values()].some(n=>n>0);
  const body='<main class="shell simple caution-directory"><div class="eyebrow">GLOBAL TRAVEL CAUTIONS</div><h1>Travel problems worth checking before you go.</h1>'+
  '<p>Choose a type of problem, then review the guidance for your destination. A payment method, theft warning or local rule in one place does not automatically apply elsewhere.</p>'+
- '<div class="caution-topic-grid">'+cards+'</div><p>Our content research starts in Southeast Asia, but the platform covers every destination with a researched and published guide. For changing rules and urgent warnings, consult the relevant authority.</p>'+
+ impactLegend()+'<div class="caution-topic-grid">'+cards+'</div><p>Our content research starts in Southeast Asia, but the platform covers every destination with a researched and published guide. For changing rules and urgent warnings, consult the relevant authority.</p>'+
  '<a class="all-destinations-link" href="/destinations">Browse destinations ↗</a></main>';
  return html(layout(env,'Global travel cautions',body,{path:'/cautions',noindex:!hasPublished,
   description:'Research scams, theft, payment difficulties, transport, local rules and other travel problems by topic and destination.'}));
@@ -202,20 +208,27 @@ async function cautionTopicPage(env,topic,url){
  const requested=String(url.searchParams.get('country')||'').trim().slice(0,90);
  // Never use arbitrary, unverified country labels in page headings or SQL filters.
  selectedCountry=countries.find(name=>name.toLocaleLowerCase('en')===requested.toLocaleLowerCase('en'))||'';
- const conditions=selectedCountry?' AND a.country=?':'';
- const args=selectedCountry?[...ids,selectedCountry]:ids;
+ const requestedLevel=String(url.searchParams.get('level')||'').trim();
+ const selectedLevel=CAUTION_LEVELS.some(x=>x.id===requestedLevel&&x.id!=='unassessed')?requestedLevel:'';
+ const conditions=(selectedCountry?' AND a.country=?':'')+(selectedLevel?' AND a.caution_level=?':'');
+ const args=[...ids,...(selectedCountry?[selectedCountry]:[]),...(selectedLevel?[selectedLevel]:[])];
  const rows=env.DB?(await env.DB.prepare("SELECT a.*,c.name category_name"+sql+conditions+" ORDER BY a.published_at DESC,a.id DESC LIMIT 40").bind(...args).all()).results||[]:[];
  const countryOptions=countries.map(name=>'<option value="'+esc(name)+'"'+(name===selectedCountry?' selected':'')+'>'+esc(name)+'</option>').join('');
- const filter=countries.length?'<form method="get" action="/cautions/'+esc(topic.slug)+'" class="caution-country-filter"><label for="caution-country">Destination</label><select id="caution-country" name="country"><option value="">All countries</option>'+countryOptions+'</select><button type="submit">Filter ↗</button></form>':'';
+ const levelOptions=CAUTION_LEVELS.filter(item=>item.id!=='unassessed')
+  .map(item=>'<option value="'+item.id+'"'+(item.id===selectedLevel?' selected':'')+'>'+esc(item.label)+'</option>').join('');
+ const filter=countries.length?'<form method="get" action="/cautions/'+esc(topic.slug)+'" class="caution-country-filter">'+
+  '<label for="caution-country">Destination</label><select id="caution-country" name="country"><option value="">All countries</option>'+countryOptions+'</select>'+
+  '<label for="caution-level">Potential impact</label><select id="caution-level" name="level"><option value="">All levels / Not assessed</option>'+levelOptions+'</select>'+
+  '<button type="submit">Filter ↗</button></form>':'';
  const body='<main class="shell simple caution-topic-page"><a class="backlink" href="/cautions">← All travel cautions</a>'+
  '<div class="eyebrow">DESTINATION-SPECIFIC PROBLEMS</div><h1>'+esc(topic.title)+'</h1><p>'+esc(topic.description)+
- ' Each article applies to the stated location and situation. Check its original sources for changes.</p>'+filter+
+ ' Each article applies to the stated location and situation. Check its original sources for changes.</p>'+impactLegend()+filter+
  (rows.length?'<p>'+rows.length+' published '+(rows.length===1?'guide':'guides')+(rows.length===40?' shown (latest first)':'')+'</p><div class="guide-grid">'+rows.map(row=>articleCard(row)).join('')+'</div>':
  '<div class="empty-state"><h2>No published guidance for this selection yet.</h2><p>Research is planned; consult official authorities for immediate travel decisions.</p></div>')+
  '<p><a href="/destinations">Browse destinations worldwide ↗</a></p></main>';
  // Empty and country-filtered combinations should not create thin indexable pages.
  return html(layout(env,topic.title+' travel cautions',body,{
-  path:'/cautions/'+topic.slug,noindex:!rows.length||Boolean(selectedCountry)||Boolean(requested&&!selectedCountry),
+  path:'/cautions/'+topic.slug,noindex:!rows.length||Boolean(selectedCountry)||Boolean(requested&&!selectedCountry)||Boolean(requestedLevel),
   description:topic.description
  }));
 }
