@@ -15,7 +15,7 @@ function fakeDB(){
    async all(){return {results:[]};}
   };
   return q;
- }};
+ },async batch(statements){for(const statement of statements)await statement.run();return statements.map(()=>({success:true}));}};
 }
 const article=category=>({
  title:'Sample guide for '+category,slug:'sample-guide-'+category,

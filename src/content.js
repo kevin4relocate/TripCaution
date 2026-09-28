@@ -23,8 +23,13 @@ export function normalizeArticle(raw) {
     seo=raw.seo || {}, images=raw.images || {}, research=raw.research || {};
   if (!title || !slug || !country || content.length < 100) throw Error('Title, country and >=100 characters of content are required');
   const category=cleanString(raw.category || raw.category_id,70);
+  const candidateId=cleanString(raw.id,80);
+  // Public/private article APIs use lowercase UUID path IDs. Reject supplied
+  // opaque IDs instead of creating records that can never be opened in Admin.
+  if(raw.id != null && (typeof raw.id!=='string' || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(candidateId)))
+    throw Error('Article ID must be a UUID');
   return {
-    id:cleanString(raw.id,80)||crypto.randomUUID(),title,slug,country,
+    id:candidateId?candidateId.toLowerCase():crypto.randomUUID(),title,slug,country,
     city:cleanString(raw.city,120)||null,
     excerpt:cleanString(raw.excerpt,480),
     content_markdown:content,category_id:CATEGORIES.includes(category)?category:'before-you-go',

@@ -208,3 +208,12 @@
 .seo-preview-desc{font-size:12px;line-height:1.6;color:#56645a;overflow-wrap:anywhere;}
 .seo-preview p{font-size:10px!important;line-height:1.45!important;color:#849187!important;margin:11px 0 0!important;}
 @media(max-width:650px){.seo-preview{padding:14px}.seo-preview-top{align-items:flex-start;flex-direction:column;gap:3px}.seo-preview-top span{text-align:left;}}
+
+/* Sprint 3: bounded article pages and editorial coverage, responsive without extra controls. */
+.article-pager{display:flex;align-items:center;justify-content:center;gap:1rem;padding:1.2rem 0;flex-wrap:wrap}
+.article-pager button{min-width:6.5rem}.article-pager span{font-size:.9rem;color:#58636a}
+.region-progress{font-weight:700;margin:.8rem 0}
+.region-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.7rem}
+.region-tile{padding:.85rem;border:1px solid #d6dcd8;border-radius:10px;background:#fff}
+.region-tile strong,.region-tile small{display:block}.region-tile small{margin-top:.35rem;color:#58636a}
+.region-tile.pending{border-style:dashed}

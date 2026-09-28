@@ -272,7 +272,15 @@ function renderGuideArticle(env,a,preview=false,related=[]){
 }
 async function relatedPublishedGuides(env,a){
  if(!env.DB)return [];
- const rows=await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.id!=? AND a.status='published' AND a.published_at<=datetime('now') AND (a.country=? OR a.category_id=?) ORDER BY CASE WHEN a.country=? THEN 0 ELSE 1 END, a.published_at DESC LIMIT 3").bind(a.id,a.country,a.category_id,a.country).all();
+ const regional=isSoutheastAsia(a.country)?1:0;
+ const regionSlots=SOUTHEAST_ASIA_COUNTRIES.map(()=>'?').join(',');
+ // Region-first applies only as a tie-break among relevant, published guides.
+ // Readers outside the region keep existing same-country / topic behavior.
+ const rows=await env.DB.prepare(`SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id
+  WHERE a.id!=? AND a.status='published' AND a.published_at<=datetime('now') AND (a.country=? OR a.category_id=?)
+  ORDER BY CASE WHEN a.country=? THEN 0 WHEN ?=1 AND a.country IN (${regionSlots}) THEN 1 ELSE 2 END,
+   a.published_at DESC,a.id DESC LIMIT 3`)
+  .bind(a.id,a.country,a.category_id,a.country,regional,...SOUTHEAST_ASIA_COUNTRIES).all();
  return rows.results||[];
 }
 async function guidePage(env,slug){
@@ -365,9 +373,11 @@ async function insertArticle(env,raw,actor){
  // Sprint 0: source URLs and an AI research timestamp are NEVER approval.
  // Ingesting any article always creates a human-review draft, including low-risk categories.
  const status='review',published=null;
- await env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
- .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at).run();
- await audit(env,actor,'created:'+status,a.id);
+ const insert = env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+ .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at);
+ const auditInsert=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
+  .bind(crypto.randomUUID(),actor,'created:'+status,a.id,'');
+ await env.DB.batch([insert,auditInsert]);
  return {id:a.id,title:a.title,slug:a.slug,status};
 }
 async function replaceArticleWithReviewDraft(env,raw,actor){
@@ -377,14 +387,16 @@ async function replaceArticleWithReviewDraft(env,raw,actor){
  if(!old)return insertArticle(env,raw,actor);
  // Only the signed-in owner can explicitly revise an existing guide. The old
  // version is withdrawn while the new revision undergoes a fresh manual review.
- await env.DB.prepare(`UPDATE articles SET title=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,
+ const revision=env.DB.prepare(`UPDATE articles SET title=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,
    tags_json=?,sources_json=?,uncertainties_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,
    hero_alt=?,source_mode='editorial-revision',verified_at=?,review_approved=0,status='review',
    scheduled_at=NULL,updated_at=datetime('now') WHERE id=?`)
  .bind(a.title,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,
    a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,
-   a.hero_prompt,a.hero_alt,a.verified_at,old.id).run();
- await audit(env,actor,'revision-imported-to-review',old.id,JSON.stringify({old_status:old.status,slug:a.slug}));
+   a.hero_prompt,a.hero_alt,a.verified_at,old.id);
+ const revisionAudit=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
+  .bind(crypto.randomUUID(),actor,'revision-imported-to-review',old.id,JSON.stringify({old_status:old.status,slug:a.slug}));
+ await env.DB.batch([revision,revisionAudit]);
  return {id:old.id,title:a.title,slug:a.slug,status:'review',updated:true};
 }
 const EDITOR_ACTIONS={
@@ -484,8 +496,34 @@ async function api(request,env,url,admin=false){
   return json({titles,upcoming});
  }
  if(method==='GET' && pathname==='/api/admin/articles'){
-  const rows=await env.DB.prepare("SELECT id,title,slug,country,city,category_id,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles ORDER BY created_at DESC LIMIT 300").all();
-  return json({articles:rows.results});
+  const q=String(url.searchParams.get('q')||'').trim().slice(0,80);
+  const status=url.searchParams.get('status')||'';
+  if(status&&!STATUSES.includes(status))return json({error:'Invalid status'},400);
+  const page=Number(url.searchParams.get('page')||'1');
+  if(!Number.isSafeInteger(page)||page<1||page>10000)return json({error:'Invalid page'},400);
+  const args=[],conditions=[];
+  if(status){conditions.push('status=?');args.push(status);}
+  if(q){conditions.push("instr(lower(title||' '||country||' '||coalesce(city,'')),lower(?))>0");args.push(q);}
+  const where=conditions.length?' WHERE '+conditions.join(' AND '):'';
+  const count=await env.DB.prepare('SELECT COUNT(*) count FROM articles'+where).bind(...args).first();
+  const total=Number(count?.count||0),pageSize=30,pages=Math.max(1,Math.ceil(total/pageSize));
+  const current=Math.min(page,pages);
+  const rows=await env.DB.prepare('SELECT id,title,slug,country,city,category_id,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles'+where+' ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?').bind(...args,pageSize,(current-1)*pageSize).all();
+  return json({articles:rows.results||[],page:current,pages,pageSize,total});
+ }
+ if(method==='GET' && pathname==='/api/admin/queue'){
+  const rows=await env.DB.prepare("SELECT id,title,slug,country,city,category_id,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles WHERE status IN ('review','scheduled','draft') ORDER BY CASE WHEN status='scheduled' THEN 0 ELSE 1 END,coalesce(scheduled_at,created_at) ASC,id ASC LIMIT 100").all();
+  const result=await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status IN ('review','scheduled','draft')").first();
+  const total=Number(result?.count||0);
+  return json({articles:rows.results||[],total,limited:total>100});
+ }
+ if(method==='GET' && pathname==='/api/admin/coverage'){
+  const countries=SOUTHEAST_ASIA_COUNTRIES;
+  const sql='SELECT country,SUM(CASE WHEN status=\'published\' AND published_at<=datetime(\'now\') THEN 1 ELSE 0 END) published,SUM(CASE WHEN status IN (\'draft\',\'review\',\'scheduled\') THEN 1 ELSE 0 END) pipeline FROM articles WHERE country IN ('+countries.map(()=>'?').join(',')+') AND status!=\'deleted\' GROUP BY country';
+  const rows=await env.DB.prepare(sql).bind(...countries).all();
+  const byCountry=new Map((rows.results||[]).map(row=>[row.country,row]));
+  const coverage=countries.map(country=>({country,published:Number(byCountry.get(country)?.published||0),pipeline:Number(byCountry.get(country)?.pipeline||0)}));
+  return json({coverage,publishedCountries:coverage.filter(row=>row.published>0).length,totalCountries:countries.length});
  }
  if(method==='GET' && pathname==='/api/admin/categories'){
   return json({categories:(await env.DB.prepare('SELECT * FROM categories ORDER BY name').all()).results});
@@ -588,12 +626,13 @@ async function api(request,env,url,admin=false){
         AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1))
       ORDER BY l.created_at DESC LIMIT 1) next_review_due_at
    FROM articles a WHERE a.status='published' ORDER BY a.created_at DESC LIMIT 100`).all()).results;
-  return json({status,auditLogs,reviewDue});
+  const publishedRow=await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published'").first();
+  return json({status,auditLogs,reviewDue,reviewScanLimited:Number(publishedRow?.count||0)>100});
  }
  if(method==='POST' && (pathname==='/api/ingest'||pathname==='/api/admin/import')){
   const body=await request.json();
   const list=Array.isArray(body.articles)?body.articles:[body];
-  if(list.length<1||list.length>30)return json({error:'Import requires 1–30 articles'},400);
+  if(list.length<1||list.length>10)return json({error:'Import requires 1–10 articles per request; the editor safely splits larger imports'},400);
   const revisionMode=pathname==='/api/admin/import' && body.update_matching===true;
   if(body.update_matching===true&&!revisionMode)return json({error:'Only signed-in editor can revise existing articles'},403);
   if(revisionMode&&body.confirm_unpublish!==true)return json({error:'Explicit acknowledgment required: matching live articles return to Review'},422);
@@ -621,12 +660,16 @@ async function api(request,env,url,admin=false){
   const merged={
    ...old,...body,seo_title:body.seo_title??old.seo_title,seo_description:body.seo_description??old.seo_description,
    sources:body.sources??safeParse(old.sources_json),tags:body.tags??safeParse(old.tags_json),
-   research:{verified_at:body.verified_at??old.verified_at,uncertainties:safeParse(old.uncertainties_json)}
+   research:{verified_at:body.verified_at??old.verified_at,
+    uncertainties:body.uncertainties??safeParse(old.uncertainties_json)}
   };
   const a=normalizeArticle(merged);
-  await env.DB.prepare(`UPDATE articles SET title=?,slug=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,tags_json=?,sources_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,hero_alt=?,verified_at=?,updated_at=datetime('now'),review_approved=0,scheduled_at=CASE WHEN status IN ('published','scheduled') THEN NULL ELSE scheduled_at END,status=CASE WHEN status IN ('published','scheduled') THEN 'review' ELSE status END WHERE id=?`)
-  .bind(a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,a.verified_at,id).run();
-  await audit(env,actor,'edited',id);return json({ok:true});
+  const update=env.DB.prepare(`UPDATE articles SET title=?,slug=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,tags_json=?,sources_json=?,uncertainties_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,hero_alt=?,verified_at=?,updated_at=datetime('now'),review_approved=0,scheduled_at=CASE WHEN status IN ('published','scheduled') THEN NULL ELSE scheduled_at END,status=CASE WHEN status IN ('published','scheduled') THEN 'review' ELSE status END WHERE id=?`)
+   .bind(a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,a.verified_at,id);
+  const editAudit=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
+   .bind(crypto.randomUUID(),actor,'edited',id,'');
+  await env.DB.batch([update,editAudit]);
+  return json({ok:true});
  }
  if(pathname==='/api/admin/media' && method==='POST'){
   if(!env.MEDIA)return json({error:'R2 not configured; follow README to enable uploads'},503);

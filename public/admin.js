@@ -1,6 +1,30 @@
 
 const $=id=>document.getElementById(id);
-const state={articles:[],categories:[],selected:null,dirty:false};
+const state={articles:[],categories:[],queue:[],page:1,pages:1,total:0,selected:null,dirty:false};
+let libraryRequestSerial=0;
+async function loadArticlePage(page=state.page){
+ const serial=++libraryRequestSerial;
+ const query=new URLSearchParams({page:String(page)});
+ const search=$('article-search').value.trim(),status=$('article-filter').value;
+ if(search)query.set('q',search);
+ if(status)query.set('status',status);
+ const result=await api('/api/admin/articles?'+query);
+ if(serial!==libraryRequestSerial)return;
+ selectedIds.clear();
+ state.articles=result.articles;state.page=result.page;state.pages=result.pages;state.total=result.total;
+ renderArticles();
+}
+function showArticlePager(){
+ $('page-info').textContent='Page '+state.page+' of '+state.pages+' · '+state.total+' matching article'+(state.total===1?'':'s');
+ $('page-prev').disabled=state.page<=1;
+ $('page-next').disabled=state.page>=state.pages;
+}
+async function loadQueue(){
+ const result=await api('/api/admin/queue');
+ state.queue=result.articles;
+ $('queue-limit-note').hidden=!result.limited;
+ renderQueue();
+}
 const selectedIds=new Set();
 let quickBusy=false;
 let pendingSchedule=null;
@@ -22,9 +46,13 @@ function show(view){
 }
 document.querySelectorAll('[data-view]').forEach(el=>el.addEventListener('click',()=>show(el.dataset.view)));
 async function refresh(){
- const [items,overview,cat]=await Promise.all([
-  api('/api/admin/articles'),api('/api/admin/overview'),api('/api/admin/categories')]);
- state.articles=items.articles;state.categories=cat.categories;
+ const [overview,cat,coverage]=await Promise.all([
+  api('/api/admin/overview'),api('/api/admin/categories'),api('/api/admin/coverage')]);
+ state.categories=cat.categories;
+ $('region-progress').textContent=coverage.publishedCountries+'/'+coverage.totalCountries+' Southeast Asian countries with a published guide';
+ $('region-tiles').innerHTML=coverage.coverage.map(row=>'<div class="region-tile '+(row.published?'':'pending')+'"><strong>'+escapeHTML(row.country)+'</strong><small>'+
+  (row.published?row.published+' published guide'+(row.published===1?'':'s'):'Research planned')+
+  (row.pipeline?' · '+row.pipeline+' in pipeline':'')+'</small></div>').join('');
  const counts=Object.fromEntries(overview.status.map(s=>[s.status,s.count]));
  $('stats').innerHTML=[['Published',counts.published||0],['Needs review',counts.review||0],['Scheduled',counts.scheduled||0],['Drafts',counts.draft||0]]
   .map(([name,count])=>'<div class="stat"><small>'+escapeHTML(name.toUpperCase())+'</small><b>'+count+'</b><span>Article records</span></div>').join('');
@@ -32,7 +60,8 @@ async function refresh(){
  $('review-due').innerHTML=reviewNeeded.length?reviewNeeded.map(row=>{
   const when=row.next_review_due_at?'Review overdue since '+new Date(row.next_review_due_at).toLocaleDateString():'No recorded human review';
   return '<div class="due-row"><div><strong>'+escapeHTML(row.title)+'</strong><small>'+escapeHTML(when)+'</small></div><button class="due-reopen-btn" type="button" data-id="'+escapeHTML(row.id)+'">Reopen review →</button></div>';
- }).join(''):'<p class="due-clear">All published guides have an editorial review date within their selected window.</p>';
+ }).join(''):'<p class="due-clear">No review issues found in the latest 100 published guides checked.</p>';
+ if(overview.reviewScanLimited)$('review-due').insertAdjacentHTML('beforeend','<p class="bulk-notice">Review queue shows only the latest 100 published guides. Older guides still require separate review; this is not a full-catalog clearance.</p>');
  document.querySelectorAll('.due-reopen-btn').forEach(button=>button.addEventListener('click',async()=>{
   if(!confirm('Withdraw this article from the public website and reopen it for source verification?'))return;
   try{
@@ -43,12 +72,9 @@ async function refresh(){
  }));
  $('activities').innerHTML=overview.auditLogs.length?overview.auditLogs.map(log=>'<div>'+escapeHTML(log.action)+' <small>'+escapeHTML(log.created_at)+'</small></div>').join(''):'<p>No activity yet.</p>';
  $('edit-category').innerHTML=state.categories.map(c=>'<option value="'+escapeHTML(c.id)+'">'+escapeHTML(c.name)+'</option>').join('');
- renderArticles();renderQueue();
+ await Promise.all([loadArticlePage(state.page),loadQueue()]);
 }
-function visibleArticles(){
- const q=$('article-search').value.trim().toLowerCase(),filter=$('article-filter').value;
- return state.articles.filter(a=>(!filter||a.status===filter)&&(!q||[a.title,a.country,a.city].join(' ').toLowerCase().includes(q)));
-}
+function visibleArticles(){return state.articles;}
 function selectedVisible(){
  return visibleArticles().filter(a=>selectedIds.has(a.id));
 }
@@ -114,9 +140,10 @@ function renderArticles(){
   if(action)quickRowAction(drop.dataset.id,action);
  }));
  updateBulkToolbar();
+ showArticlePager();
 }
 function renderQueue(){
- const rows=state.articles.filter(a=>['review','scheduled','draft'].includes(a.status)).sort((a,b)=>(a.scheduled_at||'9999').localeCompare(b.scheduled_at||'9999'));
+ const rows=state.queue;
  $('queue').innerHTML=rows.map(a=>'<div><span class="status '+escapeHTML(a.status)+'">'+escapeHTML(a.status)+'</span> &nbsp; '+escapeHTML(a.scheduled_at||'Not scheduled')+' — <strong>'+escapeHTML(a.title)+'</strong><span class="queue-actions"><a href="/admin/preview/'+encodeURIComponent(a.id)+'" data-preview-id="'+escapeHTML(a.id)+'" data-preview-update="'+escapeHTML(a.updated_at||'')+'" target="_blank" rel="noopener noreferrer">Preview ↗</a><button type="button" class="text-button queue-btn" data-id="'+escapeHTML(a.id)+'">Review →</button></span></div>').join('')||'<p>Your queue is clear.</p>';
  document.querySelectorAll('.queue-btn').forEach(btn=>btn.onclick=()=>loadArticle(btn.dataset.id));
  document.querySelectorAll('#queue [data-preview-id]').forEach(link=>link.addEventListener('click',()=>{
@@ -126,8 +153,16 @@ function renderQueue(){
 function clearSelection(){
  selectedIds.clear();renderArticles();
 }
-$('article-search').addEventListener('input',clearSelection);
-$('article-filter').addEventListener('change',clearSelection);
+let searchTimer;
+$('article-search').addEventListener('input',()=>{
+ clearTimeout(searchTimer);selectedIds.clear();
+ searchTimer=setTimeout(()=>loadArticlePage(1).catch(e=>toast(e.message,true)),250);
+});
+$('article-filter').addEventListener('change',()=>{
+ clearTimeout(searchTimer);selectedIds.clear();loadArticlePage(1).catch(e=>toast(e.message,true));
+});
+$('page-prev').addEventListener('click',()=>loadArticlePage(state.page-1).catch(e=>toast(e.message,true)));
+$('page-next').addEventListener('click',()=>loadArticlePage(state.page+1).catch(e=>toast(e.message,true)));
 $('select-all-visible').addEventListener('change',event=>{
  // Only select currently visible rows; never silently include filtered-out articles.
  const visible=visibleArticles();
@@ -149,22 +184,44 @@ $('json-file').addEventListener('change',async ev=>{
  const file=ev.target.files[0];if(file){if(file.size>2_000_000){toast('JSON file is too large',true);return;}$('json-input').value=await file.text();}
 });
 $('import-btn').onclick=async()=>{
+ if(quickBusy)return;
  try{
   const data=JSON.parse($('json-input').value);
+  const entries=Array.isArray(data?.articles)?data.articles:[data];
+  if(!entries.length||entries.length>30)throw Error('Import a package of 1–30 articles.');
   const revision=$('revision-mode').checked;
   if(revision){
     if(!Array.isArray(data.articles)||!data.articles.length)throw Error('Revision mode requires a JSON package with articles.');
     if(!confirm('DID YOU BACK UP D1? Replacing matching articles will immediately remove them from the public website until reviewed again. Continue?'))return;
   }
-  const request={...data,update_matching:revision,confirm_unpublish:revision};
-  const result=await api('/api/admin/import',{method:'POST',body:JSON.stringify(request)});
-  const ok=result.results.filter(r=>r.ok).length;
-  $('import-result').textContent=ok+' imported, '+(result.results.length-ok)+' errors';
-  const errors=result.results.filter(r=>!r.ok);
-  if(errors.length)toast(errors.map(e=>e.title+': '+e.error).join(' | ').slice(0,600),true);
-  else toast(ok+(revision?' corrected/new articles placed in Review. Re-approve individually.':' articles imported. Review before publication.'));
+  quickBusy=true;
+  $('import-btn').disabled=true;
+  let successes=0,processed=0;
+  const failures=[];
+  for(let start=0;start<entries.length;start+=10){
+   const batch=entries.slice(start,start+10);
+   try{
+    const result=await api('/api/admin/import',{method:'POST',body:JSON.stringify({
+      ...data,articles:batch,update_matching:revision,confirm_unpublish:revision
+    })});
+    if(!Array.isArray(result.results)||result.results.length!==batch.length)
+      throw Error('Unexpected import response');
+    successes+=result.results.filter(row=>row.ok).length;
+    failures.push(...result.results.filter(row=>!row.ok));
+    processed+=batch.length;
+    $('import-result').textContent=processed+'/'+entries.length+' processed; '+successes+' imported.';
+   }catch(error){
+    // If the response was lost, the server may have accepted the last chunk.
+    // Never blindly retry revisions. Refresh the library and reconcile slugs.
+    throw Error('Import interrupted after '+processed+' confirmed items. Refresh the library before retrying: '+error.message);
+   }
+  }
+  $('import-result').textContent=successes+' imported, '+failures.length+' errors';
+  if(failures.length)toast(failures.slice(0,4).map(e=>(e.title||'Article')+': '+e.error).join(' | ').slice(0,600),true);
+  else toast(successes+(revision?' corrected/new articles placed in Review. Re-approve individually.':' articles imported. Review before publication.'));
   await refresh();
  }catch(e){toast(e.message,true);}
+ finally{quickBusy=false;$('import-btn').disabled=false;}
 };
 const editorForm=$('article-form');
 function safeSourceUrl(raw){
@@ -201,6 +258,12 @@ function populateReviewEvidence(a){
  $('review-verified-note').textContent=a.verified_at?
    'Research reference: '+a.verified_at+'. This date may come from AI research; it is not independent editorial verification.':
    'No research reference date recorded. Verify time-sensitive information before publication.';
+ const flags=$('review-uncertainties');
+ let unresolved=[];
+ try{const value=JSON.parse(a.uncertainties_json||'[]');if(Array.isArray(value))unresolved=value;}catch{}
+ flags.hidden=unresolved.length===0;
+ flags.innerHTML=unresolved.length?'<strong>OPEN RESEARCH QUESTIONS · VERIFY BEFORE PUBLISHING</strong><ul>'+
+  unresolved.slice(0,20).map(item=>'<li>'+escapeHTML((typeof item==='string'?item:JSON.stringify(item)).slice(0,500))+'</li>').join('')+'</ul>':'';
  $('editor-preview-link').href='/admin/preview/'+encodeURIComponent(a.id);
 }
 $('editor-preview-link').addEventListener('click',event=>{
@@ -238,6 +301,9 @@ async function loadArticle(id){
   fields.forEach(key=>{const el=form.elements.namedItem(key);if(el)el.value=a[key]??'';});
   form.elements.namedItem('category').value=a.category_id;
   form.elements.namedItem('sources').value=JSON.stringify(JSON.parse(a.sources_json||'[]'),null,2);
+  let unresolved=[];
+  try{const parsed=JSON.parse(a.uncertainties_json||'[]');if(Array.isArray(parsed))unresolved=parsed;}catch{}
+  form.elements.namedItem('uncertainties').value=JSON.stringify(unresolved,null,2);
   $('editor-heading').textContent=a.title;
   $('editor-subheading').textContent=[a.city,a.country].filter(Boolean).join(', ')+' · '+a.source_mode;
   $('editor-status').textContent='Current status: '+a.status;
@@ -258,6 +324,8 @@ $('article-form').onsubmit=async event=>{
   body.category=form.elements.namedItem('category').value;
   body.sources=JSON.parse(form.elements.namedItem('sources').value||'[]');
   if(!Array.isArray(body.sources))throw Error('Sources must be a JSON array');
+  body.uncertainties=JSON.parse(form.elements.namedItem('uncertainties').value||'[]');
+  if(!Array.isArray(body.uncertainties))throw Error('Research uncertainties must be a JSON array');
   await api('/api/admin/article/'+state.selected.id,{method:'PATCH',body:JSON.stringify(body)});
   toast('Saved. Changes to live or scheduled articles return them to private Review.');
   await refresh();await loadArticle(state.selected.id);
