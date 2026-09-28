@@ -215,6 +215,22 @@ editorForm.addEventListener('input',markDirty);
 editorForm.addEventListener('change',markDirty);
 $('review-publish-btn').onclick=()=>action('publish');
 const fields=['title','slug','excerpt','country','city','content_markdown','verified_at','seo_title','seo_description','hero_image_url','hero_alt','hero_prompt'];
+function refreshSEOPreview(){
+ const form=$('article-form');
+ if(!form)return;
+ const title=(form.elements.namedItem('seo_title').value.trim()||
+   form.elements.namedItem('title').value.trim()||'Your article title')+' | TripCaution';
+ const desc=form.elements.namedItem('seo_description').value.trim()||
+   form.elements.namedItem('excerpt').value.trim()||'Add a clear description of what the reader will learn.';
+ const slug=form.elements.namedItem('slug').value.trim()||'your-guide';
+ $('seo-preview-url').textContent=location.origin+'/guides/'+encodeURIComponent(slug);
+ $('seo-preview-title').textContent=title;
+ $('seo-preview-desc').textContent=desc;
+ $('seo-length').textContent=title.length+' title characters · '+desc.length+' description characters';
+}
+for(const name of ['title','slug','seo_title','seo_description','excerpt']){
+ $('article-form').elements.namedItem(name).addEventListener('input',refreshSEOPreview);
+}
 async function loadArticle(id){
  try{
   const {article:a}=await api('/api/admin/article/'+id);state.selected=a;
@@ -230,6 +246,7 @@ async function loadArticle(id){
   const preview=$('image-preview');preview.replaceChildren();
   if(a.hero_image_url){const img=new Image();img.src=a.hero_image_url;img.alt='Current editorial illustration';preview.append(img);}
   state.dirty=false;
+  refreshSEOPreview();
   populateReviewEvidence(a);updateReviewGate();show('editor');
  }catch(e){toast(e.message,true);}
 }
