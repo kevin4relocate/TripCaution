@@ -61,7 +61,15 @@ def choose_first_pass_topic(topics, existing_rows, day_of_year):
 
 def request_json(url, payload=None, headers=None, timeout=110):
     data=json.dumps(payload).encode() if payload is not None else None
-    req=urllib.request.Request(url,data=data,headers=headers or {"Content-Type":"application/json"},method="POST" if data is not None else "GET")
+    outgoing=dict(headers or {"Content-Type":"application/json"})
+    # The site's Cloudflare edge accepts a declared browser-compatible
+    # application client; Python's generic urllib default receives HTTP 403
+    # from GitHub runners, while browser-like anonymous requests reach our
+    # application and correctly return 401. Scope this UA strictly to our
+    # own Worker, never to Gemini or arbitrary source websites.
+    if SITE.startswith("https://") and url.startswith(SITE + "/"):
+        outgoing["User-Agent"]="Mozilla/5.0 (compatible; TripCaution-API-Connectivity-Check/1.0)"
+    req=urllib.request.Request(url,data=data,headers=outgoing,method="POST" if data is not None else "GET")
     try:
         with urllib.request.urlopen(req,timeout=timeout) as resp:
             return json.loads(resp.read())

@@ -38,8 +38,15 @@ home=probe("public homepage","/")
 anonymous=probe("anonymous ingest GET (expected 401)","/api/ingest/topics")
 authorized=probe("authorized ingest GET (expected 200)","/api/ingest/topics",True)
 browser=probe("browser-like anonymous ingest GET (expected 401)","/api/ingest/topics",False,True)
-if home==403 and anonymous==403:
-    print("Diagnosis: GitHub runner appears blocked before app routing; investigate Cloudflare edge/access policy.")
+browser_authenticated=probe("browser-like authorized ingest GET (expected 200)","/api/ingest/topics",True,True)
+if anonymous==403 and browser==401 and browser_authenticated==200:
+    print("Diagnosis: default Python HTTP client is filtered; same-site authenticated request with declared application UA reaches TripCaution.")
+elif anonymous==403 and browser==401 and browser_authenticated==401:
+    print("Diagnosis: declared client reaches API but supplied ingest token is rejected. Verify both token values match.")
+elif anonymous==403 and browser==401 and browser_authenticated==403:
+    print("Diagnosis: declared client reaches public API but authorization request is blocked. Investigate Cloudflare filtering of Authorization requests.")
+elif home==403 and anonymous==403:
+    print("Diagnosis: default GitHub Python client filtered upstream; test declared UA with and without authorization before changing access policy.")
 elif anonymous==401 and authorized==401:
     print("Diagnosis: ingress reaches app, but token is invalid; confirm both configured secret values match.")
 elif anonymous==401 and authorized==403:
