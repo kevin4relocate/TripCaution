@@ -1,0 +1,30 @@
+{
+  "Vietnam": [
+    "https://www.gov.uk/foreign-travel-advice/vietnam",
+    "https://travel.gc.ca/destinations/vietnam"
+  ],
+  "Cambodia": [
+    "https://www.gov.uk/foreign-travel-advice/cambodia",
+    "https://travel.gc.ca/destinations/cambodia"
+  ],
+  "Laos": [
+    "https://www.gov.uk/foreign-travel-advice/laos",
+    "https://travel.gc.ca/destinations/laos"
+  ],
+  "Thailand": [
+    "https://www.gov.uk/foreign-travel-advice/thailand",
+    "https://travel.gc.ca/destinations/thailand"
+  ],
+  "Singapore": [
+    "https://www.gov.uk/foreign-travel-advice/singapore",
+    "https://travel.gc.ca/destinations/singapore"
+  ],
+  "Japan": [
+    "https://www.gov.uk/foreign-travel-advice/japan",
+    "https://travel.gc.ca/destinations/japan"
+  ],
+  "Indonesia": [
+    "https://www.gov.uk/foreign-travel-advice/indonesia",
+    "https://travel.gc.ca/destinations/indonesia"
+  ]
+}
