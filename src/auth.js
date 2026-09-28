@@ -5,7 +5,6 @@
 export const COOKIE_NAME = 'tc_admin_session';
 const SESSION_MS = 12 * 60 * 60 * 1000;
 const MAX_FAILED_PER_IP = 6;
-const FAILURE_WINDOW = '-15 minutes';
 const encoder = new TextEncoder();
 
 function forbidden(message='Not authorized', status=403) {
@@ -37,7 +36,7 @@ function equalBytes(a,b) {
  return difference===0;
 }
 async function hmac(secret,message) {
- const key=await crypto.subtle.importKey('raw',encoder.encode(secret),'HMAC',{hash:'SHA-256'},false,['sign']);
+ const key=await crypto.subtle.importKey('raw',encoder.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
  return new Uint8Array(await crypto.subtle.sign('HMAC',key,encoder.encode(message)));
 }
 function keyOrThrow(env) {
