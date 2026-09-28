@@ -50,7 +50,7 @@ test('stored travel content and invalid dates cannot execute scripts or crash th
  const env={SITE_URL:origin,DB:{prepare(sql){
   return {bind(){return this;},async first(){
    return sql.includes('FROM articles a LEFT JOIN')?article:null;
-  }};
+  },async all(){return {results:[]};}};
  }}};
  const response=await worker.fetch(new Request(origin+'/guides/untrusted-content'),env);
  assert.equal(response.status,200);
