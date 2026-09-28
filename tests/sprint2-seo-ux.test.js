@@ -108,7 +108,8 @@ test('private preview is noindex and has no public Article schema or related gui
  assert.doesNotMatch(html,/type="application\/ld\+json"/);
  assert.doesNotMatch(html,/rel="canonical"/);
  assert.match(html,/PRIVATE PREVIEW/);
- assert.ok(!db.statements.some(sql=>sql.includes('a.id!=?')));
+ assert.match(html,/Another Singapore guide/);
+ assert.ok(db.statements.some(sql=>sql.includes("a.status='published'")&&sql.includes('a.id!=?')));
 });
 test('sitemap uses real public timestamps, includes verified Contact only and no draft URLs',()=>{
  const xml=sitemapXML(origin,[{slug:'live',updated_at:'2026-09-28 05:10:00'},

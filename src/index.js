@@ -244,11 +244,16 @@ async function latestEditorialReview(env,id){
  const audit=(await env.DB.prepare("SELECT created_at FROM audit_logs WHERE article_id=? AND ((action IN ('reviewed-and-published','reviewed-and-scheduled') AND json_valid(details) AND length(json_extract(CASE WHEN json_valid(details) THEN details ELSE '{}' END,'$.evidence_note'))>=30) OR (action IN ('owner-reviewed-and-published','owner-reviewed-and-scheduled') AND json_valid(details) AND json_extract(CASE WHEN json_valid(details) THEN details ELSE '{}' END,'$.review_confirmed')=1)) ORDER BY created_at DESC LIMIT 1").bind(id).first());
  return audit?.created_at||null;
 }
+async function relatedPublishedGuides(env,a){
+ if(!env.DB)return [];
+ const rows=await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.id!=? AND a.status='published' AND a.published_at<=datetime('now') AND (a.country=? OR a.category_id=?) ORDER BY CASE WHEN a.country=? THEN 0 ELSE 1 END, a.published_at DESC LIMIT 3").bind(a.id,a.country,a.category_id,a.country).all();
+ return rows.results||[];
+}
 async function guidePage(env,slug){
  const a=env.DB?await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.slug=? AND a.status='published' AND a.published_at<=datetime('now') LIMIT 1").bind(slug).first():null;
  if(!a)return html(layout(env,'Guide unavailable','<main class="shell simple"><h1>Guide not found.</h1><a href="/">Browse destinations ↗</a></main>',{noindex:true}),404,{'cache-control':'no-store','x-robots-tag':'noindex'});
  // Related links are limited to already-public guides. Never expose draft metadata.
- const related=env.DB?(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.id!=? AND a.status='published' AND a.published_at<=datetime('now') AND (a.country=? OR a.category_id=?) ORDER BY CASE WHEN a.country=? THEN 0 ELSE 1 END, a.published_at DESC LIMIT 3").bind(a.id,a.country,a.category_id,a.country).all()).results:[];
+ const related=await relatedPublishedGuides(env,a);
  return renderGuideArticle(env,a,false,await latestEditorialReview(env,a.id),related);
 }
 async function previewGuidePage(request,env,id){
@@ -257,7 +262,7 @@ async function previewGuidePage(request,env,id){
  if(!env.DB)return html('<h1>Database unavailable.</h1>',503,{'cache-control':'no-store'});
  const a=await env.DB.prepare('SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.id=? LIMIT 1').bind(id).first();
  if(!a || a.status==='deleted')return html('<h1>Preview unavailable.</h1>',404,{'cache-control':'private, no-store','x-robots-tag':'noindex'});
- return renderGuideArticle(env,a,true,await latestEditorialReview(env,a.id));
+ return renderGuideArticle(env,a,true,await latestEditorialReview(env,a.id),await relatedPublishedGuides(env,a));
 }
 function editorialEmail(env) {
  const email=String(env.EDITORIAL_CONTACT_EMAIL||'').trim();
