@@ -26,6 +26,8 @@ function db(countryRows=[],latest=[]){
      slug:a.slug,updated_at:a.updated_at,published_at:a.published_at
     }))};
     if(sql.includes('SELECT DISTINCT country'))return {results:countryRows.map(r=>({country:r.country}))};
+    if(sql.includes('SELECT DISTINCT category_id'))return {results:latest.map(a=>({category_id:a.category_id}))};
+    if(sql.includes('GROUP BY category_id'))return {results:[{category_id:'transport',total:latest.length}]};
     if(sql.includes('GROUP BY country'))return {results:countryRows};
     if(sql.includes('a.country IN') && sql.includes('FROM articles a LEFT JOIN')){
      return {results:latest.filter(a=>isSoutheastAsia(a.country))};

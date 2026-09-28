@@ -10,7 +10,7 @@ test('homepage uses compact editorial journal instead of corporate step banner',
   });
   assert.equal(response.status,200);
   const page=await response.text();
-  assert.match(page,/THE INDEPENDENT TRAVEL FIELD GUIDE/);
+  assert.match(page,/TRAVEL TROUBLE, EXPLAINED/);
   assert.match(page,/public\/illustrations\/travel-journal\.svg|\/illustrations\/travel-journal\.svg/);
   assert.match(page,/class="section featured-section"/);
   assert.match(page,/id="destinations"/);
@@ -27,6 +27,7 @@ test('homepage puts fresh published guides before the condensed destination expl
  const database={prepare(sql){
   if(sql.includes('FROM articles a LEFT JOIN'))return {all:async()=>({results:latest})};
   if(sql.includes('GROUP BY country'))return {all:async()=>({results:[{country:'Singapore',total:1},{country:'Thailand',total:1},{country:'Vietnam',total:1}]})};
+  if(sql.includes('GROUP BY category_id'))return {all:async()=>({results:[{category_id:'transport',total:3}]})};
   if(sql.includes('COUNT(*) count'))return {first:async()=>({count:3})};
   throw Error('Unexpected query: '+sql);
  }};
@@ -35,6 +36,7 @@ test('homepage puts fresh published guides before the condensed destination expl
  });
  const page=await result.text();
  assert.equal(result.status,200);
+ assert.ok(page.indexOf('class="caution-topics-home"')<page.indexOf('id="latest"'));
  assert.ok(page.indexOf('id="latest"')<page.indexOf('id="destinations"'));
  assert.ok(page.indexOf('New airport transfer')<page.indexOf('Your first train ride'));
  assert.match(page,/class="featured-layout/);
@@ -75,7 +77,9 @@ test('full directory starts with all 11 regional countries, labelling unpublishe
  assert.match(page,/Research planned/);
  assert.match(page,/Southeast Asia guide hub/);
  assert.doesNotMatch(page,/<a[^>]+href="\/destinations\/cambodia"/);
- assert.doesNotMatch(page,/id="continent-europe"/);
+ assert.match(page,/id="continent-europe"/);
+ assert.match(page,/class="destination-name">Kenya<\/span>/);
+ assert.doesNotMatch(page,/href="\/destinations\/kenya"/);
 });
 test('responsive design includes compact layouts and reduced vertical spacing',()=>{
   const css=readFileSync(new URL('../public/styles.css',import.meta.url),'utf8');

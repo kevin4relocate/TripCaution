@@ -5,8 +5,9 @@ import {
   requireKeySession, checkLoginThrottle, recordLoginFailure
 } from './auth.js';
 import { normalizeArticle, STATUSES, CATEGORIES, isValidSchedule, slugify } from './content.js';
-import { STARTER_DESTINATIONS, SOUTHEAST_ASIA_COUNTRIES, isSoutheastAsia, groupDestinationsByContinent } from './destinations.js';
+import { STARTER_DESTINATIONS, SOUTHEAST_ASIA_COUNTRIES, CONTINENT_COUNTRIES, isSoutheastAsia, groupDestinationsByContinent } from './destinations.js';
 import { renderArticleMarkdown, editorialQuickTakes } from './article-content.js';
+import { CAUTION_TOPICS, cautionTopic, cautionTopicForCategory } from './cautions.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
 
 const json = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -19,7 +20,7 @@ const privateRedirect = target=>new Response(null,{
   'x-robots-tag':'noindex, nofollow, noarchive','referrer-policy':'no-referrer'}
 });
 const siteURL = env => (env.SITE_URL||'https://tripcaution.com').replace(/\/$/,'');
-const nav = '<a href="/southeast-asia">Southeast Asia</a><a href="/destinations">Destinations</a><a href="/#latest">Field notes</a><a href="/about">About</a>';
+const nav = '<a href="/cautions">Travel cautions</a><a href="/destinations">Destinations</a><a href="/southeast-asia">Southeast Asia</a><a href="/about">About</a>';
 function layout(env, title, body, meta={}) {
  const description=meta.description||'Evidence-led travel precautions and practical guides. Know before you go.';
  const url=siteURL(env)+(meta.path||'/');
@@ -41,7 +42,7 @@ function layout(env, title, body, meta={}) {
  <nav aria-label="Main navigation">${nav}</nav><a href="/#destinations" class="header-cta">Explore <span>↗</span></a></div></header>
  ${main}<footer><div class="shell footer-grid"><div><div class="footer-brand">TRIP<span>CAUTION</span><span class="tiny-star"> ✳</span></div>
  <p>Know before you go. Independent travel information with linked sources. Not an emergency alert service.</p></div>
- <div><strong>EXPLORE</strong><a href="/destinations">Destinations</a><a href="/#latest">Latest guides</a></div>
+ <div><strong>EXPLORE</strong><a href="/cautions">Browse cautions</a><a href="/destinations">Destinations worldwide</a><a href="/#latest">Latest guides</a></div>
  <div><strong>INFORMATION</strong><a href="/about">About & editorial policy</a><a href="/privacy">Privacy</a><a href="/contact">Contact</a></div>
  </div><div class="shell foot-bottom"><span>© ${new Date().getUTCFullYear()} TripCaution</span><span>Travel prepared. Travel curious.</span></div></footer><script src="/site.js" defer></script></body></html>`;
 }
@@ -61,7 +62,7 @@ function html(content,status=200,headers={}) {
 }
 function articleCard(a,variant='standard') {
  const path='/guides/'+encodeURIComponent(a.slug);
- const country=esc(a.country), category=esc(a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
+ const country=esc(a.country), category=esc(cautionTopicForCategory(a.category_id)?.title||a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
  const cls=variant==='lead'?' guide-card-lead':variant==='side'?' guide-card-side':'';
  return `<article class="guide-card${cls}"><a class="card-visual" href="${path}" aria-label="Read ${esc(a.title)}">
  ${safe(a.hero_image_url)?'<img loading="lazy" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
@@ -85,24 +86,26 @@ function southeastAsiaTiles(countryRows){
  }).join('')+'</div>';
 }
 async function homepage(env){
- let latest=[],countryRows=[],count=0;
+ let latest=[],countryRows=[],categoryRows=[],count=0;
  if(env.DB) {
-  const [a,c,n] = await Promise.all([
+  const [a,c,n,topics] = await Promise.all([
    env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') ORDER BY CASE WHEN a.country IN ("+SOUTHEAST_ASIA_COUNTRIES.map(country=>"'"+country+"'").join(',')+") THEN 0 ELSE 1 END,a.published_at DESC LIMIT 9").all(),
    env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country ORDER BY country COLLATE NOCASE ASC LIMIT 250").all(),
-   env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published' AND published_at<=datetime('now')").first()
+   env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published' AND published_at<=datetime('now')").first(),
+   env.DB.prepare("SELECT category_id,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY category_id").all()
   ]);
-  latest=a.results;countryRows=c.results;count=n?.count||0;
+  latest=a.results;countryRows=c.results;categoryRows=topics.results||[];count=n?.count||0;
  }
  const publishedCountries=countryRows.filter(row=>row.country && Number(row.total)>0);
  const feature=latest.slice(0,3);
  const additional=latest.slice(3,9);
  const readyHints=publishedCountries.filter(row=>isSoutheastAsia(row.country)).slice(0,3);
+ const topicCounts=new Map(categoryRows.map(row=>[row.category_id,Number(row.total)||0]));
  const body=`<main>
  <section class="hero home-hero"><div class="shell hero-inner"><div class="hero-content">
-   <div class="hero-label"><span class="label-line"></span> THE INDEPENDENT TRAVEL FIELD GUIDE <span class="hero-label-star">✳</span></div>
+   <div class="hero-label"><span class="label-line"></span> TRAVEL TROUBLE, EXPLAINED <span class="hero-label-star">✳</span></div>
    <h1>Go somewhere new.<br><em>Know what to avoid.</em></h1>
-   <p class="hero-description">Starting in Southeast Asia: discover practical travel checks and source-backed guidance — before you pack.</p>
+   <p class="hero-description">Unexpected problems happen everywhere. Research scams, payment limits, transport difficulties and practical precautions worldwide. Our first research priority is Southeast Asia.</p>
    <form class="destination-search" action="/search" method="get">
      <label class="sr-only" for="q">Search destinations and guides</label><span class="search-icon" aria-hidden="true">⌕</span>
      <input id="q" type="search" name="q" placeholder="Country, city or topic..." required maxlength="80">
@@ -119,6 +122,7 @@ async function homepage(env){
     </div>
     <div class="postcard-sticker">BEFORE<br>YOU GO <span>↗</span></div>
   </div></div></section>
+ <section class="section shell caution-topics-home" aria-label="Browse travel problems"><div class="section-heading"><div><div class="eyebrow">REAL TRAVEL PROBLEMS</div><h2>What could <em>go wrong?</em></h2><p>Choose the issue first, then check advice for your specific destination. No country is assumed to have the same payment options or risks.</p></div><a class="section-action" href="/cautions">All travel cautions ↗</a></div><div class="caution-topic-grid">${CAUTION_TOPICS.map(topic=>{const total=topic.ids.reduce((sum,id)=>sum+(topicCounts.get(id)||0),0);const inner='<strong>'+esc(topic.title)+'</strong><span>'+esc(topic.description)+'</span><small>'+(total?total+' published '+(total===1?'guide':'guides'):'Research planned')+'</small>';return total?'<a class="caution-topic" href="/cautions/'+topic.slug+'">'+inner+'</a>':'<div class="caution-topic caution-pending">'+inner+'</div>';}).join('')}</div></section>
  <section class="section featured-section" id="latest"><div class="shell">
    <div class="section-heading"><div><div class="eyebrow">01 — START READING</div>
      <h2>Field notes for <em>curious travelers.</em></h2>
@@ -160,6 +164,58 @@ async function homepage(env){
  </main>`;
  return html(layout(env,'Know before you go',body,{path:'/'}),200,{'cache-control':'public, max-age=60'});
 }
+// Worldwide issue discovery is always based on actually published records.
+// Never imply an issue is documented in a country until a reviewed guide exists.
+async function publishedTopicCounts(env){
+ if(!env.DB)return new Map();
+ const rows=await env.DB.prepare("SELECT category_id,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY category_id").all();
+ return new Map((rows.results||[]).map(row=>[row.category_id,Number(row.total)||0]));
+}
+async function cautionIndexPage(env){
+ const counts=await publishedTopicCounts(env);
+ const cards=CAUTION_TOPICS.map(topic=>{
+  const total=topic.ids.reduce((sum,id)=>sum+(counts.get(id)||0),0);
+  const inner='<strong>'+esc(topic.title)+'</strong><span>'+esc(topic.description)+'</span><small>'+
+   (total?total+' published '+(total===1?'guide':'guides'):'Research planned')+'</small>';
+  return total?'<a class="caution-topic" href="/cautions/'+esc(topic.slug)+'">'+inner+'</a>':
+    '<div class="caution-topic caution-pending">'+inner+'</div>';
+ }).join('');
+ const hasPublished=[...counts.values()].some(n=>n>0);
+ const body='<main class="shell simple caution-directory"><div class="eyebrow">GLOBAL TRAVEL CAUTIONS</div><h1>Travel problems worth checking before you go.</h1>'+
+ '<p>Choose a type of problem, then review the guidance for your destination. A payment method, theft warning or local rule in one place does not automatically apply elsewhere.</p>'+
+ '<div class="caution-topic-grid">'+cards+'</div><p>Our content research starts in Southeast Asia, but the platform covers every destination with a researched and published guide. For changing rules and urgent warnings, consult the relevant authority.</p>'+
+ '<a class="all-destinations-link" href="/destinations">Browse destinations ↗</a></main>';
+ return html(layout(env,'Global travel cautions',body,{path:'/cautions',noindex:!hasPublished,
+  description:'Research scams, theft, payment difficulties, transport, local rules and other travel problems by topic and destination.'}));
+}
+async function cautionTopicPage(env,topic,url){
+ const ids=topic.ids,ph=ids.map(()=>'?').join(',');
+ const sql=" FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND a.category_id IN ("+ph+")";
+ let countries=[],selectedCountry='';
+ if(env.DB){
+  const countryResults=await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now') AND category_id IN ("+ph+") ORDER BY country COLLATE NOCASE ASC").bind(...ids).all();
+  countries=(countryResults.results||[]).map(row=>row.country).filter(Boolean);
+ }
+ const requested=String(url.searchParams.get('country')||'').trim().slice(0,90);
+ // Never use arbitrary, unverified country labels in page headings or SQL filters.
+ selectedCountry=countries.find(name=>name.toLocaleLowerCase('en')===requested.toLocaleLowerCase('en'))||'';
+ const conditions=selectedCountry?' AND a.country=?':'';
+ const args=selectedCountry?[...ids,selectedCountry]:ids;
+ const rows=env.DB?(await env.DB.prepare("SELECT a.*,c.name category_name"+sql+conditions+" ORDER BY a.published_at DESC,a.id DESC LIMIT 40").bind(...args).all()).results||[]:[];
+ const countryOptions=countries.map(name=>'<option value="'+esc(name)+'"'+(name===selectedCountry?' selected':'')+'>'+esc(name)+'</option>').join('');
+ const filter=countries.length?'<form method="get" action="/cautions/'+esc(topic.slug)+'" class="caution-country-filter"><label for="caution-country">Destination</label><select id="caution-country" name="country"><option value="">All countries</option>'+countryOptions+'</select><button type="submit">Filter ↗</button></form>':'';
+ const body='<main class="shell simple caution-topic-page"><a class="backlink" href="/cautions">← All travel cautions</a>'+
+ '<div class="eyebrow">DESTINATION-SPECIFIC PROBLEMS</div><h1>'+esc(topic.title)+'</h1><p>'+esc(topic.description)+
+ ' Each article applies to the stated location and situation. Check its original sources for changes.</p>'+filter+
+ (rows.length?'<p>'+rows.length+' published '+(rows.length===1?'guide':'guides')+(rows.length===40?' shown (latest first)':'')+'</p><div class="guide-grid">'+rows.map(row=>articleCard(row)).join('')+'</div>':
+ '<div class="empty-state"><h2>No published guidance for this selection yet.</h2><p>Research is planned; consult official authorities for immediate travel decisions.</p></div>')+
+ '<p><a href="/destinations">Browse destinations worldwide ↗</a></p></main>';
+ // Empty and country-filtered combinations should not create thin indexable pages.
+ return html(layout(env,topic.title+' travel cautions',body,{
+  path:'/cautions/'+topic.slug,noindex:!rows.length||Boolean(selectedCountry)||Boolean(requested&&!selectedCountry),
+  description:topic.description
+ }));
+}
 async function southeastAsiaPage(env){
  const rows=env.DB?(await env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country").all()).results:[];
  const regionalRows=rows.filter(row=>isSoutheastAsia(row.country)&&Number(row.total)>0);
@@ -192,12 +248,14 @@ async function southeastAsiaPage(env){
 async function destinationIndexPage(env){
  const rows=env.DB?(await env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country ORDER BY country COLLATE NOCASE ASC LIMIT 250").all()).results:[];
  const countByCountry=new Map(rows.map(row=>[row.country.toLocaleLowerCase('en'),Number(row.total)]));
- const groups=groupDestinationsByContinent([...STARTER_DESTINATIONS,...rows.map(row=>row.country)]);
+ // The platform is worldwide; unpublished countries are plain research-planned tiles.
+ // Southeast Asia remains the content priority, not a catalog constraint.
+ const groups=groupDestinationsByContinent([...Object.values(CONTINENT_COUNTRIES).flat(),...rows.map(row=>row.country)]);
  const body=`<main>
  <section class="destination-hero"><div class="shell"><a href="/" class="backlink">← Back to the latest guides</a>
-   <div class="eyebrow">SOUTHEAST ASIA FIRST / FULL DESTINATION INDEX</div>
-   <h1>All 11 Southeast Asian <em>countries first.</em></h1>
-   <p>We are researching every country in Southeast Asia. Previously published guides elsewhere remain available, but our new editorial focus is this region.</p>
+   <div class="eyebrow">WORLDWIDE DESTINATIONS / SOUTHEAST ASIA FIRST</div>
+   <h1>Travel cautions <em>around the world.</em></h1>
+   <p>Browse countries worldwide. Southeast Asia is the first content priority; destinations without a published guide are marked Research planned.</p>
    <p><a class="all-destinations-link" href="/southeast-asia">Explore the Southeast Asia guide hub ↗</a></p>
    <form action="/search" method="get" class="destination-inline-search directory-search">
      <label for="directory-search" class="sr-only">Search destinations and guides</label>
@@ -773,6 +831,12 @@ export default {
    if(path==='/about'||path==='/privacy'||path==='/contact')return staticPage(env,path.slice(1));
    if(path==='/search')return await searchPage(env,url);
    if(path==='/southeast-asia')return await southeastAsiaPage(env);
+   if(path==='/cautions')return await cautionIndexPage(env);
+   if(path.startsWith('/cautions/')){
+    const topic=cautionTopic(path.slice('/cautions/'.length));
+    if(!topic)return html(layout(env,'Not found','<main class="shell simple"><h1>Unknown caution topic.</h1><a href="/cautions">All topics ↗</a></main>',{noindex:true}),404,{'cache-control':'no-store','x-robots-tag':'noindex'});
+    return await cautionTopicPage(env,topic,url);
+   }
     if(path==='/destinations')return await destinationIndexPage(env);
    if(path.startsWith('/destinations/'))return await destinationPage(env,decodeURIComponent(path.split('/')[2]||''));
    if(path.startsWith('/guides/'))return await guidePage(env,decodeURIComponent(path.split('/')[2]||''));
@@ -790,7 +854,10 @@ export default {
     const rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at,published_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
     const countries=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
     const hasContact=Boolean(editorialEmail(env))&&env.EDITORIAL_CONTACT_VERIFIED==='true';
-    return new Response(sitemapXML(siteURL(env),rows,countries,hasContact,countries.some(row=>isSoutheastAsia(row.country))),{
+    const publishedCategories=env.DB?(await env.DB.prepare("SELECT DISTINCT category_id FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+    const active=new Set(publishedCategories.map(row=>row.category_id));
+    const publishedTopics=CAUTION_TOPICS.filter(topic=>topic.ids.some(id=>active.has(id))).map(topic=>topic.slug);
+    return new Response(sitemapXML(siteURL(env),rows,countries,hasContact,countries.some(row=>isSoutheastAsia(row.country)),publishedTopics),{
      headers:{'content-type':'application/xml;charset=utf-8','cache-control':'public,max-age=300','x-content-type-options':'nosniff'}
     });
    }

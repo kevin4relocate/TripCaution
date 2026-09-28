@@ -637,3 +637,22 @@ footer {padding-top:36px;background:#26392f;}
  .sea-hub-latest .guide-grid{grid-template-columns:1fr;}
 }
 @media(prefers-reduced-motion:reduce){.sea-country{transition:none;}}
+
+/* Sprint 4: worldwide issue-first caution discovery. */
+.caution-topics-home{padding-top:54px;padding-bottom:58px}
+.caution-topic-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:25px}
+.caution-topic{display:flex;flex-direction:column;gap:12px;min-height:166px;padding:25px 24px;text-decoration:none;color:inherit;border:1px solid #d7dcd6;background:#fff;border-radius:9px;transition:border-color .2s,transform .2s}
+.caution-topic strong{font:normal 27px/1.12 "DM Serif Display",Georgia,serif;color:#182a28}
+.caution-topic span{font-size:14px;line-height:1.6;color:#4e605a}
+.caution-topic small{margin-top:auto;text-transform:uppercase;letter-spacing:.11em;font-size:10px;font-weight:700;color:#556b5c}
+a.caution-topic:hover,a.caution-topic:focus-visible{border-color:#526d53;transform:translateY(-2px)}
+.caution-pending{border-style:dashed;background:#f6f8f5}
+.caution-directory,.caution-topic-page{max-width:1100px;padding-top:42px;padding-bottom:64px}
+.caution-directory .caution-topic-grid{margin:32px 0}
+.caution-country-filter{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin:28px 0}
+.caution-country-filter label{font-size:13px;font-weight:700}
+.caution-country-filter select,.caution-country-filter button{font:inherit;min-height:42px;padding:8px 12px;border:1px solid #9ca9a1;border-radius:5px;background:#fff}
+.caution-country-filter button{cursor:pointer;background:#1f4032;color:#fff}
+@media(max-width:900px){.caution-topic-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.caution-topic-grid{grid-template-columns:1fr;gap:9px}.caution-topic{min-height:135px;padding:18px}.caution-topic strong{font-size:23px}.caution-topics-home{padding-top:30px;padding-bottom:30px}}
+@media(prefers-reduced-motion:reduce){.caution-topic{transition:none}}
