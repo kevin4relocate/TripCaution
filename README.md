@@ -214,3 +214,11 @@ For reversible removal, use **Hide**, **Move to Deleted**, then **Restore draft*
 - [ ] At least one Gemini workflow tested manually and its actual usage checked
 - [ ] Actual editorial contact and updated legal/privacy information published
 - [ ] Optional R2 uploads verified with a real test image
+
+## Sprint 2 — Content, SEO & reader experience
+
+Live guides now include safe anchored headings and a responsive **In this guide** outline, related links to already-published articles, honest Article/Breadcrumb structured metadata, semantic accessibility links and a correctly dated sitemap. Search distinguishes published destinations from countries still under research. Private previews remain non-indexed and never receive public Article schema.
+
+An optional **THE QUICK TAKE** sidebar appears **only** if you explicitly write a `## Key takeaways` heading with two to five bullet points in the article body. No AI summary is displayed without editorial writing. In Admin, SEO title, description and slug now update a small, non-blocking search snippet preview.
+
+For topic briefs, the review checklist and how to use these features, see [Sprint 2 editorial roadmap](docs/SPRINT2_EDITORIAL_ROADMAP.md) and [Sprint 2 implementation notes](docs/SPRINT2_IMPLEMENTATION.md). Run `npm run audit:content` for editorial-package formatting and metadata hygiene; it does **not** verify the accuracy of travel advice. Publishing, source review, live-mailbox verification and raster social-card production remain owner responsibilities.
