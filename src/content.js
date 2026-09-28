@@ -38,7 +38,7 @@ export function normalizeArticle(raw) {
     hero_alt:cleanString(raw.hero_alt || images.alt_text,300),
     source_mode:cleanString(raw.source_mode || raw.publishing?.mode,50)||'manual',
     verified_at:cleanString(raw.verified_at || research.verified_at,40)||null,
-    scheduled_at:cleanString(raw.scheduled_at,45)||null
+    scheduled_at:cleanString(raw.scheduled_at || raw.publishing?.preferred_publish_at,45)||null
   };
 }
 export function canAutoPublish(a) {
