@@ -18,6 +18,12 @@
 | Content expansion | Twelve original, country-specific research briefs span airport pickup, transit payments, cultural preparation and time-sensitive planning. The editorial roadmap explains source evidence and fact-checking requirements. Briefs are not fake reviewed articles and **have not been published automatically**. |
 | Editorial CI | `npm run audit:content` checks the existing starter package's syntax, duplicates, source URLs, headings and metadata. It warns about SVG sharing and AI research timestamps; it never claims to validate facts or permits automatic publishing. |
 
+## Verified rollout
+
+The matching source GitHub Actions validation run **36383759657** passed at SHA `52bf529633199b451e5908d812b7a6e2bb7154e0`. A fresh GitHub-hosted public production smoke against the live Workers.dev origin, run **36383759656**, passed **14/14** after the SEO/ToC/preview updates had been deployed. This is an automated public-state verification, not proof of Cloudflare's exact deployed SHA or a manual real-user usability test.
+
+The smoke returned two nonfatal warnings: (1) no **verified working** editorial contact inbox, and (2) `INGEST_TOKEN` not configured, so automatic Gemini draft ingestion remains safely unavailable. Neither warning should be misrepresented as a real delivered contact email or a running automation. Do not enable ingestion or display a mailbox until you intentionally configure and verify those services.
+
 ## Important owner actions (not part of automated deployment)
 
 1. **Check the three existing live guides against the corrected GitHub starter package.** Deploying code does not overwrite D1 content. Apply the editor-confirmed revision import only after a backed-up database; independently open links and approve the updated drafts.
