@@ -93,3 +93,8 @@
 .schedule-dialog-actions{display:flex;justify-content:flex-end;gap:11px;margin-top:24px}
 @media(max-width:1050px){#article-rows .row-actions{justify-content:flex-start}.bulk-toolbar{gap:7px}}
 @media(max-width:600px){.bulk-toolbar{padding:12px;gap:6px}.bulk-toolbar button{padding:9px;font-size:10px}.bulk-toolbar .bulk-clear{margin-left:0}.quick-review-bottom{flex-direction:column}.schedule-dialog{padding:20px}}
+
+/* Keep the three quick row actions compact even under the tablet breakpoint. */
+#article-rows .row-actions{flex-direction:row;flex-wrap:wrap;justify-content:flex-start;gap:7px}
+.table-wrap table{min-width:975px}
+@media(max-width:560px){.table-wrap table{min-width:930px}}
