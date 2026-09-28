@@ -67,7 +67,7 @@ async function loadArticle(id){
   $('editor-heading').textContent=a.title;
   $('editor-subheading').textContent=[a.city,a.country].filter(Boolean).join(', ')+' · '+a.source_mode;
   $('editor-status').textContent='Current status: '+a.status;
-  $('schedule-date').value=a.scheduled_at?new Date(a.scheduled_at+'Z'.replace('ZZ','Z')).toISOString().slice(0,16):'';
+  $('schedule-date').value=a.scheduled_at?new Date(Date.parse(a.scheduled_at) - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16):'';
   const preview=$('image-preview');preview.replaceChildren();
   if(a.hero_image_url){const img=new Image();img.src=a.hero_image_url;img.alt='Current editorial illustration';preview.append(img);}
   show('editor');
