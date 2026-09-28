@@ -535,3 +535,14 @@ footer {padding-top:36px;background:#26392f;}
   .article-top .article-meta{font-size:8px;margin-top:11px;padding-top:9px;gap:5px 11px;}
   .article-wrap{padding-top:17px;}
 }
+
+/* Editorial-policy pages should be readable before any monetization. */
+.editorial-policy{max-width:840px;min-height:50vh}
+.editorial-policy h1{max-width:780px}
+.editorial-policy h2{font:normal clamp(25px,2.5vw,31px)/1.2 'DM Serif Display',Georgia,serif;margin:30px 0 10px;color:#253a30}
+.editorial-policy p{max-width:740px;font-size:15px;line-height:1.75;margin:0 0 18px;color:#4e6658}
+.editorial-policy .editorial-email{color:#326249;text-decoration:underline;text-decoration-thickness:1.4px;text-underline-offset:4px;font-weight:800;overflow-wrap:anywhere}
+.editorial-policy .contact-action{border-left:3px solid #8fae96;padding:15px 19px;background:#edf2e9}
+.editorial-policy .contact-not-ready{display:block;background:#f6eadf;color:#885c3d;padding:10px 13px;border-radius:4px;font-size:13px}
+.editorial-policy .backlink{margin-top:24px}
+@media(max-width:600px){.editorial-policy h2{font-size:25px;margin:23px 0 8px}.editorial-policy p{font-size:14px;line-height:1.65}}

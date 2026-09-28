@@ -46,3 +46,8 @@
 .review-record textarea,.review-record select{display:block;width:100%;font:inherit;font-size:12px;border:1px solid #c8d7ca;border-radius:4px;background:#fff;color:#26392f;padding:12px;margin-top:8px;resize:vertical}
 .review-record textarea:focus-visible,.review-record select:focus-visible{outline:2px solid #3c7054;outline-offset:2px}
 @media(max-width:780px){.review-record{grid-template-columns:1fr;gap:15px}}
+
+/* Revision updates are intentionally not a default import mode. */
+.revision-opt-in{display:flex!important;align-items:center;gap:10px;margin:14px 0 6px;padding:12px 13px;border:1px solid #d1dccc;border-radius:4px;background:#f4f7f1;color:#345544;font-size:12px;font-weight:800;line-height:1.4}
+.revision-opt-in input{appearance:auto!important;width:17px!important;height:17px;flex-shrink:0;accent-color:#366c4c}
+.revision-warning{max-width:820px;color:#a26545!important;font-size:11px!important;line-height:1.5}
