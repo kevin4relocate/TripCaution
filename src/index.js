@@ -33,6 +33,7 @@ function layout(env, title, body, meta={}) {
  <meta name="twitter:card" content="${image?'summary_large_image':'summary'}">
  ${ogType==='article'&&meta.publishedAt?'<meta property="article:published_time" content="'+esc(meta.publishedAt)+'">':''}
  ${ogType==='article'&&meta.modifiedAt?'<meta property="article:modified_time" content="'+esc(meta.modifiedAt)+'">':''}
+ ${ogType==='article'&&Number.isInteger(meta.sourceCount)&&meta.sourceCount>=0?'<meta name="tripcaution:source-count" content="'+meta.sourceCount+'">':''}
  ${image?'<meta property="og:image" content="'+esc(image)+'">':''}
  ${!meta.preview&&meta.schema?jsonLdTag(meta.schema):''}
  <link rel="stylesheet" href="/styles.css"><link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -58,12 +59,6 @@ function html(content,status=200,headers={}) {
   'permissions-policy':SITE_PERMISSIONS,'referrer-policy':'strict-origin-when-cross-origin',...headers
  }});
 }
-const utc = str=>{
- const timestamp=Date.parse(str||'');
- return Number.isFinite(timestamp)?
-  new Date(timestamp).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric',timeZone:'UTC'}):
-  'Date unavailable';
-};
 function articleCard(a,variant='standard') {
  const path='/guides/'+encodeURIComponent(a.slug);
  const country=esc(a.country), category=esc(a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
@@ -244,7 +239,7 @@ async function destinationPage(env,slug){
  </section></main>`;
  return html(layout(env,heading+' travel precautions',body,{path:'/destinations/'+slug,description:'Travel precautions, cultural considerations and researched guides for '+heading+', '+country+'.',noindex:articles.length===0}));
 }
-function renderGuideArticle(env,a,preview=false,reviewedAt=null,related=[]){
+function renderGuideArticle(env,a,preview=false,related=[]){
  const parsedSources=safeParse(a.sources_json);
  const sources=Array.isArray(parsedSources)?parsedSources.filter(source=>safe(source?.url)):[];
  const rendered=renderArticleMarkdown(a.content_markdown);
@@ -257,17 +252,9 @@ function renderGuideArticle(env,a,preview=false,reviewedAt=null,related=[]){
   takes.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul><a href="/destinations/'+slugify(a.country)+'">More in '+esc(a.country)+' ↗</a></div>':
   '<div class="aside-card aside-explore"><span>EXPLORE MORE</span><h3>Plan your next move.</h3><p>For changing fares and rules, confirm the original sources.</p><a href="/destinations/'+slugify(a.country)+'">More in '+esc(a.country)+' ↗</a></div>';
  const relatedHTML=related.length?'<section class="related-guides" aria-labelledby="related-heading"><div class="shell"><div class="eyebrow">MORE FIELD NOTES</div><h2 id="related-heading">Continue exploring</h2><div class="guide-grid">'+related.map(row=>articleCard(row)).join('')+'</div></div></section>':'';
- const publicDate=a.published_at?'Published: '+esc(utc(a.published_at)):'Editorial preview';
- // Quick Publish records the owner's publishing decision, not proof that every
- // original source was independently checked. Keep the timestamp understated.
- // Suppress the extra date if publication and approval happened on the same day.
- const approvalDay=reviewedAt?utc(reviewedAt):null;
- const publishedDay=a.published_at?utc(a.published_at):null;
- const showApproval=!preview && approvalDay && approvalDay!=='Date unavailable' &&
-  approvalDay!==publishedDay;
- const reviewMeta=showApproval?'<span class="article-reviewed">Editorial approval: '+esc(approvalDay)+'</span>':'';
- const body=`<main><div class="article-top"><div class="shell article-head"><a href="/destinations/${slugify(a.country)}" class="backlink">← ${esc(a.country)} guides</a><div class="eyebrow">${esc(a.country.toUpperCase())}${a.city?' / '+esc(a.city.toUpperCase()):''} / ${esc((a.category_name||'GUIDE').toUpperCase())}</div><h1>${esc(a.title)}</h1><p class="article-deck">${esc(a.excerpt)}</p>
- <div class="article-meta"><span>TRIPCAUTION EDITORIAL</span><span>${publicDate}</span>${reviewMeta}<span>${sources.length} SOURCES</span></div></div></div>
+ // Publication timestamp and number of sources are retained in HTML metadata,
+ // Article JSON-LD and the original source records; no visible top metadata bar.
+ const body=`<main><div class="article-top"><div class="shell article-head"><a href="/destinations/${slugify(a.country)}" class="backlink">← ${esc(a.country)} guides</a><div class="eyebrow">${esc(a.country.toUpperCase())}${a.city?' / '+esc(a.city.toUpperCase()):''} / ${esc((a.category_name||'GUIDE').toUpperCase())}</div><h1>${esc(a.title)}</h1><p class="article-deck">${esc(a.excerpt)}</p></div></div>
  <div class="shell article-wrap"><article class="article-content">${safe(a.hero_image_url)?'<figure class="hero-image"><img src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial illustration')+'"><figcaption>AI-generated editorial illustration; not a photograph or evidence of an incident.</figcaption></figure>':''}
  <div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
  ${tocHTML}<div class="prose">${rendered.html}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
@@ -279,16 +266,9 @@ function renderGuideArticle(env,a,preview=false,reviewedAt=null,related=[]){
   path:'/guides/'+encodeURIComponent(a.slug),
   description:a.seo_description||a.excerpt,image:a.hero_image_url,noindex:preview,preview,
   ogType:'article',publishedAt:isoDate(a.published_at),
-  modifiedAt:isoDate(a.updated_at)||isoDate(a.published_at),schema
+  modifiedAt:isoDate(a.updated_at)||isoDate(a.published_at),sourceCount:sources.length,schema
  });
  return html(page,200,preview?{'cache-control':'private, no-store','x-robots-tag':'noindex, nofollow, noarchive','referrer-policy':'no-referrer','x-frame-options':'DENY'}:{'cache-control':'public, max-age=60'});
-}
-async function latestEditorialReview(env,id){
- if(!env.DB)return null;
- // Older detailed reviews and owner-confirmed quick reviews are both valid.
- // The latter records who approved and when, but does not claim source-by-source verification.
- const audit=(await env.DB.prepare("SELECT created_at FROM audit_logs WHERE article_id=? AND ((action IN ('reviewed-and-published','reviewed-and-scheduled') AND json_valid(details) AND length(json_extract(CASE WHEN json_valid(details) THEN details ELSE '{}' END,'$.evidence_note'))>=30) OR (action IN ('owner-reviewed-and-published','owner-reviewed-and-scheduled') AND json_valid(details) AND json_extract(CASE WHEN json_valid(details) THEN details ELSE '{}' END,'$.review_confirmed')=1)) ORDER BY created_at DESC LIMIT 1").bind(id).first());
- return audit?.created_at||null;
 }
 async function relatedPublishedGuides(env,a){
  if(!env.DB)return [];
@@ -300,7 +280,7 @@ async function guidePage(env,slug){
  if(!a)return html(layout(env,'Guide unavailable','<main class="shell simple"><h1>Guide not found.</h1><a href="/">Browse destinations ↗</a></main>',{noindex:true}),404,{'cache-control':'no-store','x-robots-tag':'noindex'});
  // Related links are limited to already-public guides. Never expose draft metadata.
  const related=await relatedPublishedGuides(env,a);
- return renderGuideArticle(env,a,false,await latestEditorialReview(env,a.id),related);
+ return renderGuideArticle(env,a,false,related);
 }
 async function previewGuidePage(request,env,id){
  if(!isLoginConfigured(env))return html('<h1>Admin login is not configured.</h1>',503,{'cache-control':'no-store'});
@@ -308,7 +288,7 @@ async function previewGuidePage(request,env,id){
  if(!env.DB)return html('<h1>Database unavailable.</h1>',503,{'cache-control':'no-store'});
  const a=await env.DB.prepare('SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.id=? LIMIT 1').bind(id).first();
  if(!a || a.status==='deleted')return html('<h1>Preview unavailable.</h1>',404,{'cache-control':'private, no-store','x-robots-tag':'noindex'});
- return renderGuideArticle(env,a,true,await latestEditorialReview(env,a.id),await relatedPublishedGuides(env,a));
+ return renderGuideArticle(env,a,true,await relatedPublishedGuides(env,a));
 }
 function editorialEmail(env) {
  const email=String(env.EDITORIAL_CONTACT_EMAIL||'').trim();
