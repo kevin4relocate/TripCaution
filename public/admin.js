@@ -146,63 +146,53 @@ $('import-btn').onclick=async()=>{
   await refresh();
  }catch(e){toast(e.message,true);}
 };
-const reviewChecks=[...document.querySelectorAll('[data-review-check]')];
 const editorForm=$('article-form');
 function safeSourceUrl(raw){
  try{const u=new URL(raw);return u.protocol==='https:'?u.href:null;}catch{return null;}
 }
+function hasSources(a){
+ try{return JSON.parse(a?.sources_json||'[]').some(s=>safeSourceUrl(s?.url));}catch{return false;}
+}
 function updateReviewGate(){
- const a=state.selected,done=reviewChecks.filter(input=>input.checked).length;
- $('review-progress').textContent=done+' of '+reviewChecks.length+' checks complete';
- const sources=a?JSON.parse(a.sources_json||'[]').filter(s=>safeSourceUrl(s.url)):[];
- const hasEvidence=sources.length>0 && Boolean(a?.verified_at);
- const eligible=a && !['published','deleted','archived'].includes(a.status);
- const note=$('review-evidence-note-input').value.trim();
- const ready=Boolean(eligible && hasEvidence && !state.dirty && state.previewOpened && done===reviewChecks.length && note.length>=30 && note.length<=1500);
+ const a=state.selected;
+ const eligible=a&&['review','draft','hidden','scheduled'].includes(a.status);
+ const ready=Boolean(eligible&&!state.dirty&&hasSources(a)&&!quickBusy);
+ $('review-publish-btn').hidden=!eligible;
  $('review-publish-btn').disabled=!ready;
  $('publish-btn').disabled=!ready;
  $('schedule-btn').disabled=!ready;
- $('review-publish-btn').hidden=!eligible;
- $('review-guidance').textContent=!a?'Choose an article to start.'
-   :state.dirty?'Unsaved changes: save your edits, reopen the preview and review the updated article.'
-   :!hasEvidence?'Before publishing, add at least one HTTPS evidence source and a verified date, then save.'
-   :!state.previewOpened?'Step 1: open the saved preview in a new tab and check it carefully.'
-   :done<reviewChecks.length?'Complete the checklist only after independently verifying the article.'
-   :note.length<30?'Write a meaningful evidence note (at least 30 characters) explaining the sources and claims checked.'
-   :eligible?'The review record is complete. You may publish or schedule.':'This article is not awaiting publication.';
+ $('hide-btn').disabled=!a||quickBusy||['hidden','deleted','archived'].includes(a.status);
+ $('restore-btn').disabled=!a||quickBusy||!['hidden','deleted','archived'].includes(a.status);
+ $('delete-btn').disabled=!a||quickBusy||a.status==='deleted';
+ $('review-guidance').textContent=!a?'Select an article to review.':
+  state.dirty?'Save your changes first. Preview always displays the last saved version.':
+  !hasSources(a)?'Add at least one valid HTTPS source and save before publishing.':
+  !eligible?'This article is already published or needs to be restored. You can still edit or hide it.':
+  'Review the article and its source links. Publish only when you are satisfied, or leave it private.';
 }
 function populateReviewEvidence(a){
- const sources=JSON.parse(a.sources_json||'[]').filter(s=>safeSourceUrl(s.url));
+ let sources=[];
+ try{sources=JSON.parse(a.sources_json||'[]').filter(s=>safeSourceUrl(s?.url));}catch{}
  $('review-source-links').innerHTML=sources.length?sources.map(s=>
    '<a class="review-source" href="'+escapeHTML(safeSourceUrl(s.url))+'" target="_blank" rel="noopener noreferrer nofollow">'+
-   escapeHTML(s.title||s.url)+' <span aria-hidden="true">↗</span></a>').join('')
-   :'<p class="review-evidence-missing">No evidence sources yet. Add sources below and save first.</p>';
- $('review-evidence-status').textContent=sources.length+' HTTPS source'+(sources.length===1?'':'s')+' saved. Open each one to verify its claims.';
- $('review-verified-note').textContent=a.verified_at?'Research reference date: '+a.verified_at+' (this may be from the automated research process, not an editor review).':'Missing research reference date; add it in the editor below.';
+   escapeHTML(s.title||s.url)+' <span aria-hidden="true">↗</span></a>').join(''):
+   '<p class="review-evidence-missing">No valid HTTPS sources saved. Add a source below, then save.</p>';
+ $('review-evidence-status').textContent=sources.length+' saved HTTPS source'+(sources.length===1?'':'s')+'. Open and check the relevant sources before publishing.';
+ $('review-verified-note').textContent=a.verified_at?
+   'Research reference: '+a.verified_at+'. This date may come from AI research; it is not independent editorial verification.':
+   'No research reference date recorded. Verify time-sensitive information before publication.';
  $('editor-preview-link').href='/admin/preview/'+encodeURIComponent(a.id);
 }
 $('editor-preview-link').addEventListener('click',event=>{
  if(!state.selected){event.preventDefault();return;}
- if(state.dirty && !confirm('You have unsaved changes. Preview only shows the last saved version. Open it anyway?')){event.preventDefault();return;}
- state.previewOpened=true;
- sessionStorage.setItem('tc-preview:'+state.selected.id,state.selected.updated_at||'');
- updateReviewGate();
+ if(state.dirty&&!confirm('Unsaved changes are not included in the preview. Open the last saved version?'))event.preventDefault();
 });
-reviewChecks.forEach(input=>input.addEventListener('change',updateReviewGate));
-$('review-evidence-note-input').addEventListener('input',updateReviewGate);
-$('review-window-days').addEventListener('change',updateReviewGate);
-editorForm.addEventListener('input',event=>{
- if(!state.selected || event.target.id==='schedule-date' || event.target.id==='image-file')return;
- state.dirty=true;state.previewOpened=false;
- sessionStorage.removeItem('tc-preview:'+state.selected.id);
- reviewChecks.forEach(input=>input.checked=false);updateReviewGate();
-});
-editorForm.addEventListener('change',event=>{
- if(!state.selected || event.target.id==='schedule-date' || event.target.id==='image-file')return;
- state.dirty=true;state.previewOpened=false;
- sessionStorage.removeItem('tc-preview:'+state.selected.id);
- reviewChecks.forEach(input=>input.checked=false);updateReviewGate();
-});
+function markDirty(event){
+ if(!state.selected||event.target.id==='schedule-date'||event.target.id==='image-file')return;
+ state.dirty=true;updateReviewGate();
+}
+editorForm.addEventListener('input',markDirty);
+editorForm.addEventListener('change',markDirty);
 $('review-publish-btn').onclick=()=>action('publish');
 const fields=['title','slug','excerpt','country','city','content_markdown','verified_at','seo_title','seo_description','hero_image_url','hero_alt','hero_prompt'];
 async function loadArticle(id){
@@ -215,56 +205,137 @@ async function loadArticle(id){
   $('editor-heading').textContent=a.title;
   $('editor-subheading').textContent=[a.city,a.country].filter(Boolean).join(', ')+' · '+a.source_mode;
   $('editor-status').textContent='Current status: '+a.status;
-  $('schedule-date').value=a.scheduled_at?new Date(Date.parse(a.scheduled_at) - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16):'';
+  $('schedule-date').value=a.scheduled_at?
+   new Date(Date.parse(a.scheduled_at)-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16):'';
   const preview=$('image-preview');preview.replaceChildren();
   if(a.hero_image_url){const img=new Image();img.src=a.hero_image_url;img.alt='Current editorial illustration';preview.append(img);}
-  state.dirty=false;state.previewOpened=sessionStorage.getItem('tc-preview:'+a.id)===(a.updated_at||'');
-  reviewChecks.forEach(input=>input.checked=false);
-  $('review-evidence-note-input').value='';
-  $('review-window-days').value='30';
-  populateReviewEvidence(a);updateReviewGate();
-  show('editor');
+  state.dirty=false;
+  populateReviewEvidence(a);updateReviewGate();show('editor');
  }catch(e){toast(e.message,true);}
 }
 $('article-form').onsubmit=async event=>{
- event.preventDefault();try{
+ event.preventDefault();
+ try{
   const form=event.currentTarget,body={};
   fields.forEach(key=>body[key]=form.elements.namedItem(key).value);
   body.category=form.elements.namedItem('category').value;
   body.sources=JSON.parse(form.elements.namedItem('sources').value||'[]');
   if(!Array.isArray(body.sources))throw Error('Sources must be a JSON array');
-  sessionStorage.removeItem('tc-preview:'+state.selected.id);
   await api('/api/admin/article/'+state.selected.id,{method:'PATCH',body:JSON.stringify(body)});
-  toast('Saved. Previously published changes return to review to avoid silent changes.');
+  toast('Saved. Changes to live or scheduled articles return them to private Review.');
   await refresh();await loadArticle(state.selected.id);
  }catch(e){toast(e.message,true);}
 };
 async function action(name,extra={}){
- if(!state.selected)return;
+ if(!state.selected||quickBusy)return;
  if(['publish','schedule'].includes(name)){
   updateReviewGate();
-  if($('publish-btn').disabled){toast('Preview the saved article and complete all review checks before approving.',true);return;}
-  extra={...extra,review_confirmed:true,
-    review_checklist:Object.fromEntries(['layout','evidence','freshness','fairness'].map((name,index)=>[name,reviewChecks[index].checked])),
-    review_note:$('review-evidence-note-input').value.trim(),
-    review_window_days:Number($('review-window-days').value)};
+  if($('publish-btn').disabled){toast('Save changes and include a valid source before publishing.',true);return;}
+  if(!confirm('Have you reviewed this article and its sources, and do you want to '+(name==='publish'?'publish it now':'schedule it')+'?'))return;
+  extra={...extra,review_confirmed:true,review_method:'single'};
  }
- if(name==='delete' && !confirm('Soft-delete this article? You can restore it later.'))return;
- if(['publish','schedule'].includes(name) && !confirm('Have you checked the source links and accuracy of this article?'))return;
+ if(name==='delete'&&!confirm('Move this article to Deleted? Its text is retained and you can Restore draft later.'))return;
+ if(name==='hide'&&state.selected.status==='published'&&!confirm('Hide this live article from the public website? It will remain in Admin.'))return;
  try{
+  quickBusy=true;updateReviewGate();
   const result=await api('/api/admin/article/'+state.selected.id,{method:'PATCH',body:JSON.stringify({action:name,...extra})});
-  toast('Article is now '+result.status);
+  toast('Article is now '+result.status+'.');
   await refresh();await loadArticle(state.selected.id);
  }catch(e){toast(e.message,true);}
+ finally{quickBusy=false;updateReviewGate();updateBulkToolbar();}
 }
+async function quickRowAction(id,name){
+ if(quickBusy)return;
+ if(name==='schedule'){openSchedule('row',[id]);return;}
+ const a=state.articles.find(article=>article.id===id);
+ if(!a)return;
+ if(name==='publish'&&!confirm('Publish "'+a.title+'"? Confirm you have already reviewed it and its source links.'))return;
+ if(name==='hide'&&a.status==='published'&&!confirm('Hide "'+a.title+'" from the public website? This does not delete it.'))return;
+ if(name==='delete'&&!confirm('Move "'+a.title+'" to Deleted? It can be restored.'))return;
+ try{
+  quickBusy=true;updateBulkToolbar();
+  const result=await api('/api/admin/article/'+id,{
+   method:'PATCH',body:JSON.stringify({action:name,review_confirmed:name==='publish',review_method:'single'})
+  });
+  toast('"' + a.title + '" is now '+result.status+'.');
+  selectedIds.delete(id);
+  await refresh();
+ }catch(e){toast(e.message,true);}
+ finally{quickBusy=false;renderArticles();updateReviewGate();}
+}
+async function runBulk(name,scheduledAt=null,stagger=false){
+ if(quickBusy)return;
+ const list=selectedVisible();
+ if(!list.length){toast('Select at least one article in All articles.',true);return;}
+ const count=list.length,verb={publish:'publish',hide:'make private',schedule:'schedule',restore:'restore to draft',delete:'move to Deleted'}[name];
+ const promptText=['publish','schedule'].includes(name)?
+  'Confirm that you have reviewed all '+count+' selected articles and their sources. '+(name==='publish'?'They will become PUBLIC immediately.':'They will become PUBLIC on their scheduled dates.')+' Continue?':
+  name==='delete'?'Move all '+count+' selected articles to Deleted? You can restore them later. Continue?':
+  name==='hide'?'Make all '+count+' selected articles PRIVATE (not deleted)? Continue?':
+  'Restore '+count+' selected articles to drafts? Continue?';
+ if(!confirm(promptText))return;
+ const body={
+  action:name,ids:list.map(a=>a.id),confirm_selection:true,confirm_count:count,
+  review_confirmed:['publish','schedule'].includes(name)
+ };
+ if(name==='schedule'){body.scheduled_at=scheduledAt;body.stagger_days=stagger;}
+ try{
+  quickBusy=true;updateBulkToolbar();
+  const res=await api('/api/admin/bulk',{method:'POST',body:JSON.stringify(body)});
+  for(const row of res.results)if(row.ok)selectedIds.delete(row.id);
+  const errors=res.results.filter(row=>!row.ok);
+  const summary=res.processed+' of '+count+' articles '+verb+(res.processed===1?'d':'d')+'.'+
+   (errors.length?' '+errors.length+' skipped: '+errors.slice(0,4).map(r=>r.error).join('; '):'');
+  $('bulk-result').textContent=summary;
+  toast(summary,errors.length>0);
+  await refresh();
+ }catch(e){toast(e.message,true);}
+ finally{quickBusy=false;renderArticles();updateReviewGate();}
+}
+function openSchedule(mode,ids){
+ if(quickBusy||!ids.length)return;
+ if(mode==='editor'&&state.dirty){toast('Save your edits before scheduling.',true);return;}
+ pendingSchedule={mode,ids};
+ const single=ids.length===1;
+ $('schedule-dialog-explainer').textContent=single?'Schedule one article.':'Schedule '+ids.length+' selected articles.';
+ $('schedule-stagger-label').hidden=single;
+ $('schedule-stagger').checked=!single;
+ let fromEditor=mode==='editor'&&$('schedule-date').value;
+ const next=fromEditor||new Date(Date.now()+2*3600000-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+ $('bulk-schedule-date').value=next;
+ $('schedule-dialog').showModal();
+ $('bulk-schedule-date').focus();
+}
+$('schedule-cancel').addEventListener('click',()=>$('schedule-dialog').close());
+$('schedule-dialog').addEventListener('close',()=>{pendingSchedule=null;});
+$('schedule-form').addEventListener('submit',async event=>{
+ event.preventDefault();
+ if(!pendingSchedule)return;
+ const at=new Date($('bulk-schedule-date').value);
+ if(!Number.isFinite(at.valueOf())||at<=new Date()){toast('Choose a valid future local date/time.',true);return;}
+ const stateSnapshot=pendingSchedule,utc=at.toISOString(),stagger=$('schedule-stagger').checked;
+ $('schedule-dialog').close();
+ if(stateSnapshot.mode==='bulk'){await runBulk('schedule',utc,stagger);return;}
+ if(stateSnapshot.mode==='editor'){await action('schedule',{scheduled_at:utc});return;}
+ const id=stateSnapshot.ids[0],a=state.articles.find(row=>row.id===id);
+ if(!a)return;
+ if(!confirm('Confirm you reviewed "'+a.title+'" and want to schedule it?'))return;
+ try{
+  quickBusy=true;updateBulkToolbar();
+  const result=await api('/api/admin/article/'+id,{
+   method:'PATCH',body:JSON.stringify({action:'schedule',scheduled_at:utc,review_confirmed:true,review_method:'single'})
+  });
+  toast('Scheduled "'+a.title+'".');
+  selectedIds.delete(id);await refresh();
+ }catch(e){toast(e.message,true);}
+ finally{quickBusy=false;renderArticles();}
+});
+for(const name of ['publish','hide','restore','delete']){
+ $('bulk-'+name).addEventListener('click',()=>runBulk(name));
+}
+$('bulk-schedule').addEventListener('click',()=>openSchedule('bulk',selectedVisible().map(a=>a.id)));
 $('publish-btn').onclick=()=>action('publish');
-$('schedule-btn').onclick=()=>{
- const local=$('schedule-date').value;
- if(!local){toast('Pick a future publication date and time.',true);return;}
- const date=new Date(local);
- if(Number.isNaN(date.valueOf())||date<=new Date()){toast('Select a future date.',true);return;}
- action('schedule',{scheduled_at:date.toISOString()});
-};
+$('schedule-btn').onclick=()=>openSchedule('editor',[state.selected?.id].filter(Boolean));
 $('hide-btn').onclick=()=>action('hide');
 $('delete-btn').onclick=()=>action('delete');
 $('restore-btn').onclick=()=>action('restore');
@@ -274,9 +345,7 @@ $('upload-btn').onclick=async()=>{
   const response=await fetch('/api/admin/media',{method:'POST',body:file,headers:{'Content-Type':file.type}});
   const result=await response.json();if(!response.ok)throw Error(result.error||'Upload failed');
   $('article-form').elements.namedItem('hero_image_url').value=result.url;
-  state.dirty=true;state.previewOpened=false;
-  sessionStorage.removeItem('tc-preview:'+state.selected.id);
-  reviewChecks.forEach(input=>input.checked=false);updateReviewGate();
+  state.dirty=true;updateReviewGate();
   const preview=$('image-preview');preview.replaceChildren();const img=new Image();img.src=result.url;img.alt='Uploaded image';preview.append(img);
   toast('Image uploaded. Save article changes to attach it.');
  }catch(e){toast(e.message,true);}
