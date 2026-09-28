@@ -258,15 +258,20 @@ function renderGuideArticle(env,a,preview=false,reviewedAt=null,related=[]){
   '<div class="aside-card aside-explore"><span>EXPLORE MORE</span><h3>Plan your next move.</h3><p>For changing fares and rules, confirm the original sources.</p><a href="/destinations/'+slugify(a.country)+'">More in '+esc(a.country)+' ↗</a></div>';
  const relatedHTML=related.length?'<section class="related-guides" aria-labelledby="related-heading"><div class="shell"><div class="eyebrow">MORE FIELD NOTES</div><h2 id="related-heading">Continue exploring</h2><div class="guide-grid">'+related.map(row=>articleCard(row)).join('')+'</div></div></section>':'';
  const publicDate=a.published_at?'Published: '+esc(utc(a.published_at)):'Editorial preview';
- const reviewDate=reviewedAt?'Last reviewed: '+esc(utc(reviewedAt)):null;
- const reviewMeta=reviewDate?'<span class="article-reviewed">'+reviewDate+'</span>':'';
- const researchNote=a.verified_at?'Research reference date: '+esc(utc(a.verified_at))+'. Recheck time-sensitive details using the linked sources.':'This guide has no recorded research reference date.';
+ // Quick Publish records the owner's publishing decision, not proof that every
+ // original source was independently checked. Keep the timestamp understated.
+ // Suppress the extra date if publication and approval happened on the same day.
+ const approvalDay=reviewedAt?utc(reviewedAt):null;
+ const publishedDay=a.published_at?utc(a.published_at):null;
+ const showApproval=!preview && approvalDay && approvalDay!=='Date unavailable' &&
+  approvalDay!==publishedDay;
+ const reviewMeta=showApproval?'<span class="article-reviewed">Editorial approval: '+esc(approvalDay)+'</span>':'';
  const body=`<main><div class="article-top"><div class="shell article-head"><a href="/destinations/${slugify(a.country)}" class="backlink">← ${esc(a.country)} guides</a><div class="eyebrow">${esc(a.country.toUpperCase())}${a.city?' / '+esc(a.city.toUpperCase()):''} / ${esc((a.category_name||'GUIDE').toUpperCase())}</div><h1>${esc(a.title)}</h1><p class="article-deck">${esc(a.excerpt)}</p>
  <div class="article-meta"><span>TRIPCAUTION EDITORIAL</span><span>${publicDate}</span>${reviewMeta}<span>${sources.length} SOURCES</span></div></div></div>
  <div class="shell article-wrap"><article class="article-content">${safe(a.hero_image_url)?'<figure class="hero-image"><img src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial illustration')+'"><figcaption>AI-generated editorial illustration; not a photograph or evidence of an incident.</figcaption></figure>':''}
  <div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
  ${tocHTML}<div class="prose">${rendered.html}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
- <p class="verified research-date-note">${reviewedAt?'<strong>Last editorial review: '+esc(utc(reviewedAt))+'.</strong> ':''}${researchNote}</p></section></article>
+ </section></article>
  <aside class="article-aside">${asideTakeaways}<div class="aside-share">SHARE THIS GUIDE <button type="button" data-copy-guide>Copy link ↗</button></div></aside></div>${relatedHTML}</main>`;
  const previewBanner=preview?`<aside class="editorial-preview-banner" role="note"><div class="shell editorial-preview-inner"><div><strong>PRIVATE PREVIEW · ${a.status==='published'?'CURRENTLY LIVE':'NOT PUBLISHED'}</strong><p>This is the last SAVED version, shown in the public article layout. Verify all claims, source links, dates and images before approval. This URL only works when signed in.</p></div><a href="/admin?edit=${encodeURIComponent(a.id)}">← Back to editor</a></div></aside>`:'';
  const schema=preview?null:articleStructuredData(siteURL(env),{...a,sources});

@@ -131,11 +131,28 @@ test('research dates are not misrepresented as a human review before new manual 
  assert.equal(result.status,200);
  const page=await result.text();
  assert.match(page,/Published: Sep 28, 2026/);
- assert.match(page,/Research reference date: Sep 28, 2026/);
- assert.doesNotMatch(page,/Last reviewed:/);
+ assert.doesNotMatch(page,/Research reference date:/);
+ assert.doesNotMatch(page,/Last editorial review:/);
+ assert.doesNotMatch(page,/Editorial approval:/);
  assert.doesNotMatch(page,/VERIFIED:/);
 });
 
+test('public metadata shows a later editor approval once, without repeating research dates',async()=>{
+ const e=env({...article(),status:'published',published_at:'2026-09-28 03:00:00'});
+ const original=e.DB.prepare.bind(e.DB);
+ e.DB.prepare=sql=>{
+  if(sql.includes('FROM audit_logs'))return {bind(){return this;},async first(){
+   return {created_at:'2026-10-03 09:00:00'};
+  }};
+  return original(sql);
+ };
+ const response=await worker.fetch(get('/guides/singapore-transport-payment-test'),e);
+ assert.equal(response.status,200);
+ const page=await response.text();
+ assert.match(page,/Editorial approval: Oct 3, 2026/);
+ assert.equal((page.match(/Editorial approval:/g)||[]).length,1);
+ assert.doesNotMatch(page,/Last editorial review:|Research reference date:/);
+});
 test('owner confirmation and at least one HTTPS source are required; written notes are optional',async()=>{
  const e=env(),auth=await cookie(e);
  async function tryPublish(body){

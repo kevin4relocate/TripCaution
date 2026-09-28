@@ -99,6 +99,14 @@ test('public guide adds contents, optional editorial takeaways, related public l
  assert.ok(db.statements.some(sql=>sql.includes("a.status='published'")&&sql.includes('a.id!=?')));
  assert.doesNotMatch(html,/property="og:image"/);
 });
+test('public source section has no duplicate approval or AI research timestamps',async()=>{
+ const db=guideDB(),response=await worker.fetch(new Request(origin+'/guides/metro-start'),{SITE_URL:origin,DB:db});
+ assert.equal(response.status,200);
+ const page=await response.text();
+ assert.match(page,/Published: Sep 26, 2026/);
+ assert.doesNotMatch(page,/Research reference date:|Last editorial review:/);
+ assert.match(page,/Always consult the source directly for the latest information/);
+});
 test('private preview is noindex and has no public Article schema or related guide lookup',async()=>{
  const db=guideDB(),secret='review-preview-'+('z'.repeat(50)),env={SITE_URL:origin,DB:db,ADMIN_LOGIN_KEY:secret};
  const cookie=(await createAdminSession(env)).split(';')[0];
