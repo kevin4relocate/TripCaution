@@ -34,6 +34,6 @@ test('empty destination is not indexed while guides are pending',async()=>{
 test('top navigation avoids redundant Explore link',async()=>{
  const response=await app.fetch(new Request('https://example.test/'),env);
  const page=await response.text();
- assert.match(page,/Main navigation"><a href="\/#destinations">Destinations/);
+ assert.match(page,/Main navigation"><a href="\/destinations">Destinations/);
  assert.doesNotMatch(page,/<nav aria-label="Main navigation"><a href="\/">Explore/);
 });

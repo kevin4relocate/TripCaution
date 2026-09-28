@@ -12,33 +12,74 @@ test('homepage uses compact editorial journal instead of corporate step banner',
   const page=await response.text();
   assert.match(page,/THE INDEPENDENT TRAVEL FIELD GUIDE/);
   assert.match(page,/public\/illustrations\/travel-journal\.svg|\/illustrations\/travel-journal\.svg/);
-  assert.match(page,/continent-directory/);
+  assert.match(page,/featured-layout/);
+  assert.match(page,/id="destinations"/);
   assert.doesNotMatch(page,/class="value-bar"/);
   assert.doesNotMatch(page,/class="shell prefooter"/);
 });
 
-test('homepage country index is grouped and alphabetical without massive numbered tiles',async()=>{
-  const response=await app.fetch(new Request('https://example.test/'),{
-    SITE_URL:'https://example.test',
-    ASSETS:{fetch:async()=>new Response('Not found',{status:404})}
-  });
-  const page=await response.text();
-  const index=page.slice(page.indexOf('<div class="continent-directory">'));
-  const asia=index.indexOf('id="continent-asia"');
-  const europe=index.indexOf('id="continent-europe"');
-  const usa=index.indexOf('id="continent-north-america"');
-  assert.ok(asia!==-1&&europe>asia&&usa>europe);
-  const section=index.slice(asia,europe);
-  const names=['Cambodia','Indonesia','Japan','Laos','Malaysia','Singapore','Thailand','Vietnam'];
-  const positions=names.map(x=>section.indexOf('class="destination-name">'+x+'</span>'));
-  assert.ok(positions.every(x=>x>=0));
-  assert.deepEqual(positions,[...positions].sort((a,b)=>a-b));
-  assert.doesNotMatch(index,/class="destination-number"/);
+test('homepage puts fresh published guides before the condensed destination explorer',async()=>{
+ const latest=[
+  {title:'New airport transfer',slug:'new-airport-transfer',country:'Thailand',city:'Bangkok',category_name:'Transport',excerpt:'Practical tips',published_at:'2026-09-29'},
+  {title:'Your first train ride',slug:'your-first-train-ride',country:'Singapore',category_name:'Transit',excerpt:'Rail guidance'},
+  {title:'Taxi travel in Vietnam',slug:'taxi-vietnam',country:'Vietnam',category_name:'Transit',excerpt:'Travel advice'}
+ ];
+ const database={prepare(sql){
+  if(sql.includes('FROM articles a LEFT JOIN'))return {all:async()=>({results:latest})};
+  if(sql.includes('GROUP BY country'))return {all:async()=>({results:[{country:'Singapore',total:1},{country:'Thailand',total:1},{country:'Vietnam',total:1}]})};
+  if(sql.includes('COUNT(*) count'))return {first:async()=>({count:3})};
+  throw Error('Unexpected query: '+sql);
+ }};
+ const result=await app.fetch(new Request('https://example.test/'),{
+   SITE_URL:'https://example.test',DB:database,ASSETS:{fetch:async()=>new Response('not found',{status:404})}
+ });
+ const page=await result.text();
+ assert.equal(result.status,200);
+ assert.ok(page.indexOf('id="latest"')<page.indexOf('id="destinations"'));
+ assert.ok(page.indexOf('New airport transfer')<page.indexOf('Your first train ride'));
+ assert.match(page,/class="featured-layout/);
+ assert.match(page,/class="guide-card guide-card-lead"/);
+ assert.match(page,/guide-card-side/);
+ assert.doesNotMatch(page,/Verified Sep|Verified \+|Last reviewed:/);
+ assert.doesNotMatch(page,/Research planned/);
+ assert.match(page,/View all destinations/);
+ assert.match(page,/Thailand/);
+ assert.doesNotMatch(page,/continent-directory/);
+});
+
+test('homepage adapts gracefully before the first guide has been published',async()=>{
+ const response=await app.fetch(new Request('https://example.test/'),{
+   SITE_URL:'https://example.test',ASSETS:{fetch:async()=>new Response('not found',{status:404})}
+ });
+ const page=await response.text();
+ assert.equal(response.status,200);
+ assert.match(page,/Our first field notes are on the way/);
+ assert.match(page,/Browse the full A–Z destination list/);
+ assert.doesNotMatch(page,/guide-card-lead/);
+});
+
+test('full destination index groups the countries by continent, labels unpublished destinations',async()=>{
+ const response=await app.fetch(new Request('https://example.test/destinations'),{
+   SITE_URL:'https://example.test',ASSETS:{fetch:async()=>new Response('not found',{status:404})}
+ });
+ const page=await response.text();
+ assert.equal(response.status,200);
+ const i=page.slice(page.indexOf('class="continent-directory"'));
+ const asia=i.indexOf('id="continent-asia"'),europe=i.indexOf('id="continent-europe"');
+ const northAmerica=i.indexOf('id="continent-north-america"');
+ assert.ok(asia>=0&&europe>asia&&northAmerica>europe);
+ const names=['Cambodia','Indonesia','Japan','Laos','Malaysia','Singapore','Thailand','Vietnam'];
+ const asiaIndex=i.slice(asia,europe);
+ const positions=names.map(n=>asiaIndex.indexOf('class="destination-name">'+n+'</span>'));
+ assert.ok(positions.every(x=>x>=0));
+ assert.deepEqual(positions,[...positions].sort((a,b)=>a-b));
+ assert.match(page,/Research planned/);
+ assert.doesNotMatch(page,/<a[^>]+href="\/destinations\/cambodia"/);
 });
 
 test('responsive design includes compact layouts and reduced vertical spacing',()=>{
   const css=readFileSync(new URL('../public/styles.css',import.meta.url),'utf8');
-  assert.match(css,/\.hero-inner\s*\{[^}]*min-height:393px/s);
+  assert.match(css,/\.home-hero \.hero-inner\s*\{[^}]*min-height:31[0-9]px/s);
   assert.match(css,/\.destination-tile\s*\{[^}]*min-height:50px/s);
   assert.match(css,/@media\(max-width:600px\)/);
 });
