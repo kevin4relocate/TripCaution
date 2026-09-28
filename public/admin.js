@@ -82,7 +82,8 @@ function updateReviewGate(){
  const sources=a?JSON.parse(a.sources_json||'[]').filter(s=>safeSourceUrl(s.url)):[];
  const hasEvidence=sources.length>0 && Boolean(a?.verified_at);
  const eligible=a && !['published','deleted','archived'].includes(a.status);
- const ready=Boolean(eligible && hasEvidence && !state.dirty && state.previewOpened && done===reviewChecks.length);
+ const note=$('review-evidence-note-input').value.trim();
+ const ready=Boolean(eligible && hasEvidence && !state.dirty && state.previewOpened && done===reviewChecks.length && note.length>=30 && note.length<=1500);
  $('review-publish-btn').disabled=!ready;
  $('publish-btn').disabled=!ready;
  $('schedule-btn').disabled=!ready;
@@ -92,7 +93,8 @@ function updateReviewGate(){
    :!hasEvidence?'Before publishing, add at least one HTTPS evidence source and a verified date, then save.'
    :!state.previewOpened?'Step 1: open the saved preview in a new tab and check it carefully.'
    :done<reviewChecks.length?'Complete the checklist only after independently verifying the article.'
-   :eligible?'Ready for your final decision. You can publish now or select a future date below.':'This article is not awaiting publication.';
+   :note.length<30?'Write a meaningful evidence note (at least 30 characters) explaining the sources and claims checked.'
+   :eligible?'The review record is complete. You may publish or schedule.':'This article is not awaiting publication.';
 }
 function populateReviewEvidence(a){
  const sources=JSON.parse(a.sources_json||'[]').filter(s=>safeSourceUrl(s.url));
@@ -101,7 +103,7 @@ function populateReviewEvidence(a){
    escapeHTML(s.title||s.url)+' <span aria-hidden="true">↗</span></a>').join('')
    :'<p class="review-evidence-missing">No evidence sources yet. Add sources below and save first.</p>';
  $('review-evidence-status').textContent=sources.length+' HTTPS source'+(sources.length===1?'':'s')+' saved. Open each one to verify its claims.';
- $('review-verified-note').textContent=a.verified_at?'Last marked verified: '+a.verified_at+' (recheck time-sensitive details).':'Missing verification date. Add a current UTC timestamp below.';
+ $('review-verified-note').textContent=a.verified_at?'Research reference date: '+a.verified_at+' (this may be from the automated research process, not an editor review).':'Missing research reference date; add it in the editor below.';
  $('editor-preview-link').href='/admin/preview/'+encodeURIComponent(a.id);
 }
 $('editor-preview-link').addEventListener('click',event=>{
@@ -112,6 +114,8 @@ $('editor-preview-link').addEventListener('click',event=>{
  updateReviewGate();
 });
 reviewChecks.forEach(input=>input.addEventListener('change',updateReviewGate));
+$('review-evidence-note-input').addEventListener('input',updateReviewGate);
+$('review-window-days').addEventListener('change',updateReviewGate);
 editorForm.addEventListener('input',event=>{
  if(!state.selected || event.target.id==='schedule-date' || event.target.id==='image-file')return;
  state.dirty=true;state.previewOpened=false;
@@ -141,6 +145,8 @@ async function loadArticle(id){
   if(a.hero_image_url){const img=new Image();img.src=a.hero_image_url;img.alt='Current editorial illustration';preview.append(img);}
   state.dirty=false;state.previewOpened=sessionStorage.getItem('tc-preview:'+a.id)===(a.updated_at||'');
   reviewChecks.forEach(input=>input.checked=false);
+  $('review-evidence-note-input').value='';
+  $('review-window-days').value='30';
   populateReviewEvidence(a);updateReviewGate();
   show('editor');
  }catch(e){toast(e.message,true);}
@@ -163,7 +169,10 @@ async function action(name,extra={}){
  if(['publish','schedule'].includes(name)){
   updateReviewGate();
   if($('publish-btn').disabled){toast('Preview the saved article and complete all review checks before approving.',true);return;}
-  extra={...extra,review_confirmed:true};
+  extra={...extra,review_confirmed:true,
+    review_checklist:Object.fromEntries(['layout','evidence','freshness','fairness'].map((name,index)=>[name,reviewChecks[index].checked])),
+    review_note:$('review-evidence-note-input').value.trim(),
+    review_window_days:Number($('review-window-days').value)};
  }
  if(name==='delete' && !confirm('Soft-delete this article? You can restore it later.'))return;
  if(['publish','schedule'].includes(name) && !confirm('Have you checked the source links and accuracy of this article?'))return;
