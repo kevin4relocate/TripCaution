@@ -193,23 +193,32 @@ function markdown(md) {
  if(list)chunks.push('</ul>');
  return chunks.join('');
 }
-function renderGuideArticle(env,a,preview=false){
+function renderGuideArticle(env,a,preview=false,reviewedAt=null){
  const sources=safeParse(a.sources_json).filter(s=>safe(s.url));
+ const publicDate=a.published_at?'Published: '+esc(utc(a.published_at)):'Editorial preview';
+ const reviewDate=reviewedAt?'Last reviewed: '+esc(utc(reviewedAt)):null;
+ const reviewMeta=reviewDate?'<span class="article-reviewed">'+reviewDate+'</span>':'';
+ const researchNote=a.verified_at?'Research reference date: '+esc(utc(a.verified_at))+'. Recheck time-sensitive details using the linked sources.':'This guide has no recorded research reference date.';
  const body=`<main><div class="article-top"><div class="shell article-head"><a href="/destinations/${slugify(a.country)}" class="backlink">← ${esc(a.country)} guides</a><div class="eyebrow">${esc(a.country.toUpperCase())}${a.city?' / '+esc(a.city.toUpperCase()):''} / ${esc((a.category_name||'GUIDE').toUpperCase())}</div><h1>${esc(a.title)}</h1><p class="article-deck">${esc(a.excerpt)}</p>
- <div class="article-meta"><span>TRIPCAUTION EDITORIAL</span><span>VERIFIED: ${esc(utc(a.verified_at))}</span><span>${sources.length} SOURCES</span></div></div></div>
+ <div class="article-meta"><span>TRIPCAUTION EDITORIAL</span><span>${publicDate}</span>${reviewMeta}<span>${sources.length} SOURCES</span></div></div></div>
  <div class="shell article-wrap"><article class="article-content">${safe(a.hero_image_url)?'<figure class="hero-image"><img src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial illustration')+'"><figcaption>AI-generated editorial illustration; not a photograph or evidence of an incident.</figcaption></figure>':''}
  <div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
  <div class="prose">${markdown(a.content_markdown)}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
- <p class="verified">Last checked: ${esc(utc(a.verified_at))}</p></section></article>
+ <p class="verified research-date-note">${reviewedAt?'<strong>Last editorial review: '+esc(utc(reviewedAt))+'.</strong> ':''}${researchNote}</p></section></article>
  <aside class="article-aside"><div class="aside-card"><span>THE QUICK TAKE</span><h3>Keep exploring.<br><em>Stay informed.</em></h3><p>Travel is better when you know what to expect.</p><a href="/destinations/${slugify(a.country)}">More in ${esc(a.country)} ↗</a></div><div class="aside-share">SHARE THIS GUIDE <button type="button" onclick="navigator.clipboard.writeText(location.href).then(()=>this.textContent='Copied!')">Copy link ↗</button></div></aside></div></main>`;
  const previewBanner=preview?`<aside class="editorial-preview-banner" role="note"><div class="shell editorial-preview-inner"><div><strong>PRIVATE PREVIEW · ${a.status==='published'?'CURRENTLY LIVE':'NOT PUBLISHED'}</strong><p>This is the last SAVED version, shown in the public article layout. Verify all claims, source links, dates and images before approval. This URL only works when signed in.</p></div><a href="/admin?edit=${encodeURIComponent(a.id)}">← Back to editor</a></div></aside>`:'';
  const page=layout(env,a.seo_title||a.title,previewBanner+body,{path:'/guides/'+a.slug,description:a.seo_description||a.excerpt,image:a.hero_image_url,noindex:preview,preview});
  return html(page,200,preview?{'cache-control':'private, no-store','x-robots-tag':'noindex, nofollow, noarchive','referrer-policy':'no-referrer','x-frame-options':'DENY'}:{'cache-control':'public, max-age=60'});
 }
+async function latestEditorialReview(env,id){
+ if(!env.DB)return null;
+ const audit=(await env.DB.prepare("SELECT created_at FROM audit_logs WHERE article_id=? AND action IN ('reviewed-and-published','reviewed-and-scheduled') ORDER BY created_at DESC LIMIT 1").bind(id).first());
+ return audit?.created_at||null;
+}
 async function guidePage(env,slug){
  const a=env.DB?await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.slug=? AND a.status='published' AND a.published_at<=datetime('now') LIMIT 1").bind(slug).first():null;
  if(!a)return html(layout(env,'Guide unavailable','<main class="shell simple"><h1>Guide not found.</h1><a href="/">Browse destinations ↗</a></main>'),404);
- return renderGuideArticle(env,a);
+ return renderGuideArticle(env,a,false,await latestEditorialReview(env,a.id));
 }
 async function previewGuidePage(request,env,id){
  if(!isLoginConfigured(env))return html('<h1>Admin login is not configured.</h1>',503,{'cache-control':'no-store'});
@@ -217,7 +226,7 @@ async function previewGuidePage(request,env,id){
  if(!env.DB)return html('<h1>Database unavailable.</h1>',503,{'cache-control':'no-store'});
  const a=await env.DB.prepare('SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.id=? LIMIT 1').bind(id).first();
  if(!a || a.status==='deleted')return html('<h1>Preview unavailable.</h1>',404,{'cache-control':'private, no-store','x-robots-tag':'noindex'});
- return renderGuideArticle(env,a,true);
+ return renderGuideArticle(env,a,true,await latestEditorialReview(env,a.id));
 }
 function staticPage(env,type){
  const pages={
@@ -347,7 +356,9 @@ async function api(request,env,url,admin=false){
    }
    await env.DB.prepare("UPDATE articles SET status=?,review_approved=?,scheduled_at=?,published_at=CASE WHEN ?='published' THEN datetime('now') ELSE published_at END,updated_at=datetime('now') WHERE id=?")
     .bind(target,['publish','schedule'].includes(action)?1:old.review_approved,target==='scheduled'?body.scheduled_at:null,target,id).run();
-   await audit(env,actor,action,id);return json({ok:true,status:target});
+   const auditAction=body.review_confirmed===true && action==='publish'?'reviewed-and-published':
+    body.review_confirmed===true && action==='schedule'?'reviewed-and-scheduled':action;
+   await audit(env,actor,auditAction,id);return json({ok:true,status:target});
   }
   const merged={
    ...old,...body,seo_title:body.seo_title??old.seo_title,seo_description:body.seo_description??old.seo_description,

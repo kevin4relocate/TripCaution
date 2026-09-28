@@ -110,3 +110,14 @@ test('editor has preview and review actions, clickable source links and gated pu
  assert.match(js,/Review →/);
  assert.match(js,/review_confirmed:true/);
 });
+
+test('research dates are not misrepresented as a human review before new manual approval',async()=>{
+ const e=env({...article(),status:'published',published_at:'2026-09-28 03:00:00'});
+ const result=await worker.fetch(get('/guides/singapore-transport-payment-test'),e);
+ assert.equal(result.status,200);
+ const page=await result.text();
+ assert.match(page,/Published: Sep 28, 2026/);
+ assert.match(page,/Research reference date: Sep 28, 2026/);
+ assert.doesNotMatch(page,/Last reviewed:/);
+ assert.doesNotMatch(page,/VERIFIED:/);
+});

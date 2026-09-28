@@ -12,7 +12,7 @@ test('homepage uses compact editorial journal instead of corporate step banner',
   const page=await response.text();
   assert.match(page,/THE INDEPENDENT TRAVEL FIELD GUIDE/);
   assert.match(page,/public\/illustrations\/travel-journal\.svg|\/illustrations\/travel-journal\.svg/);
-  assert.match(page,/featured-layout/);
+  assert.match(page,/class="section featured-section"/);
   assert.match(page,/id="destinations"/);
   assert.doesNotMatch(page,/class="value-bar"/);
   assert.doesNotMatch(page,/class="shell prefooter"/);
