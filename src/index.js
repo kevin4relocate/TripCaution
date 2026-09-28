@@ -9,13 +9,13 @@ const safe = (url) => { try {const u=new URL(url);return u.protocol==='https:'?u
 const safeParse = (value, fallback=[]) => {try {return JSON.parse(value);}catch{return fallback;}};
 const link = (href,text,cls='') => '<a href="'+esc(href)+'" class="'+cls+'">'+esc(text)+'</a>';
 const siteURL = env => (env.SITE_URL||'https://tripcaution.com').replace(/\/$/,'');
-const nav = '<a href="/">Explore</a><a href="/#destinations">Destinations</a><a href="/#latest">Field notes</a><a href="/about">About</a>';
+const nav = '<a href="/#destinations">Destinations</a><a href="/#latest">Field notes</a><a href="/about">About</a>';
 function layout(env, title, body, meta={}) {
  const description=meta.description||'Evidence-led travel precautions and practical guides. Know before you go.';
  const url=siteURL(env)+(meta.path||'/');
  const image=safe(meta.image);
  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
- <title>${esc(title)} | TripCaution</title><meta name="description" content="${esc(description)}">
+ <title>${esc(title)} | TripCaution</title><meta name="description" content="${esc(description)}">${meta.noindex?'<meta name="robots" content="noindex,follow">':''}
  <link rel="canonical" href="${esc(url)}"><meta property="og:title" content="${esc(title)} | TripCaution">
  <meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}"><meta property="og:type" content="website">
  ${image?'<meta property="og:image" content="'+esc(image)+'">':''}
@@ -118,7 +118,7 @@ async function destinationPage(env,slug){
  const body=`<main><div class="destination-hero"><div class="shell"><a class="backlink" href="/">← All destinations</a><div class="eyebrow">DESTINATION GUIDE / ${esc(country.toUpperCase())}${city?' / '+esc(city.name.toUpperCase()):''}</div><h1>${esc(heading)}<span class="title-star"> ✳</span></h1><p>What to know, what to double-check, and how to travel with more confidence.</p><span class="dest-count">${articles.length} RESEARCHED GUIDES</span></div></div><section class="section shell">
  ${articles.length?'<div class="guide-grid">'+articles.map(a=>articleCard(a)).join('')+'</div>':'<div class="empty-state"><span>✳</span><h3>Research in progress.</h3><p>We are building carefully sourced guides for this destination. No warnings are published until evidence is checked.</p></div>'}
  </section></main>`;
- return html(layout(env,heading+' travel precautions',body,{path:'/destinations/'+slug,description:'Travel precautions, cultural considerations and researched guides for '+heading+', '+country+'.'}));
+ return html(layout(env,heading+' travel precautions',body,{path:'/destinations/'+slug,description:'Travel precautions, cultural considerations and researched guides for '+heading+', '+country+'.',noindex:articles.length===0}));
 }
 function renderInline(s){
  let out=esc(s);
@@ -164,9 +164,16 @@ function staticPage(env,type){
 }
 async function searchPage(env,url){
  const q=String(url.searchParams.get('q')||'').slice(0,80).trim();
+ const known=[...STARTER_DESTINATIONS,'Bangkok'];
+ const exact=known.find(x=>x.toLocaleLowerCase('en')===q.toLocaleLowerCase('en'));
+ if(exact) return Response.redirect(url.origin+'/destinations/'+slugify(exact),302);
+ const matches=q?known.filter(x=>x.toLocaleLowerCase('en').includes(q.toLocaleLowerCase('en'))):[];
  const rows=q&&env.DB?(await env.DB.prepare("SELECT * FROM articles WHERE status='published' AND published_at<=datetime('now') AND (title LIKE ? OR country LIKE ? OR city LIKE ?) ORDER BY published_at DESC LIMIT 30").bind(...Array(3).fill('%'+q+'%')).all()).results:[];
- return html(layout(env,'Search',`<main class="shell simple search-results"><div class="eyebrow">DISCOVER</div><h1>Search TripCaution</h1><form action="/search" class="inline-search"><input name="q" maxlength="80" placeholder="Country, city or topic" value="${esc(q)}"><button>Search ↗</button></form><p>${rows.length} results ${q?'for '+esc(q):''}</p><div class="guide-grid">${rows.map(a=>articleCard(a)).join('')}</div></main>`,{path:'/search'}),200,{'x-robots-tag':'noindex'});
+ const destinations=matches.length?`<section class="search-destinations"><h2>Matching destinations</h2><div class="destination-grid">${matches.map(x=>`<a class="destination-tile" href="/destinations/${slugify(x)}"><span class="destination-name">${esc(x)}</span><span class="destination-arrow" aria-hidden="true">↗</span></a>`).join('')}</div></section>`:'';
+ const details=rows.length?`<p>${rows.length} published ${rows.length===1?'guide':'guides'}</p><div class="guide-grid">${rows.map(a=>articleCard(a)).join('')}</div>`:`<p>${q?'No published guides found for that query yet. Try one of the destinations above.':'Enter a country, city or topic to start searching.'}</p>`;
+ return html(layout(env,'Search',`<main class="shell simple search-results"><div class="eyebrow">DISCOVER</div><h1>Search TripCaution</h1><form action="/search" class="inline-search"><label for="search-query" class="sr-only">Search destinations and guides</label><input id="search-query" name="q" maxlength="80" placeholder="Country, city or topic" value="${esc(q)}"><button>Search ↗</button></form>${destinations}${details}</main>`,{path:'/search',noindex:true}),200,{'x-robots-tag':'noindex'});
 }
+
 async function requireAdmin(request,env){
  if(!env.ACCESS_TEAM_DOMAIN||!env.ACCESS_AUD)throw Object.assign(new Error('Admin access is not configured'),{status:503});
  const assertion=request.headers.get('Cf-Access-Jwt-Assertion');
