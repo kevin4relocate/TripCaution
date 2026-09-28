@@ -41,12 +41,6 @@ export function normalizeArticle(raw) {
     scheduled_at:cleanString(raw.scheduled_at || raw.publishing?.preferred_publish_at,45)||null
   };
 }
-export function canAutoPublish(a) {
-  // No unattended publishing of negative allegations, legal, health, safety, immigration or incidents.
-  return ['before-you-go','etiquette'].includes(a.category_id) &&
-    JSON.parse(a.sources_json).length >= 2 &&
-    Boolean(a.verified_at);
-}
 export function isValidSchedule(value) {
   return typeof value === 'string' && !Number.isNaN(Date.parse(value)) &&
     /(?:Z|[+-]\d\d:\d\d)$/.test(value);
