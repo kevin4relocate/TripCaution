@@ -391,7 +391,7 @@ async function api(request,env,url,admin=false){
       return json({error:'Provide a future ISO 8601 scheduled_at with timezone'},422);
    }
    await env.DB.prepare("UPDATE articles SET status=?,review_approved=?,scheduled_at=?,published_at=CASE WHEN ?='published' THEN datetime('now') ELSE published_at END,updated_at=datetime('now') WHERE id=?")
-    .bind(target,['publish','schedule'].includes(action)?1:old.review_approved,target==='scheduled'?body.scheduled_at:null,target,id).run();
+    .bind(target,['publish','schedule'].includes(action)?1:action==='review'?0:old.review_approved,target==='scheduled'?body.scheduled_at:null,target,id).run();
    const auditAction=body.review_confirmed===true && action==='publish'?'reviewed-and-published':
     body.review_confirmed===true && action==='schedule'?'reviewed-and-scheduled':action;
    const reviewDetails=['publish','schedule'].includes(action)?
