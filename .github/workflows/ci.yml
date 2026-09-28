@@ -29,6 +29,6 @@ jobs:
       - name: Research package structural preflight (does not verify claims)
         run: npm run audit:cautions
       - name: Python syntax
-        run: python -m py_compile automation/daily.py automation/import_starter.py
+        run: python -m py_compile automation/daily.py automation/coverage.py automation/import_starter.py
       - name: Regional research rotation tests
         run: python -m unittest discover -s tests_python -v
