@@ -19,6 +19,12 @@ Scope: public production smoke from GitHub-hosted runner, static application/con
 - **Atomic D1 writes:** owner publishing/hiding/scheduling changes and their audit entries now execute together in an atomic D1 batch. This property follows the official D1 batch transaction semantics; the test suite asserts failed batch calls cannot partially apply the change.
 - **Operational caveat:** later code changes (including media hardening and resilient rendering) need a new public smoke against their actual deployed version. The 11/11 run is historical evidence for its own timestamp, not a future availability SLA.
 
+## Final automated rerun (after the targeted fixes)
+
+GitHub-hosted production/security run **36381701341** completed on 28 September 2026 against the live Workers.dev origin and returned **12/12 PASS**. Its repository source SHA was `856a7ec0c55af5c7b0564a76bc9554fe510b55a5`. The 12 checks covered D1 health, homepage/canonical/security headers, live CSS and first-party scripts, directory, currently published guides/sitemap, robots, policy pages, search and 404, malformed public media access, unsigned owner UI/private preview denial, unsigned API/ingest denial and strict sign-in behavior. The matching latest source GitHub CI run **36381701343** also passed.
+
+**Limits of that evidence:** The smoke cannot independently read Cloudflare's deployed commit SHA, test a real owner credential, prove inbox delivery or test a D1 recovery. Cloudflare deployment should still be compared by the owner. Two nonfatal warnings remain: the verified public corrections inbox is not configured, and the bot ingest secret is absent or invalid (automation is safely disabled).
+
 ## Findings and remediation
 
 | Priority | Finding | Resolution | Proof / remaining check |
@@ -77,7 +83,7 @@ Do not set `EDITORIAL_CONTACT_VERIFIED` for a placeholder address such as a doma
 
 ## Current launch decision
 
-**Automated production baseline:** recorded 11/11 at smoke run `36381457067` after security-header and redirect hardening; rerun after later code changes for latest-deployment proof.  
+**Automated production baseline:** most recent run **36381701341: 12/12 PASS**, with source CI **36381701343: PASS**. Owner must still match the active Cloudflare deployment and finish manual gates.  
 **Latest code:** must pass its own GitHub checks and be observed on Cloudflare before claiming production verification.  
 **Open manual blockers:** verified public inbox, latest deployment SHA, private auth in real browsers, actual D1 export+staging restore, editorial review of revised starter articles.  
 **Mobile and performance:** intentionally deferred until the above Production & Security gate is resolved.  
