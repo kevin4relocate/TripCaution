@@ -79,12 +79,24 @@ await run('Southeast Asia-first hub honestly represents all eleven destinations'
  ensure(listed!==noindex,'Regional hub must be indexed only when real regional articles are published');
 });
 let publicGuideCount=0;
+let regionalCoverage={published:[],awaiting:[]};
 await run('Sitemap and ACTUALLY published articles (no hard-coded draft assumptions)',async()=>{
  const {response,body}=await get('/sitemap.xml');
  ensure(response.status===200&&body.includes('<loc>'+origin+'/destinations</loc>'),'Sitemap missing or wrong host');
- const paths=[...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map(hit=>hit[1])
-  .filter(url=>url.startsWith(origin+'/guides/')).slice(0,5);
- publicGuideCount=paths.length;
+ const allGuideURLs=[...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map(hit=>hit[1])
+  .filter(url=>url.startsWith(origin+'/guides/'));
+ // Count ALL sitemap guides, but retrieve only a small public sample to
+ // avoid unnecessarily hammering the production site during an audit.
+ publicGuideCount=allGuideURLs.length;
+ const countries=[['Brunei','brunei'],['Cambodia','cambodia'],['Indonesia','indonesia'],
+  ['Laos','laos'],['Malaysia','malaysia'],['Myanmar','myanmar'],
+  ['Philippines','philippines'],['Singapore','singapore'],['Thailand','thailand'],
+  ['Timor-Leste','timor-leste'],['Vietnam','vietnam']];
+ regionalCoverage={
+  published:countries.filter(([name,slug])=>body.includes('<loc>'+origin+'/destinations/'+slug+'</loc>')).map(([name])=>name),
+  awaiting:countries.filter(([name,slug])=>!body.includes('<loc>'+origin+'/destinations/'+slug+'</loc>')).map(([name])=>name)
+ };
+ const paths=allGuideURLs.slice(0,5);
  ensure(paths.length>0,'No published articles in sitemap: finish article review before launch');
  for(const url of paths){
   const path=url.slice(origin.length),result=await get(path);
@@ -176,12 +188,15 @@ await run('Sign-in uses no-store, anti-frame protection and strict browser scrip
 });
 const pass=results.filter(x=>x.status==='PASS').length,failed=results.filter(x=>x.status==='FAIL').length;
 const report={origin,github_source_sha:process.env.GITHUB_SHA||null,cloudflare_deployment_sha:'NOT_VERIFIED_BY_THIS_SCRIPT',executed_at:new Date().toISOString(),pass,failed,total:results.length,
- publicGuideCount,results,warnings,manualGates,
+ publicGuideCount,regionalCoverage,results,warnings,manualGates,
  decision:failed?'AUTOMATED_CHECKS_FAILED':'AUTOMATED_CHECKS_PASS__MANUAL_GATES_OPEN',
  note:'Automated checks intentionally exclude owner-only Cloudflare settings, inbox receipt and any database mutations.'};
 writeFileSync('sprint1-production-security.json',JSON.stringify(report,null,2));
 console.log('\nTripCaution release smoke (including Sprint 2):',pass+'/'+results.length,'PASS');
 for(const r of results)console.log(r.status,r.name,r.details);
+console.log('EDITORIAL COVERAGE Southeast Asia',regionalCoverage.published.length+'/11 countries with published guide(s)');
+console.log('EDITORIAL COVERAGE published:',regionalCoverage.published.join(', ')||'(none)');
+console.log('EDITORIAL COVERAGE awaiting:',regionalCoverage.awaiting.join(', ')||'(none)');
 for(const w of warnings)console.log('WARNING',w);
 for(const g of manualGates)console.log('MANUAL GATE',g);
 if(failed)process.exitCode=1;
