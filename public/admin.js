@@ -39,6 +39,14 @@ function renderQueue(){
  $('queue').innerHTML=rows.map(a=>'<div><span class="status '+escapeHTML(a.status)+'">'+escapeHTML(a.status)+'</span> &nbsp; '+escapeHTML(a.scheduled_at||'Not scheduled')+' — <strong>'+escapeHTML(a.title)+'</strong><button class="text-button queue-btn" data-id="'+escapeHTML(a.id)+'">Review ↗</button></div>').join('')||'<p>Your queue is clear.</p>';
  document.querySelectorAll('.queue-btn').forEach(btn=>btn.onclick=()=>loadArticle(btn.dataset.id));
 }
+$('autoschedule-btn').onclick=async()=>{
+ if(!confirm('Have you checked the imported articles? This will approve and schedule eligible low-risk articles with multiple sources. Sensitive guides still require individual review.'))return;
+ try {
+  const result=await api('/api/admin/auto-schedule',{method:'POST',body:'{}'});
+  toast(result.scheduled.length+' eligible guides approved and scheduled.');
+  await refresh();
+ } catch(e){toast(e.message,true);}
+};
 $('article-search').addEventListener('input',renderArticles);
 $('article-filter').addEventListener('change',renderArticles);
 $('json-file').addEventListener('change',async ev=>{
