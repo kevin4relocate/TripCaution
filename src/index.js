@@ -236,8 +236,11 @@ function editorialEmail(env) {
 }
 function staticPage(env,type){
  const email=editorialEmail(env);
- const contact=email?'<a class="editorial-email" href="mailto:'+esc(email)+'?subject=TripCaution%20correction">'+esc(email)+'</a>':
-   '<strong class="contact-not-ready">The editorial inbox has not been configured yet. This site is completing pre-launch setup.</strong>';
+ // An email-shaped variable is not evidence that this mailbox exists.
+ // Avoid publicly advertising a placeholder until the owner checks delivery.
+ const emailReady=Boolean(email) && env.EDITORIAL_CONTACT_VERIFIED==='true';
+ const contact=emailReady?'<a class="editorial-email" href="mailto:'+esc(email)+'?subject=TripCaution%20correction">'+esc(email)+'</a>':
+   '<strong class="contact-not-ready">Our editorial contact inbox is being set up. Please check back later to submit a correction. For urgent travel concerns, contact the relevant authority directly.</strong>';
  const blocks={
    about:['About & editorial policy',`<p>TripCaution is an independent, research-led travel guide. Our articles describe practical travel questions and point readers to original sources. We do not claim personal visits, personal interviews or firsthand incident reports. We are not an emergency-alert service.</p>
      <h2>Our research process</h2><p>We prioritize official operators, local tourism authorities, government guidance and dated primary evidence. AI tools may assist with research and initial drafts; source lists and AI-generated timestamps are not proof that an editor has checked a claim. Every new article must be checked and approved by an editor before publishing.</p>
@@ -253,7 +256,7 @@ function staticPage(env,type){
      <p>In an emergency while traveling, contact local emergency services, your transport operator or your consulate rather than this editorial website.</p>`]
  };
  const [title,body]=blocks[type];
- return html(layout(env,title,'<main class="shell simple editorial-policy"><div class="eyebrow">TRIPCAUTION / INFORMATION</div><h1>'+esc(title)+'</h1>'+body+'<a class="backlink" href="/">← Back home</a></main>',{path:'/'+type,noindex:type==='contact'&&!email}),200,{'cache-control':'public,max-age=300'});
+ return html(layout(env,title,'<main class="shell simple editorial-policy"><div class="eyebrow">TRIPCAUTION / INFORMATION</div><h1>'+esc(title)+'</h1>'+body+'<a class="backlink" href="/">← Back home</a></main>',{path:'/'+type,noindex:type==='contact'&&!emailReady}),200,{'cache-control':'public,max-age=300'});
 }
 async function searchPage(env,url){
  const q=String(url.searchParams.get('q')||'').slice(0,80).trim();

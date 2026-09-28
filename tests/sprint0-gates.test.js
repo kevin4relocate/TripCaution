@@ -85,8 +85,12 @@ test('legal pages describe current site operations; public contact requires a re
  }
  const noInbox=await (await app.fetch(new Request(origin+'/contact'),base)).text();
  assert.match(noInbox,/noindex/);
+ const unverified=await (await app.fetch(new Request(origin+'/contact'),
+  {EDITORIAL_CONTACT_EMAIL:'contact@not-yet-operational.example'})).text();
+ assert.match(unverified,/name="robots" content="noindex/);
+ assert.ok(!unverified.includes('mailto:contact@not-yet-operational.example'));
  const withInbox=await app.fetch(new Request(origin+'/contact'),
-  {EDITORIAL_CONTACT_EMAIL:'editorial@example.org'});
+  {EDITORIAL_CONTACT_EMAIL:'editorial@example.org',EDITORIAL_CONTACT_VERIFIED:'true'});
  const html=await withInbox.text();
  assert.ok(html.includes('mailto:editorial@example.org'));
  assert.ok(!html.includes('name="robots" content="noindex'));
