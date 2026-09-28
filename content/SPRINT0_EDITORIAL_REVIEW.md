@@ -34,7 +34,7 @@
 2. Download the revised `content/starter-guides.json` package directly from GitHub. Sign into your own `/admin` dashboard.
 3. Open **Import content**; select the updated JSON; turn on **Apply corrections to matching existing slugs**, confirm the warning. Existing published articles are **immediately withdrawn** into Review.
 4. Open each article in **All articles → Review → Preview saved article**. Open all evidence links and inspect the full text in its rendered public layout.
-5. Tick all four controls only after actual review, enter a substantive claim–source evidence note and choose the next review interval (Bangkok: 7 days; other articles as appropriate). Then publish each article individually.
+5. After actually checking sources and the last saved Preview, use **Publish now** or select previously reviewed articles in **All articles → Publish selected**. Confirm that every selected article is ready. The system no longer asks for four checkboxes or a written record; a signed-in publishing decision is recorded with a default 30-day recheck date. Revisit the dated Bangkok example sooner if needed.
 6. Test all three live page URLs and verify category, fee distinction and date caveats on the ACTUAL production website.
 7. This process is **not complete** if the owner merely imports the JSON, if a browser preview looks attractive, or if CI passes; a human review record and re-publication are required.
 
