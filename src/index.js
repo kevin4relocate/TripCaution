@@ -635,7 +635,7 @@ async function api(request,env,url,admin=false){
   // category. No inference of verified incidents or auto-published coverage.
   const topicSql="SELECT country,category_id,status,COUNT(*) count FROM articles WHERE country IN ("+
     countries.map(()=>'?').join(',')+") AND status IN ('published','review','draft','scheduled') "+
-    "GROUP BY country,category_id,status";
+    "AND (status!='published' OR published_at<=datetime('now')) GROUP BY country,category_id,status";
   const topicRows=(await env.DB.prepare(topicSql).bind(...countries).all()).results||[];
   const topicCoverage=summarizeCountryTopicCounts(topicRows,countries,cautionTopicForCategory);
   return json({coverage,publishedCountries:coverage.filter(row=>row.published>0).length,
