@@ -19,8 +19,8 @@ function layout(env, title, body, meta={}) {
  const url=siteURL(env)+(meta.path||'/');
  const image=safe(meta.image);
  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
- <title>${esc(title)} | TripCaution</title><meta name="description" content="${esc(description)}">${meta.noindex?'<meta name="robots" content="noindex,follow">':''}
- <link rel="canonical" href="${esc(url)}"><meta property="og:title" content="${esc(title)} | TripCaution">
+ <title>${esc(title)} | TripCaution</title><meta name="description" content="${esc(description)}">${meta.noindex?'<meta name="robots" content="noindex,nofollow,noarchive">':''}
+ ${meta.preview?'':'<link rel="canonical" href="'+esc(url)+'">'}<meta property="og:title" content="${esc(title)} | TripCaution">
  <meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}"><meta property="og:type" content="website">
  ${image?'<meta property="og:image" content="'+esc(image)+'">':''}
  <link rel="stylesheet" href="/styles.css"><link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -144,9 +144,7 @@ function markdown(md) {
  if(list)chunks.push('</ul>');
  return chunks.join('');
 }
-async function guidePage(env,slug){
- const a=env.DB?await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.slug=? AND a.status='published' AND a.published_at<=datetime('now') LIMIT 1").bind(slug).first():null;
- if(!a)return html(layout(env,'Guide unavailable','<main class="shell simple"><h1>Guide not found.</h1><a href="/">Browse destinations ↗</a></main>'),404);
+function renderGuideArticle(env,a,preview=false){
  const sources=safeParse(a.sources_json).filter(s=>safe(s.url));
  const body=`<main><div class="article-top"><div class="shell article-head"><a href="/destinations/${slugify(a.country)}" class="backlink">← ${esc(a.country)} guides</a><div class="eyebrow">${esc(a.country.toUpperCase())}${a.city?' / '+esc(a.city.toUpperCase()):''} / ${esc((a.category_name||'GUIDE').toUpperCase())}</div><h1>${esc(a.title)}</h1><p class="article-deck">${esc(a.excerpt)}</p>
  <div class="article-meta"><span>TRIPCAUTION EDITORIAL</span><span>VERIFIED: ${esc(utc(a.verified_at))}</span><span>${sources.length} SOURCES</span></div></div></div>
@@ -155,7 +153,22 @@ async function guidePage(env,slug){
  <div class="prose">${markdown(a.content_markdown)}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
  <p class="verified">Last checked: ${esc(utc(a.verified_at))}</p></section></article>
  <aside class="article-aside"><div class="aside-card"><span>THE QUICK TAKE</span><h3>Keep exploring.<br><em>Stay informed.</em></h3><p>Travel is better when you know what to expect.</p><a href="/destinations/${slugify(a.country)}">More in ${esc(a.country)} ↗</a></div><div class="aside-share">SHARE THIS GUIDE <button type="button" onclick="navigator.clipboard.writeText(location.href).then(()=>this.textContent='Copied!')">Copy link ↗</button></div></aside></div></main>`;
- return html(layout(env,a.seo_title||a.title,body,{path:'/guides/'+a.slug,description:a.seo_description||a.excerpt,image:a.hero_image_url}),200,{'cache-control':'public, max-age=60'});
+ const previewBanner=preview?`<aside class="editorial-preview-banner" role="note"><div class="shell editorial-preview-inner"><div><strong>PRIVATE PREVIEW · NOT PUBLISHED</strong><p>This is the last SAVED version, shown in the public article layout. Verify all claims, source links, dates and images before approval. This URL only works when signed in.</p></div><a href="/admin?edit=${encodeURIComponent(a.id)}">← Back to editor</a></div></aside>`:'';
+ const page=layout(env,a.seo_title||a.title,previewBanner+body,{path:'/guides/'+a.slug,description:a.seo_description||a.excerpt,image:a.hero_image_url,noindex:preview,preview});
+ return html(page,200,preview?{'cache-control':'private, no-store','x-robots-tag':'noindex, nofollow, noarchive','referrer-policy':'no-referrer','x-frame-options':'DENY'}:{'cache-control':'public, max-age=60'});
+}
+async function guidePage(env,slug){
+ const a=env.DB?await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.slug=? AND a.status='published' AND a.published_at<=datetime('now') LIMIT 1").bind(slug).first():null;
+ if(!a)return html(layout(env,'Guide unavailable','<main class="shell simple"><h1>Guide not found.</h1><a href="/">Browse destinations ↗</a></main>'),404);
+ return renderGuideArticle(env,a);
+}
+async function previewGuidePage(request,env,id){
+ if(!isLoginConfigured(env))return html('<h1>Admin login is not configured.</h1>',503,{'cache-control':'no-store'});
+ if(!await hasAdminSession(request,env))return Response.redirect(new URL('/sign-in',request.url),302);
+ if(!env.DB)return html('<h1>Database unavailable.</h1>',503,{'cache-control':'no-store'});
+ const a=await env.DB.prepare('SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.id=? LIMIT 1').bind(id).first();
+ if(!a || a.status==='deleted')return html('<h1>Preview unavailable.</h1>',404,{'cache-control':'private, no-store','x-robots-tag':'noindex'});
+ return renderGuideArticle(env,a,true);
 }
 function staticPage(env,type){
  const pages={
@@ -233,7 +246,7 @@ async function api(request,env,url,admin=false){
  }
  if(method==='POST' && pathname==='/api/admin/auto-schedule'){
   // Explicit admin action: bulk-approve only low-risk editorial guides with adequate sources.
-  const eligible=(await env.DB.prepare("SELECT id,category_id,sources_json,verified_at,scheduled_at FROM articles WHERE status='review' AND category_id IN ('before-you-go','etiquette') ORDER BY created_at ASC LIMIT 30").all()).results
+  const eligible=(await env.DB.prepare("SELECT id,category_id,sources_json,verified_at,scheduled_at FROM articles WHERE status='review' AND review_approved=1 AND category_id IN ('before-you-go','etiquette') ORDER BY created_at ASC LIMIT 30").all()).results
    .filter(a=>safeParse(a.sources_json).length>=2 && Boolean(a.verified_at));
   const existing=(await env.DB.prepare("SELECT scheduled_at FROM articles WHERE status='scheduled'").all()).results;
   const occupied=new Set(existing.filter(x=>x.scheduled_at).map(x=>x.scheduled_at.slice(0,10)));
@@ -278,6 +291,7 @@ async function api(request,env,url,admin=false){
    if(!['publish','schedule','hide','archive','delete','restore','review'].includes(action))return json({error:'Unknown action'},400);
    const target={publish:'published',schedule:'scheduled',hide:'hidden',archive:'archived',delete:'deleted',restore:'draft',review:'review'}[action];
    if(['publish','schedule'].includes(action)){
+    if(actor!=='github-automation' && body.review_confirmed!==true)return json({error:'Complete the editorial review checklist before publishing or scheduling'},422);
     if(!Number(old.review_approved)&&actor==='github-automation')return json({error:'Approval required'},403);
     if(safeParse(old.sources_json).length<1||!old.verified_at)return json({error:'Verified date and evidence sources required'},422);
     if(action==='schedule' && (!isValidSchedule(body.scheduled_at)||Date.parse(body.scheduled_at)<Date.now()))return json({error:'Provide a future ISO 8601 scheduled_at with timezone'},422);
@@ -373,6 +387,13 @@ export default {
        'cache-control':'no-store','x-content-type-options':'nosniff'}
     });
    }
+   // Private previews require the same signed admin cookie as the dashboard.
+   const previewMatch=path.match(/^\/admin\/preview\/([a-f0-9-]{36})$/);
+   if(previewMatch){
+    if(request.method!=='GET')return new Response('Method not allowed',{status:405});
+    return previewGuidePage(request,env,previewMatch[1]);
+   }
+   if(path.startsWith('/admin/preview/'))return new Response('Not found',{status:404,headers:{'cache-control':'no-store'}});
    if(path==='/admin'||path==='/admin.html'||path.startsWith('/admin/')){
     if(!isLoginConfigured(env))return html('<h1>Admin login is not set up.</h1><p>Set the ADMIN_LOGIN_KEY secret in Cloudflare Worker settings before opening this page.</p>',503,{'cache-control':'no-store'});
     if(!await hasAdminSession(request,env))return Response.redirect(new URL('/sign-in',url),302);
