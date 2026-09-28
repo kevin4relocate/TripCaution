@@ -291,6 +291,23 @@ async function insertArticle(env,raw,actor){
  await audit(env,actor,'created:'+status,a.id);
  return {id:a.id,title:a.title,slug:a.slug,status};
 }
+async function replaceArticleWithReviewDraft(env,raw,actor){
+ if(actor==='github-automation')throw Object.assign(new Error('Admin login required'),{status:403});
+ const a=normalizeArticle(raw);
+ const old=await env.DB.prepare('SELECT id,status FROM articles WHERE slug=?').bind(a.slug).first();
+ if(!old)return insertArticle(env,raw,actor);
+ // Only the signed-in owner can explicitly revise an existing guide. The old
+ // version is withdrawn while the new revision undergoes a fresh manual review.
+ await env.DB.prepare(`UPDATE articles SET title=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,
+   tags_json=?,sources_json=?,uncertainties_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,
+   hero_alt=?,source_mode='editorial-revision',verified_at=?,review_approved=0,status='review',
+   published_at=NULL,scheduled_at=NULL,updated_at=datetime('now') WHERE id=?`)
+ .bind(a.title,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,
+   a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,
+   a.hero_prompt,a.hero_alt,a.verified_at,old.id).run();
+ await audit(env,actor,'revision-imported-to-review',old.id,JSON.stringify({old_status:old.status,slug:a.slug}));
+ return {id:old.id,title:a.title,slug:a.slug,status:'review',updated:true};
+}
 async function api(request,env,url,admin=false){
  if(!env.DB)throw Object.assign(new Error('D1 database missing'),{status:503});
  const pathname=url.pathname,method=request.method;
@@ -348,8 +365,14 @@ async function api(request,env,url,admin=false){
   const body=await request.json();
   const list=Array.isArray(body.articles)?body.articles:[body];
   if(list.length<1||list.length>30)return json({error:'Import requires 1–30 articles'},400);
+  const revisionMode=pathname==='/api/admin/import' && body.update_matching===true;
+  if(body.update_matching===true&&!revisionMode)return json({error:'Only signed-in editor can revise existing articles'},403);
+  if(revisionMode&&body.confirm_unpublish!==true)return json({error:'Explicit acknowledgment required: matching live articles return to Review'},422);
   const results=[];
-  for(const entry of list){try{results.push({ok:true,...await insertArticle(env,entry,actor)});}catch(e){results.push({ok:false,error:e.message,title:entry?.title||''});}}
+  for(const entry of list){
+   try{results.push({ok:true,...await (revisionMode?replaceArticleWithReviewDraft(env,entry,actor):insertArticle(env,entry,actor))});}
+   catch(e){results.push({ok:false,error:e.message,title:entry?.title||''});}
+  }
   return json({results},207);
  }
  if(method==='POST' && pathname==='/api/admin/article'){
