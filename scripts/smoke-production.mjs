@@ -93,7 +93,10 @@ await run('Unauthenticated administration and ingestion are rejected',async()=>{
  ensure(articles.response.status===401,'Admin records accessible without login');
  for(const path of ['/api/admin/bulk','/api/admin/purge','/api/admin/media','/api/ingest']){
   const response=await attemptUnauthenticatedWrite(path);
-  ensure(response.status===401,'Anonymous write must be rejected: '+path+' returned '+response.status);
+  if(path==='/api/ingest'&&response.status===503){
+   // Deliberately unconfigured ingestion is fail-closed: bots are disabled.
+   warnings.push('INGEST_TOKEN is not configured in production; automation cannot import, but anonymous access remains blocked');
+  }else ensure(response.status===401,'Anonymous write must be rejected: '+path+' returned '+response.status);
  }
 });
 await run('Sign-in uses no-store, anti-frame protection and strict browser script policy',async()=>{
