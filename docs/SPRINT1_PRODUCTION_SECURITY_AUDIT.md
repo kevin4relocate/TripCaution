@@ -10,6 +10,15 @@ Scope: public production smoke from GitHub-hosted runner, static application/con
 - The local container and web reader could not directly access the Workers.dev origin. Public production verification here is grounded in recorded GitHub-hosted smoke results, not a claimed independent live browser session.
 - This is a targeted launch audit, **not a comprehensive penetration test**, source-code dependency audit, accessibility audit, legal opinion or external vulnerability scan. Test authorization is restricted to the user's own application, and automated production checks never try a real password or mutate content.
 
+## Follow-up hardening / newest verified public evidence
+
+- **11/11 automated public checks passed** in GitHub-hosted production smoke run **36381457067** (live origin observed after restrictive public CSP and no-store sign-in redirects had been deployed). The runner confirmed homepage canonical/security headers, stylesheet and first-party scripts, published-guide sitemap, anonymous API and owner-page denial, robots, search/404 and strict sign-in behavior. The run still warned that public Contact is inactive and `INGEST_TOKEN` is not configured; its purpose is not to verify real inbox delivery.
+- **Session redirect caching:** unauthenticated `/admin` and private previews now redirect with `Cache-Control: private, no-store` and noindex, reducing the chance of stale browser/edge login loops.
+- **Stored content resilience:** malformed research dates no longer crash guide pages; unexpected malformed source JSON is rendered as an empty source list rather than failing the article response. Added hostile stored-markdown regression checks under restrictive browser CSP.
+- **Media upload hardening:** authenticated PNG/JPEG/WebP uploads now check their advertised length, stream and enforce a 5 MB cumulative cap, verify image signatures and retain the same-origin/session requirements. This is **unit-tested only**; live production reports the optional ingest bot unconfigured, and R2 image upload may also be unconfigured.
+- **Atomic D1 writes:** owner publishing/hiding/scheduling changes and their audit entries now execute together in an atomic D1 batch. This property follows the official D1 batch transaction semantics; the test suite asserts failed batch calls cannot partially apply the change.
+- **Operational caveat:** later code changes (including media hardening and resilient rendering) need a new public smoke against their actual deployed version. The 11/11 run is historical evidence for its own timestamp, not a future availability SLA.
+
 ## Findings and remediation
 
 | Priority | Finding | Resolution | Proof / remaining check |
@@ -68,7 +77,7 @@ Do not set `EDITORIAL_CONTACT_VERIFIED` for a placeholder address such as a doma
 
 ## Current launch decision
 
-**Automated production baseline:** recorded 10/10 at smoke run `36381010292`, before some later code hardening.  
+**Automated production baseline:** recorded 11/11 at smoke run `36381457067` after security-header and redirect hardening; rerun after later code changes for latest-deployment proof.  
 **Latest code:** must pass its own GitHub checks and be observed on Cloudflare before claiming production verification.  
 **Open manual blockers:** verified public inbox, latest deployment SHA, private auth in real browsers, actual D1 export+staging restore, editorial review of revised starter articles.  
 **Mobile and performance:** intentionally deferred until the above Production & Security gate is resolved.  
