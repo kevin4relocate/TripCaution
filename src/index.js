@@ -332,10 +332,17 @@ export default {
   const url=new URL(request.url),path=url.pathname;
   try {
    // This public entry point is outside the legacy Cloudflare Access /admin* path.
+   if(path==='/sign-in.html')return Response.redirect(new URL('/sign-in',url),302);
    if(path==='/sign-in' && request.method==='GET'){
     if(!isLoginConfigured(env))return html('<h1>Admin login is not set up.</h1><p>Set the ADMIN_LOGIN_KEY secret in Cloudflare Worker settings before signing in.</p>',503,{'cache-control':'no-store'});
     if(await hasAdminSession(request,env))return Response.redirect(new URL('/admin',url),302);
-    return env.ASSETS.fetch(new Request(new URL('/sign-in.html',url),request));
+    const asset=await env.ASSETS.fetch(new Request(new URL('/sign-in.html',url),request));
+    const headers=new Headers(asset.headers);
+    headers.set('cache-control','private, no-store');
+    headers.set('referrer-policy','no-referrer');
+    headers.set('x-frame-options','DENY');
+    headers.set('content-security-policy',"default-src 'none'; base-uri 'none'; frame-ancestors 'none'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; connect-src 'self'; form-action 'self'");
+    return new Response(asset.body,{status:asset.status,headers});
    }
    if(path==='/api/auth/login'){
     if(request.method!=='POST')return json({error:'Method not allowed'},405);
