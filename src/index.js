@@ -836,7 +836,9 @@ export default {
     const rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at,published_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
     const countries=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
     const hasContact=Boolean(editorialEmail(env))&&env.EDITORIAL_CONTACT_VERIFIED==='true';
-    return new Response(sitemapXML(siteURL(env),rows,countries,hasContact,countries.some(row=>isSoutheastAsia(row.country))),{
+    const cautionCounts=await publishedCautionCounts(env);
+    const activeTopics=CAUTION_GROUPS.filter(group=>group.categories.some(id=>cautionCounts.get(id))).map(group=>group.id);
+    return new Response(sitemapXML(siteURL(env),rows,countries,hasContact,countries.some(row=>isSoutheastAsia(row.country)),activeTopics),{
      headers:{'content-type':'application/xml;charset=utf-8','cache-control':'public,max-age=300','x-content-type-options':'nosniff'}
     });
    }
