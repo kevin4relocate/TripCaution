@@ -12,7 +12,7 @@ TripCaution is a Cloudflare Workers application with a GitHub Actions/Gemini res
 | Import | Upload/paste AI research packages in JSON, duplicate-slug rejection |
 | Editorial calendar | Human-controlled publication; batch schedule eligible low-risk imported articles |
 | Automatic publishing | Hourly Cloudflare Cron publishes previously approved scheduled records |
-| AI research | Scheduled GitHub Actions runs Gemini Google Search grounding and a second writing pass, **at most one new research article per run** |
+| AI research | Scheduled GitHub Actions reads curated official-source pages then uses Gemini text generation; optionally supports Google Search grounding. **At most one new research article per run** |
 | Database | Cloudflare D1 migrations |
 | Illustration workflow | Gemini-generated watercolor *prompts*, manual illustration URLs, optional R2 image upload |
 | Safety | Admin Access JWT validation, bot token, source gate, manual review of sensitive categories, HTML escaping, audit log |
@@ -127,7 +127,8 @@ Create **Repository secrets**:
 
 Create **Repository variables**:
 - `TRIPCAUTION_API_URL` = the deployed site's HTTPS origin **without a final slash**.
-- `GEMINI_MODEL` = an available Gemini model whose **current** API quota and Google Search grounding price/free allowance you have checked in Google AI Studio.
+- `GEMINI_MODEL` = an available text model (defaults to `gemini-3.5-flash-lite`; confirm free-tier quota in your Google project).
+- `TRIPCAUTION_RESEARCH_MODE` = `curated` (default, uses official pages in `automation/sources.json` without search-grounding charges) or `grounded` (opt-in, only when your key/model supports Search grounding and its pricing).
 
 Put the **same** ingestion secret on the Worker, **not in Git**. Use **Workers & Pages > tripcaution > Settings > Variables and Secrets > Add** `INGEST_TOKEN` as an encrypted **secret**, then deploy or save settings as Cloudflare requests.
 
@@ -136,13 +137,13 @@ The workflow in `.github/workflows/daily-content.yml` runs at **18:17 UTC**, app
 A run:
 - Checks recently published/scheduled titles so it can avoid obvious duplicates.
 - Skips writing when there are already at least 2 articles scheduled for the next 2 days.
-- Researches one country/topic with Gemini search grounding.
-- Writes one candidate grounded article, checks URLs against returned grounding links and basic quality rules.
+- Fetches current HTML from two configured official government advice pages and asks Gemini to analyze the retrieved content, unless you explicitly opt into Gemini Search grounding.
+- Writes one candidate article, checks cited links against the fetched/grounded source list and applies basic quality rules.
 - Imports it via authenticated `/api/ingest`.
 - **Low-risk before-you-go and etiquette** articles with 2+ evidence links and a verification date may publish automatically; higher-risk categories enter review.
 - Logs an error instead of publishing fabricated or unsupported material when research is insufficient.
 
-**No API cost guarantee:** free-tier request limits and search-grounding eligibility vary with model, billing status, region and changes to provider terms. Do not enable the daily workflow until you have confirmed limits yourself and set spending/quota alerts where available. GitHub Actions being free does not make external Gemini usage free.
+**No API cost guarantee:** default curated mode uses government public pages and free-tier Gemini *text* when available. Most current Gemini 3.x models do **not** include Search grounding in the free API tier; image-generation APIs generally are not free. Research skips publication if fewer than two official pages can be read. Model access, page availability, billing and quotas can change. Verify all service terms before enabling a paid feature.
 
 ## 8. Manual Pro research import and daily calendar
 
