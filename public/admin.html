@@ -1,40 +1,52 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Editorial Desk — TripCaution</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/admin.css"></head><body class="admin-body"><aside class="sidebar"><a class="brand" href="/"><span class="brand-mark">!</span>TRIP<span>CAUTION</span></a><small>EDITORIAL WORKSPACE</small><button data-view="overview" class="active">◫ <span>Overview</span></button><button data-view="articles">▤ <span>All articles</span></button><button data-view="import">⇧ <span>Import content</span></button><button data-view="calendar">▦ <span>Publishing queue</span></button><a href="/" class="site-back">↗ View live site</a></aside><main class="admin-main"><div class="admin-top"><span>TRIPCAUTION / CONTENT OPERATIONS</span><span class="admin-top-actions"><span class="admin-badge">● PRIVATE EDITOR</span><button id="logout-btn" type="button" class="logout-btn" title="End your admin session">Sign out ↗</button></span></div><div id="toast" role="status"></div><section id="overview" class="view"><div class="admin-head"><div><small>YOUR EDITORIAL DESK</small><h1>Good morning, editor <em>✳</em></h1><p>Everything you need to keep TripCaution informed and up to date.</p></div><button class="primary" data-view="import">+ Import a guide</button></div><div id="stats" class="stats"></div><div class="panel"><h2>Editorial recheck queue</h2><p>Published guides without a documented review date or with an expired review window need attention. Re-import a corrected revision to send an existing guide back to Review.</p><div id="review-due">Loading...</div></div><div class="panel"><h2>Recent activity</h2><div id="activities">Loading...</div></div><div class="panel"><h2>Publishing principles</h2><p>Every claim needs a real, supporting source. Articles imported from AI research are queued for your approval. High-impact safety, law, health and allegations always require review.</p></div></section>
-<section id="articles" class="view" hidden><div class="admin-head"><div><small>CONTENT LIBRARY</small><h1>All articles</h1><p>Preview every saved guide in its real website layout. Review the sources before publishing.</p></div><button class="primary" data-view="import">+ Import guides</button></div><div class="panel"><div class="filters"><input id="article-search" placeholder="Search title or country"><select id="article-filter"><option value="">All statuses</option><option>review</option><option>draft</option><option>scheduled</option><option>published</option><option>hidden</option><option>archived</option><option>deleted</option></select></div><div class="table-wrap"><table><thead><tr><th>TITLE / DESTINATION</th><th>CATEGORY</th><th>STATUS</th><th>PUBLISH DATE</th><th>ACTIONS</th></tr></thead><tbody id="article-rows"></tbody></table></div></div></section>
+<section id="articles" class="view" hidden><div class="admin-head"><div><small>CONTENT LIBRARY</small><h1>All articles</h1><p>Preview every saved guide in its real website layout. Review the sources before publishing.</p></div><button class="primary" data-view="import">+ Import guides</button></div><div class="panel"><div class="filters"><input id="article-search" placeholder="Search title or country" aria-label="Search articles"><select id="article-filter"><option value="">All statuses</option><option>review</option><option>draft</option><option>scheduled</option><option>published</option><option>hidden</option><option>archived</option><option>deleted</option></select></div>
+<div class="bulk-toolbar" id="bulk-toolbar" role="region" aria-label="Selected article actions">
+ <strong id="bulk-count">0 selected</strong>
+ <button id="bulk-publish" type="button" disabled>Publish selected</button>
+ <button id="bulk-hide" type="button" disabled>Hide selected</button>
+ <button id="bulk-schedule" type="button" disabled>Schedule selected</button>
+ <button id="bulk-restore" type="button" disabled>Restore selected</button>
+ <button id="bulk-delete" class="bulk-danger" type="button" disabled>Delete selected</button>
+ <button id="bulk-clear" type="button" class="bulk-clear">Clear</button>
+</div>
+<p class="bulk-notice">Select all only selects articles visible with the current search/filter. Hide keeps articles private; Delete is recoverable.</p>
+<div id="bulk-result" role="status" aria-live="polite"></div>
+<div class="table-wrap"><table><thead><tr><th class="select-col"><input id="select-all-visible" type="checkbox" aria-label="Select all visible articles"></th><th>TITLE / DESTINATION</th><th>CATEGORY</th><th>STATUS</th><th>PUBLISH DATE</th><th>ACTIONS</th></tr></thead><tbody id="article-rows"></tbody></table></div></div></section>
 <section id="import" class="view" hidden><div class="admin-head"><div><small>IMPORT CENTER</small><h1>Bring in great research.</h1><p>Import TripCaution JSON from your research AI. Everything is checked before it enters your queue.</p></div></div><div class="panel narrow"><h2>Import JSON package</h2><p>Upload a valid JSON file or paste JSON below. Up to 30 articles per batch. New articles always enter Review; existing slugs are rejected unless you explicitly enable revision mode.</p><input id="json-file" type="file" accept=".json,application/json"><textarea id="json-input" rows="13" placeholder='{"schema_version":"1.0","articles":[...]}'></textarea>
  <label class="revision-opt-in"><input id="revision-mode" type="checkbox"> Apply corrections to matching existing slugs (moves live articles back to private Review)</label>
  <p class="revision-warning">Back up your database first. Revision import immediately withdraws matching published guides until you preview and approve the corrected version.</p>
  <div class="row"><button class="primary" id="import-btn">Validate & import ↗</button><span id="import-result"></span></div></div></section>
-<section id="calendar" class="view" hidden><div class="admin-head"><div><small>YOUR PUBLICATION PIPELINE</small><h1>Publishing queue</h1><p>Set an exact publication date in an approved article. Cloudflare publishes scheduled content on the next hourly run.</p></div></div><div class="panel"><p class="queue-intro">Use <strong>Review</strong> to preview and verify each article, then choose <strong>Approve &amp; schedule</strong>. Bulk approval is disabled to prevent unreviewed content from going live.</p><div id="queue"></div></div></section>
+<section id="calendar" class="view" hidden><div class="admin-head"><div><small>YOUR PUBLICATION PIPELINE</small><h1>Publishing queue</h1><p>Set an exact publication date in an approved article. Cloudflare publishes scheduled content on the next hourly run.</p></div></div><div class="panel"><p class="queue-intro">Open <strong>All articles</strong> to select and schedule one or several articles at once. Publishing remains your decision.</p><div id="queue"></div></div></section>
 <section id="editor" class="view" hidden><div class="admin-head"><div><small>EDITORIAL REVIEW</small><h1 id="editor-heading">Review article</h1><p id="editor-subheading"></p></div><button class="ghost" data-view="articles">← Library</button></div>
 <section class="panel review-workspace" aria-labelledby="review-workspace-heading">
  <div class="review-top"><div><small class="review-step">STEP 1 · PREVIEW AND VERIFY</small><h2 id="review-workspace-heading">Check it before it goes live.</h2><p>Preview opens the <strong>last saved</strong> article exactly in the public website layout. Source links and freshness still need your own verification.</p></div>
  <a id="editor-preview-link" class="review-preview-cta" target="_blank" rel="noopener noreferrer" href="#" aria-label="Preview the saved version in a new tab">↗ Preview saved article</a></div>
  <div class="review-workspace-grid"><div class="review-evidence"><strong>Evidence at a glance</strong><p id="review-evidence-status" class="review-evidence-note"></p><div id="review-source-links" class="review-source-list"></div><p id="review-verified-note" class="review-verified-note"></p></div>
- <fieldset class="review-checks"><legend>STEP 2 · EDITORIAL CHECKLIST</legend>
- <label><input type="checkbox" data-review-check><span>I opened the saved article preview and checked the title, text and image layout.</span></label>
- <label><input type="checkbox" data-review-check><span>I opened the cited sources and verified that they support the article's main claims.</span></label>
- <label><input type="checkbox" data-review-check><span>I checked time-sensitive facts, dates, fees, transport and uncertainty for this destination.</span></label>
- <label><input type="checkbox" data-review-check><span>I checked language, image descriptions and claims that could unfairly identify people or businesses.</span></label>
- </fieldset></div>
- <div class="review-record">
-   <div><label for="review-evidence-note-input"><strong>STEP 3 · CLAIM–SOURCE REVIEW RECORD</strong></label>
-     <p>Write which claims you verified and which primary sources you opened. An AI research timestamp is not editorial verification.</p>
-     <textarea id="review-evidence-note-input" rows="3" minlength="30" maxlength="1500" placeholder="For example: Checked the published card-fee amount against the official fare FAQ and matched the operator's wording."></textarea>
-   </div>
-   <label for="review-window-days">Review this article again in
-     <select id="review-window-days">
-       <option value="7">7 days — weather, incidents or frequently changing fees</option>
-       <option value="30" selected>30 days — transport details and visitor guidance</option>
-       <option value="90">90 days — stable general preparation advice</option>
-     </select>
-   </label>
  </div>
- <div class="review-bottom"><div><strong id="review-progress">0 of 4 checks complete</strong><p id="review-guidance" role="status" aria-live="polite">Open the preview and confirm the checklist after checking the sources.</p></div><button type="button" class="primary review-publish" id="review-publish-btn" disabled>Approve &amp; publish ↗</button></div>
+ <div class="review-bottom quick-review-bottom">
+  <div><strong>Publish when you're satisfied.</strong>
+   <p id="review-guidance" role="status" aria-live="polite">Review the content and source links. You can publish now or leave this article in Review.</p>
+  </div>
+  <button id="review-publish-btn" type="button" class="primary review-publish" disabled>Publish now ↗</button>
+ </div>
 </section>
 <form id="article-form"><div class="editor-grid"><div class="panel">
 <label>Title<input name="title" required maxlength="160"></label><label>Slug<input name="slug" required></label><label>Excerpt<textarea name="excerpt" rows="3"></textarea></label>
 <div class="two-col"><label>Country<input name="country" required></label><label>City (optional)<input name="city"></label></div><label>Category<select id="edit-category" name="category"></select></label>
 <label>Article body (Markdown)<textarea name="content_markdown" rows="22" required></textarea></label><label>Sources (JSON array)<textarea name="sources" rows="7" placeholder='[{"title":"Official source","url":"https://...","publisher":"Agency"}]'></textarea></label>
-</div><div class="panel"><h2>Publish settings</h2><div id="editor-status" class="status-large"></div><label>Verified at (ISO 8601 UTC)<input name="verified_at" type="text" placeholder="2026-09-28T00:00:00Z"></label><label>Scheduled at (local time)<input id="schedule-date" type="datetime-local"></label><label>SEO title<input name="seo_title"></label><label>Meta description<textarea name="seo_description" rows="3"></textarea></label>
+</div><div class="panel"><h2>Publish settings</h2><div id="editor-status" class="status-large"></div><label>Research reference date (ISO 8601 UTC, optional)<input name="verified_at" type="text" placeholder="2026-09-28T00:00:00Z"></label><label>Scheduled at (local time)<input id="schedule-date" type="datetime-local"></label><label>SEO title<input name="seo_title"></label><label>Meta description<textarea name="seo_description" rows="3"></textarea></label>
 <h2>Editorial imagery</h2><label>Hero image URL<input name="hero_image_url"></label><label>Alt text<input name="hero_alt"></label><label>AI illustration prompt<textarea name="hero_prompt" rows="6"></textarea></label><label>Upload an image (JPEG/PNG/WebP, 5 MB)<input id="image-file" type="file" accept="image/jpeg,image/png,image/webp"></label><button type="button" class="ghost" id="upload-btn">Upload to Cloudflare R2</button><div id="image-preview"></div>
-<div class="editor-actions"><button type="submit" class="primary">Save changes</button><button type="button" class="ghost" id="publish-btn" disabled>Approve & publish</button><button type="button" class="ghost" id="schedule-btn" disabled>Approve & schedule</button><button type="button" class="ghost" id="hide-btn">Hide</button><button type="button" class="ghost" id="restore-btn">Restore draft</button><button type="button" class="danger" id="delete-btn">Delete</button></div></div></div></form></section></main><script src="/admin.js" defer></script></body></html>
+<div class="editor-actions"><button type="submit" class="primary">Save changes</button><button type="button" class="ghost" id="publish-btn" disabled>Publish now</button><button type="button" class="ghost" id="schedule-btn" disabled>Schedule</button><button type="button" class="ghost" id="hide-btn">Hide · private</button><button type="button" class="ghost" id="restore-btn">Restore draft</button><button type="button" class="danger" id="delete-btn">Delete · recoverable</button></div></div></div></form></section></main>
+<dialog id="schedule-dialog" class="schedule-dialog" aria-labelledby="schedule-dialog-title">
+ <form id="schedule-form" method="dialog">
+  <h2 id="schedule-dialog-title">Schedule publication</h2>
+  <p id="schedule-dialog-explainer">Choose a date and time.</p>
+  <label for="bulk-schedule-date">Publication date and time (your local time)
+   <input id="bulk-schedule-date" type="datetime-local" required>
+  </label>
+  <label id="schedule-stagger-label" class="schedule-stagger-label"><input id="schedule-stagger" type="checkbox" checked> For multiple articles, space them 24 hours apart</label>
+  <p>Cloudflare runs publication checks hourly. The selected time is the earliest publish time, not a guaranteed exact minute.</p>
+  <div class="schedule-dialog-actions"><button id="schedule-cancel" type="button" class="ghost">Cancel</button><button type="submit" class="primary">Confirm schedule</button></div>
+ </form>
+</dialog>
+<script src="/admin.js" defer></script></body></html>
