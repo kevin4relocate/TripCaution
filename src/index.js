@@ -736,7 +736,7 @@ async function api(request,env,url,admin=false){
        OR (l.action IN ('owner-reviewed-and-published','owner-reviewed-and-scheduled')
         AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1))
       ORDER BY l.created_at DESC LIMIT 1) next_review_due_at
-   FROM articles a WHERE a.status='published' ORDER BY a.created_at DESC LIMIT 100`).all()).results;
+   FROM articles a WHERE a.status='published' ORDER BY CASE a.caution_level WHEN 'critical' THEN 0 WHEN 'high' THEN 1 ELSE 2 END, a.created_at DESC LIMIT 100`).all()).results;
   const publishedRow=await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published'").first();
   return json({status,auditLogs,reviewDue,reviewScanLimited:Number(publishedRow?.count||0)>100});
  }
