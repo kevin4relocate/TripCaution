@@ -223,9 +223,19 @@ function markdown(md) {
  if(list)chunks.push('</ul>');
  return chunks.join('');
 }
-function renderGuideArticle(env,a,preview=false,reviewedAt=null){
+function renderGuideArticle(env,a,preview=false,reviewedAt=null,related=[]){
  const parsedSources=safeParse(a.sources_json);
  const sources=Array.isArray(parsedSources)?parsedSources.filter(source=>safe(source?.url)):[];
+ const rendered=renderArticleMarkdown(a.content_markdown);
+ const takes=editorialQuickTakes(a.content_markdown);
+ const tocHTML=rendered.headings.length>=2?'<details class="article-toc" data-article-toc open><summary>In this guide <span aria-hidden="true">⌄</span></summary><nav aria-label="On this page"><ol>'+
+  rendered.headings.map(h=>'<li class="toc-level-'+h.level+'"><a href="#'+esc(h.id)+'">'+esc(h.label)+'</a></li>').join('')+
+  '</ol></nav></details>':'';
+ const asideTakeaways=takes.length?
+  '<div class="aside-card editorial-takeaways"><span>THE QUICK TAKE</span><ul>'+
+  takes.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul><a href="/destinations/'+slugify(a.country)+'">More in '+esc(a.country)+' ↗</a></div>':
+  '<div class="aside-card aside-explore"><span>EXPLORE MORE</span><h3>Plan your next move.</h3><p>For changing fares and rules, confirm the original sources.</p><a href="/destinations/'+slugify(a.country)+'">More in '+esc(a.country)+' ↗</a></div>';
+ const relatedHTML=related.length?'<section class="related-guides" aria-labelledby="related-heading"><div class="shell"><div class="eyebrow">MORE FIELD NOTES</div><h2 id="related-heading">Continue exploring</h2><div class="guide-grid">'+related.map(row=>articleCard(row)).join('')+'</div></div></section>':'';
  const publicDate=a.published_at?'Published: '+esc(utc(a.published_at)):'Editorial preview';
  const reviewDate=reviewedAt?'Last reviewed: '+esc(utc(reviewedAt)):null;
  const reviewMeta=reviewDate?'<span class="article-reviewed">'+reviewDate+'</span>':'';
@@ -234,11 +244,17 @@ function renderGuideArticle(env,a,preview=false,reviewedAt=null){
  <div class="article-meta"><span>TRIPCAUTION EDITORIAL</span><span>${publicDate}</span>${reviewMeta}<span>${sources.length} SOURCES</span></div></div></div>
  <div class="shell article-wrap"><article class="article-content">${safe(a.hero_image_url)?'<figure class="hero-image"><img src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial illustration')+'"><figcaption>AI-generated editorial illustration; not a photograph or evidence of an incident.</figcaption></figure>':''}
  <div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
- <div class="prose">${markdown(a.content_markdown)}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
+ ${tocHTML}<div class="prose">${rendered.html}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
  <p class="verified research-date-note">${reviewedAt?'<strong>Last editorial review: '+esc(utc(reviewedAt))+'.</strong> ':''}${researchNote}</p></section></article>
- <aside class="article-aside"><div class="aside-card"><span>THE QUICK TAKE</span><h3>Keep exploring.<br><em>Stay informed.</em></h3><p>Travel is better when you know what to expect.</p><a href="/destinations/${slugify(a.country)}">More in ${esc(a.country)} ↗</a></div><div class="aside-share">SHARE THIS GUIDE <button type="button" data-copy-guide>Copy link ↗</button></div></aside></div></main>`;
+ <aside class="article-aside">${asideTakeaways}<div class="aside-share">SHARE THIS GUIDE <button type="button" data-copy-guide>Copy link ↗</button></div></aside></div>${relatedHTML}</main>`;
  const previewBanner=preview?`<aside class="editorial-preview-banner" role="note"><div class="shell editorial-preview-inner"><div><strong>PRIVATE PREVIEW · ${a.status==='published'?'CURRENTLY LIVE':'NOT PUBLISHED'}</strong><p>This is the last SAVED version, shown in the public article layout. Verify all claims, source links, dates and images before approval. This URL only works when signed in.</p></div><a href="/admin?edit=${encodeURIComponent(a.id)}">← Back to editor</a></div></aside>`:'';
- const page=layout(env,a.seo_title||a.title,previewBanner+body,{path:'/guides/'+a.slug,description:a.seo_description||a.excerpt,image:a.hero_image_url,noindex:preview,preview});
+ const schema=preview?null:articleStructuredData(siteURL(env),{...a,sources});
+ const page=layout(env,a.seo_title||a.title,previewBanner+body,{
+  path:'/guides/'+encodeURIComponent(a.slug),
+  description:a.seo_description||a.excerpt,image:a.hero_image_url,noindex:preview,preview,
+  ogType:'article',publishedAt:isoDate(a.published_at),
+  modifiedAt:isoDate(a.updated_at)||isoDate(a.published_at),schema
+ });
  return html(page,200,preview?{'cache-control':'private, no-store','x-robots-tag':'noindex, nofollow, noarchive','referrer-policy':'no-referrer','x-frame-options':'DENY'}:{'cache-control':'public, max-age=60'});
 }
 async function latestEditorialReview(env,id){
@@ -251,7 +267,9 @@ async function latestEditorialReview(env,id){
 async function guidePage(env,slug){
  const a=env.DB?await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.slug=? AND a.status='published' AND a.published_at<=datetime('now') LIMIT 1").bind(slug).first():null;
  if(!a)return html(layout(env,'Guide unavailable','<main class="shell simple"><h1>Guide not found.</h1><a href="/">Browse destinations ↗</a></main>'),404);
- return renderGuideArticle(env,a,false,await latestEditorialReview(env,a.id));
+ // Related links are limited to already-public guides. Never expose draft metadata.
+ const related=env.DB?(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.id!=? AND a.status='published' AND a.published_at<=datetime('now') AND (a.country=? OR a.category_id=?) ORDER BY CASE WHEN a.country=? THEN 0 ELSE 1 END, a.published_at DESC LIMIT 3").bind(a.id,a.country,a.category_id,a.country).all()).results:[];
+ return renderGuideArticle(env,a,false,await latestEditorialReview(env,a.id),related);
 }
 async function previewGuidePage(request,env,id){
  if(!isLoginConfigured(env))return html('<h1>Admin login is not configured.</h1>',503,{'cache-control':'no-store'});
