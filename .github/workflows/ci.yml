@@ -24,5 +24,7 @@ jobs:
         run: bash -n scripts/backup-d1.sh
       - name: Unit tests
         run: npm test
+      - name: Editorial package metadata audit
+        run: npm run audit:content
       - name: Python syntax
         run: python -m py_compile automation/daily.py automation/import_starter.py
