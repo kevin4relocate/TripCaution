@@ -60,5 +60,8 @@ test('stored travel content and invalid dates cannot execute scripts or crash th
  assert.ok(!html.includes('<svg onload='));
  assert.ok(!html.includes('href="javascript:'));
  assert.ok(!html.includes('src="javascript:'));
- assert.ok(html.includes('Date unavailable'));
+ // Invalid publication dates must not be promoted into structured metadata.
+ assert.doesNotMatch(html,/<meta property="article:published_time"/);
+ assert.doesNotMatch(html,/"datePublished":"not-a-date"/);
+ assert.match(html,/Sources & verification/);
 });

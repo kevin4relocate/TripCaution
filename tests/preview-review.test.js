@@ -125,19 +125,20 @@ test('editor has direct publish and quick bulk controls without mandatory review
  assert.doesNotMatch(js,/data-review-check/);
  assert.match(js,/review_confirmed:true/);
 });
-test('research dates are not misrepresented as a human review before new manual approval',async()=>{
+test('a published guide retains truthful SEO publication metadata without a noisy visible date bar',async()=>{
  const e=env({...article(),status:'published',published_at:'2026-09-28 03:00:00'});
- const result=await worker.fetch(get('/guides/singapore-transport-payment-test'),e);
- assert.equal(result.status,200);
- const page=await result.text();
- assert.match(page,/Published: Sep 28, 2026/);
- assert.doesNotMatch(page,/Research reference date:/);
- assert.doesNotMatch(page,/Last editorial review:/);
- assert.doesNotMatch(page,/Editorial approval:/);
- assert.doesNotMatch(page,/VERIFIED:/);
+ const response=await worker.fetch(get('/guides/singapore-transport-payment-test'),e);
+ assert.equal(response.status,200);
+ const page=await response.text();
+ assert.match(page,/<meta property="article:published_time" content="2026-09-28T03:00:00.000Z">/);
+ assert.match(page,/"datePublished":"2026-09-28T03:00:00.000Z"/);
+ assert.match(page,/Sources & verification/);
+ const visible=page.slice(page.indexOf('<main id="main-content"'),page.indexOf('</main>')+7);
+ assert.doesNotMatch(visible,/Research reference date:|Last editorial review:|Editorial approval:|VERIFIED:/);
+ assert.doesNotMatch(visible,/class="article-meta"/);
 });
 
-test('public metadata shows a later editor approval once, without repeating research dates',async()=>{
+test('source-count and real publish date remain machine-readable when legacy audit records exist',async()=>{
  const e=env({...article(),status:'published',published_at:'2026-09-28 03:00:00'});
  const original=e.DB.prepare.bind(e.DB);
  e.DB.prepare=sql=>{
@@ -149,9 +150,11 @@ test('public metadata shows a later editor approval once, without repeating rese
  const response=await worker.fetch(get('/guides/singapore-transport-payment-test'),e);
  assert.equal(response.status,200);
  const page=await response.text();
- assert.match(page,/Editorial approval: Oct 3, 2026/);
- assert.equal((page.match(/Editorial approval:/g)||[]).length,1);
- assert.doesNotMatch(page,/Last editorial review:|Research reference date:/);
+ assert.match(page,/<meta name="tripcaution:source-count" content="1">/);
+ assert.match(page,/<meta property="article:published_time" content="2026-09-28T03:00:00.000Z">/);
+ const visible=page.slice(page.indexOf('<main id="main-content"'),page.indexOf('</main>')+7);
+ assert.match(visible,/Sources & verification/);
+ assert.doesNotMatch(visible,/Editorial approval:|Last editorial review:|Research reference date:/);
 });
 test('owner confirmation and at least one HTTPS source are required; written notes are optional',async()=>{
  const e=env(),auth=await cookie(e);
