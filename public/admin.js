@@ -25,6 +25,19 @@ async function refresh(){
  const counts=Object.fromEntries(overview.status.map(s=>[s.status,s.count]));
  $('stats').innerHTML=[['Published',counts.published||0],['Needs review',counts.review||0],['Scheduled',counts.scheduled||0],['Drafts',counts.draft||0]]
   .map(([name,count])=>'<div class="stat"><small>'+escapeHTML(name.toUpperCase())+'</small><b>'+count+'</b><span>Article records</span></div>').join('');
+ const reviewNeeded=(overview.reviewDue||[]).filter(row=>!row.next_review_due_at || Date.parse(row.next_review_due_at)<=Date.now());
+ $('review-due').innerHTML=reviewNeeded.length?reviewNeeded.map(row=>{
+  const when=row.next_review_due_at?'Review overdue since '+new Date(row.next_review_due_at).toLocaleDateString():'No recorded human review';
+  return '<div class="due-row"><div><strong>'+escapeHTML(row.title)+'</strong><small>'+escapeHTML(when)+'</small></div><button class="due-reopen-btn" type="button" data-id="'+escapeHTML(row.id)+'">Reopen review →</button></div>';
+ }).join(''):'<p class="due-clear">All published guides have an editorial review date within their selected window.</p>';
+ document.querySelectorAll('.due-reopen-btn').forEach(button=>button.addEventListener('click',async()=>{
+  if(!confirm('Withdraw this article from the public website and reopen it for source verification?'))return;
+  try{
+   await api('/api/admin/article/'+button.dataset.id,{method:'PATCH',body:JSON.stringify({action:'review'})});
+   toast('Article withdrawn from public view and reopened for editorial review.');
+   await refresh();await loadArticle(button.dataset.id);
+  }catch(e){toast(e.message,true);}
+ }));
  $('activities').innerHTML=overview.auditLogs.length?overview.auditLogs.map(log=>'<div>'+escapeHTML(log.action)+' <small>'+escapeHTML(log.created_at)+'</small></div>').join(''):'<p>No activity yet.</p>';
  $('edit-category').innerHTML=state.categories.map(c=>'<option value="'+escapeHTML(c.id)+'">'+escapeHTML(c.name)+'</option>').join('');
  renderArticles();renderQueue();
