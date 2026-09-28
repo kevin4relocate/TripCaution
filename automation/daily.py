@@ -12,10 +12,13 @@ from pathlib import Path
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from automation.coverage import COUNTRIES, BRIEFS, FIRST_PASS, choose_slot, coverage_summary
 
 API_KEY = os.getenv("GEMINI_API_KEY", "")
 MODEL = os.getenv("GEMINI_MODEL") or "gemini-3.5-flash-lite"
 RESEARCH_MODE = os.getenv("TRIPCAUTION_RESEARCH_MODE") or "curated"
+CONTENT_PHASE = int(os.getenv("TRIPCAUTION_CONTENT_PHASE") or "1")
+MAX_REVIEW_BACKLOG = 6 # Never flood the owner with unchecked AI research
 SITE = os.getenv("TRIPCAUTION_API_URL", "").rstrip("/")
 TOKEN = os.getenv("TRIPCAUTION_INGEST_TOKEN", "")
 
@@ -129,28 +132,34 @@ def main():
         raise ValueError("TRIPCAUTION_API_URL must use HTTPS")
     existing=request_json(SITE+"/api/ingest/topics",None,{"Authorization":"Bearer "+TOKEN},timeout=25)
     if existing.get("upcoming",0)>=2:
-        print("Upcoming manually scheduled articles already fill the queue; skip to save API quota.")
+        print("Upcoming owner-scheduled articles fill the near-term queue; skip.")
         return
     existing_rows=existing.get("titles",[])
+    open_review=sum(row.get("status") in ("review", "draft") for row in existing_rows)
+    if open_review >= MAX_REVIEW_BACKLOG:
+        print("Owner review backlog:",open_review,"; skip creating further unverified drafts.")
+        return
     old_titles=[row.get("title","") for row in existing_rows]
     now=datetime.now(timezone.utc)
-    # Complete the 11-country private-draft research pass before generating
-    # additional drafts in already represented countries. No auto-publishing.
-    selected=choose_first_pass_topic(TOPICS,existing_rows,now.timetuple().tm_yday)
+    if CONTENT_PHASE not in (1,2):
+        raise ValueError("TRIPCAUTION_CONTENT_PHASE must be 1 or 2")
+    selected=choose_slot(existing_rows,CONTENT_PHASE,now.timetuple().tm_yday)
     if selected is None:
-        print("All eleven Southeast Asian countries have an existing non-deleted guide or draft.")
-        print("First-pass research paused until the owner reviews quality and approves a second-pass topic list.")
+        print("Sprint 6 phase",CONTENT_PHASE,"has no open research slots.")
+        print("This counts drafts as work in progress; it is NOT a verified publication milestone.")
         return
-    country,category,idea=selected
-    print("First-pass research (missing country):",country,"category:",category)
+    country,(slot,category,idea)=selected
+    print("Sprint 6 editorial research",country,"slot",slot,"phase",CONTENT_PHASE)
+    print("Queue coverage",coverage_summary(existing_rows,CONTENT_PHASE))
+    if country=="Myanmar":
+        idea+=" For Myanmar prioritize region-specific dated official advisories, consular access constraints and current change-sensitive limitations; never write a tourist itinerary."
     research_prompt=f"""Research in English for TripCaution: {idea}.
 Previously drafted, reviewed, published or scheduled article titles (DO NOT REPEAT):
 {json.dumps(old_titles[:180],ensure_ascii=False)[:6500]}
-Choose a differentiated practical research angle appropriate to this destination. Focus the editorial roadmap on all 11 Southeast Asian countries only. UK and Canadian official travel advice is nationality-specific for entry and visas: NEVER imply it is universal. For Myanmar, prioritize dated, region-specific official warnings and consular limitations; do not produce a general tourism itinerary.
-Use fresh Google Search grounding. Provide five or more concrete, useful findings supported by official authorities
-and reputable reporting where possible. Clearly note each source's publisher, actual URL, publication date
+This brief is about ONLY {country}, category {category}, distinct research slot {slot}. Do not change its exact topic or invent extra warnings. Focus on the 11-country editorial queue, not a worldwide generic article. UK and Canadian official travel advice is nationality-specific for entry and visas: NEVER imply it is universal. For Myanmar, prioritize dated, region-specific official warnings and consular limitations; do not produce a general tourism itinerary.
+Find relevant, current and specific evidence that directly answers this slot's question; if fewer than two independent trustworthy original sources support a material problem, return INSUFFICIENT EVIDENCE. Report only evidence actually present in the fetched source extracts or search grounding. Clearly note each source's publisher, actual URL, publication date
 and specific scope. Do not invent claims or sources. Do not make safety, legal, health or crime assertions
-from a lone example. If reliable evidence is insufficient, state INSUFFICIENT EVIDENCE.
+from a lone example. If reliable evidence is insufficient for the particular proposed claim, state INSUFFICIENT EVIDENCE. Do not conflate two generic national advisory URLs with independent corroboration for a specific scam, payment failure or safety incident.
 Never assert a personal visit or create allegations about identifiable businesses."""
     if RESEARCH_MODE == "curated":
         # No paid search API required: inspect only current text fetched from government source URLs.
@@ -168,10 +177,11 @@ Never assert a personal visit or create allegations about identifiable businesse
     if len(grounded)<2 or "INSUFFICIENT EVIDENCE" in researched.upper():
         print("Research evidence was insufficient; skipping publication.");return
     source_text=json.dumps(grounded,ensure_ascii=False)
-    drafting_prompt=f"""You are TripCaution's travel editor. Use ONLY verified findings in this research
-and the linked grounded source list to produce ONE evergreen travel-preparation or etiquette article.
+    drafting_prompt=f"""You are TripCaution's travel editor. Use ONLY supported findings in this research
+and the linked collected source list to produce ONE specific practical caution article for the assigned research slot.
 Do not introduce ungrounded facts. Do not claim first-hand experience.
-Never name or accuse an individual restaurant/hotel. Do not imply this is a real-time safety alert.
+Never name or accuse an individual restaurant/hotel without highly credible directly relevant independent documentation. Do not imply this is a real-time safety alert.
+Never assign any danger rating, impact level or probability estimate. Explain applicability by exact place, operator, traveler circumstances and date when documented.
 Write fluent, varied English with concrete value, not generic AI prose. Use Markdown body >= 350 words
 only if evidence supports it; otherwise reply as an error.
 Produce ONLY a JSON object with: title, slug, country, city (null when national), category,
@@ -182,13 +192,17 @@ Category MUST be {category}, country MUST be {country}.
 Hero prompt: hand-painted watercolor and soft gouache editorial travel illustration,
 delicate paper grain, gentle muted palette, illustrative not photographic,
 no recognizable real people, no text, horizontal 16:9.
-Only include sources present in the provided list. verified_at is current date ISO UTC.
+Only include sources present in the provided list AND relevant to material claims. verified_at is AI research date, NOT evidence of editor verification.
+If there is insufficient evidence for the slot's concrete problem, reply INSUFFICIENT EVIDENCE; NEVER pad a category with generic travel boilerplate.
 RESEARCH:
 {researched[:14500]}
 SOURCE LIST:
 {source_text[:11000]}
 """
     drafted,_=api_request(drafting_prompt)
+    if 'INSUFFICIENT EVIDENCE' in drafted.upper():
+        print('Draft lacked relevant verified material for this research slot; skip.')
+        return
     obj=read_json(drafted)
     new_slug=re.sub(r"[^a-z0-9]+","-",obj.get("slug","").lower()).strip("-")
     old_slugs={re.sub(r"[^a-z0-9]+","-",t.lower()).strip("-") for t in old_titles}
@@ -206,10 +220,14 @@ SOURCE LIST:
         print("Too few supported sources. Saving nothing.");return
     obj["research"]["sources"]=cited
     obj["research"]["verified_at"]=now.isoformat()
+    obj["tags"]=[x for x in obj.get("tags",[]) if isinstance(x,str)][:15]+["sprint6:"+slot]
+    obj.pop("caution_level",None)
+    obj.pop("severity_scope",None)
+    obj.pop("severity_rationale",None)
     obj["source_mode"]="github-automation"
     # Editorial guard: do not auto-publish content that mentions a named accusation or emergency.
     suspicious=re.search(r"(?i)\b(fraud|criminal|arrest|outbreak|fatal|unsafe|emergency|visa requirements)\b",content)
-    if suspicious:obj["category"]="things-to-avoid" # CMS routes this into manual review
+    if suspicious:print("Sensitive topic found; remains in manual Review with its original category.")
     result=request_json(SITE+"/api/ingest",{"articles":[obj]},
         {"Authorization":"Bearer "+TOKEN,"Content-Type":"application/json"})
     print("Ingest result:",json.dumps(result)[:700])
