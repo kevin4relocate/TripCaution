@@ -41,8 +41,16 @@
 <form id="article-form"><div class="editor-grid"><div class="panel">
 <label>Title<input name="title" required maxlength="160"></label><label>Slug<input name="slug" required></label><label>Excerpt<textarea name="excerpt" rows="3"></textarea></label>
 <div class="two-col"><label>Country<input name="country" required></label><label>City (optional)<input name="city"></label></div><label>Category<select id="edit-category" name="category"></select></label>
-<label>Article body (Markdown)<textarea name="content_markdown" rows="22" required></textarea></label><label>Sources (JSON array)<textarea name="sources" rows="7" placeholder='[{"title":"Official source","url":"https://...","publisher":"Agency"}]'></textarea></label>
+<label>Article body (Markdown)<textarea name="content_markdown" rows="22" required></textarea></label>
+<p class="editor-content-hint">Optional sidebar takeaways: add a heading <code>## Key takeaways</code> and 2–5 bullet points to your article. Only your written bullets appear; TripCaution never invents a summary.</p><label>Sources (JSON array)<textarea name="sources" rows="7" placeholder='[{"title":"Official source","url":"https://...","publisher":"Agency"}]'></textarea></label>
 </div><div class="panel"><h2>Publish settings</h2><div id="editor-status" class="status-large"></div><label>Research reference date (ISO 8601 UTC, optional)<input name="verified_at" type="text" placeholder="2026-09-28T00:00:00Z"></label><label>Scheduled at (local time)<input id="schedule-date" type="datetime-local"></label><label>SEO title<input name="seo_title"></label><label>Meta description<textarea name="seo_description" rows="3"></textarea></label>
+<div class="seo-preview" role="region" aria-label="SEO listing preview">
+ <div class="seo-preview-top"><strong>SEARCH RESULT PREVIEW</strong><span id="seo-length">0 title characters · 0 description characters</span></div>
+ <div class="seo-preview-url" id="seo-preview-url"></div>
+ <div class="seo-preview-title" id="seo-preview-title"></div>
+ <div class="seo-preview-desc" id="seo-preview-desc"></div>
+ <p>Illustrative preview only. Search engines may rewrite titles and snippets; this is not a ranking prediction.</p>
+</div>
 <h2>Editorial imagery</h2><label>Hero image URL<input name="hero_image_url"></label><label>Alt text<input name="hero_alt"></label><label>AI illustration prompt<textarea name="hero_prompt" rows="6"></textarea></label><label>Upload an image (JPEG/PNG/WebP, 5 MB)<input id="image-file" type="file" accept="image/jpeg,image/png,image/webp"></label><button type="button" class="ghost" id="upload-btn">Upload to Cloudflare R2</button><div id="image-preview"></div>
 <div class="editor-actions"><button type="submit" class="primary">Save changes</button><button type="button" class="ghost" id="publish-btn" disabled>Publish now</button><button type="button" class="ghost" id="schedule-btn" disabled>Schedule</button><button type="button" class="ghost" id="hide-btn">Hide · private</button><button type="button" class="ghost" id="restore-btn">Restore draft</button><button type="button" class="danger" id="delete-btn">Delete · recoverable</button></div></div></div></form></section></main>
 <dialog id="schedule-dialog" class="schedule-dialog" aria-labelledby="schedule-dialog-title">
