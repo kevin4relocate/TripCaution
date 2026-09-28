@@ -10,6 +10,7 @@ import { renderArticleMarkdown, editorialQuickTakes } from './article-content.js
 import { CAUTION_TOPICS, cautionTopic, cautionTopicForCategory } from './cautions.js';
 import {CAUTION_LEVELS,cautionLevel,isRatedCaution,severeCaution} from './severity.js';
 import {auditCautionPackage} from './research-audit.js';
+import {summarizeCountryTopicCounts,FIRST_PASS_TARGET,COUNTRY_ARTICLE_TARGET} from './coverage.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
 
 const json = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -598,7 +599,7 @@ async function api(request,env,url,admin=false){
  if(method==='GET' && pathname==='/api/ingest/topics'){
   // Bot-only overview prevents re-creating the same guide and avoids competing with manual scheduling.
   if(actor!=='github-automation')return json({error:'Bot token required'},403);
-  const titles=(await env.DB.prepare("SELECT title,country,city,status FROM articles WHERE status!='deleted' ORDER BY created_at DESC LIMIT 400").all()).results;
+  const titles=(await env.DB.prepare("SELECT title,slug,country,city,category_id,tags_json,status FROM articles WHERE status!='deleted' ORDER BY created_at DESC LIMIT 400").all()).results;
   const upcoming=(await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='scheduled' AND julianday(scheduled_at) BETWEEN julianday('now') AND julianday('now','+2 days')").first()).count;
   return json({titles,upcoming});
  }
@@ -630,7 +631,16 @@ async function api(request,env,url,admin=false){
   const rows=await env.DB.prepare(sql).bind(...countries).all();
   const byCountry=new Map((rows.results||[]).map(row=>[row.country,row]));
   const coverage=countries.map(country=>({country,published:Number(byCountry.get(country)?.published||0),pipeline:Number(byCountry.get(country)?.pipeline||0)}));
-  return json({coverage,publishedCountries:coverage.filter(row=>row.published>0).length,totalCountries:countries.length});
+  // Separate published vs pipeline counts, grouped by the existing stored
+  // category. No inference of verified incidents or auto-published coverage.
+  const topicSql="SELECT country,category_id,status,COUNT(*) count FROM articles WHERE country IN ("+
+    countries.map(()=>'?').join(',')+") AND status IN ('published','review','draft','scheduled') "+
+    "AND (status!='published' OR published_at<=datetime('now')) GROUP BY country,category_id,status";
+  const topicRows=(await env.DB.prepare(topicSql).bind(...countries).all()).results||[];
+  const topicCoverage=summarizeCountryTopicCounts(topicRows,countries,cautionTopicForCategory);
+  return json({coverage,publishedCountries:coverage.filter(row=>row.published>0).length,
+   totalCountries:countries.length,firstPassTarget:FIRST_PASS_TARGET,
+   fullTarget:COUNTRY_ARTICLE_TARGET,topicCoverage});
  }
  if(method==='GET' && pathname==='/api/admin/categories'){
   return json({categories:(await env.DB.prepare('SELECT * FROM categories ORDER BY name').all()).results});

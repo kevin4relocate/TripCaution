@@ -229,3 +229,18 @@
 
 .research-check-result{white-space:pre-wrap;overflow-wrap:anywhere;max-height:350px;overflow:auto;margin-top:17px;padding:17px 19px;background:#f3f6f0;color:#244334;border:1px solid #cbd9cd;border-radius:7px;font-size:12px;line-height:1.7}
 .research-check-result[hidden]{display:none}
+
+/* Sprint 6 editor-only content capacity, not destination danger ratings. */
+.sprint6-total{margin:14px 0 18px;font-size:14px;font-weight:800;color:#244334;line-height:1.65}
+.sprint6-matrix{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.sprint6-country{border:1px solid #dce5d9;border-radius:6px;background:#fbfcf8;min-width:0}
+.sprint6-country summary{cursor:pointer;padding:13px;display:flex;align-items:center;justify-content:space-between;gap:12px;list-style:none}
+.sprint6-country summary::-webkit-details-marker{display:none}
+.sprint6-country summary::after{content:'⌄';font-weight:800;color:#52745e}
+.sprint6-country[open] summary::after{content:'⌃'}
+.sprint6-country summary strong{font-size:13px}
+.sprint6-country summary span{font-size:11px;color:#56745b;text-align:right}
+.sprint6-country ul{margin:0;padding:5px 14px 12px;list-style:none}
+.sprint6-country li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #e6ebe1;font-size:11px}
+.sprint6-country li span:last-child{color:#5b745c;text-align:right}
+.sprint6-country>small{display:block;padding:0 14px 14px;font-size:10px;color:#777e75;line-height:1.65}

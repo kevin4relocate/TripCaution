@@ -26,6 +26,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
           TRIPCAUTION_RESEARCH_MODE: ${{ vars.TRIPCAUTION_RESEARCH_MODE }}
+          TRIPCAUTION_CONTENT_PHASE: ${{ vars.TRIPCAUTION_CONTENT_PHASE || '1' }}
           TRIPCAUTION_API_URL: ${{ vars.TRIPCAUTION_API_URL }}
           TRIPCAUTION_INGEST_TOKEN: ${{ secrets.TRIPCAUTION_INGEST_TOKEN }}
         run: python automation/daily.py
