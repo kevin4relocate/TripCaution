@@ -9,8 +9,8 @@ TripCaution is a Cloudflare Workers application with a GitHub Actions/Gemini res
 |---|---|
 | Public website | Responsive editorial homepage, destinations, guides, search, SEO metadata, XML sitemap |
 | Content management | Private single-key admin login, signed session cookie, article editor, source editing, status changes, search and filters |
-| Import | Upload/paste AI research packages in JSON, duplicate-slug rejection |
-| Editorial calendar | Human-controlled publication; batch schedule eligible low-risk imported articles |
+| Import | Upload/paste research JSON; owner can explicitly replace matching articles, which immediately return to private Review |
+| Editorial calendar | Human-controlled publishing and individually approved scheduling; hourly Cron publishes only approved records |
 | Automatic publishing | Hourly Cloudflare Cron publishes previously approved scheduled records |
 | AI research | Scheduled GitHub Actions reads curated official-source pages then uses Gemini text generation; optionally supports Google Search grounding. **At most one new research article per run** |
 | Database | Cloudflare D1 migrations |
@@ -86,15 +86,25 @@ The public website remains open. The editor lives at `/admin` and **will not ope
 
 The key is stored encrypted on Cloudflare; it is never returned to the browser or built into source code. A stolen signed session remains usable until its 12-hour expiry even after browser sign-out; **changing `ADMIN_LOGIN_KEY` on the Worker revokes all previously issued sessions**. Use a unique, random key and protect your password manager. The rate limiter is additional protection against guesses, not a substitute for high-entropy credentials.
 
-The bot's `/api/ingest` continues to use a separate `INGEST_TOKEN` Bearer secret. Never reuse your admin key as the bot token.
+The bot's `/api/ingest` continues to use a separate `INGEST_TOKEN` Bearer secret. Never reuse your admin key as the bot token. **All bot articles always enter Review**, including `before-you-go` and `etiquette`. Bot tokens cannot approve or publish.
 
 ### Review and preview an imported guide
 
 Open `/admin` after signing in. In **All articles**, use **Preview** on a draft or an imported guide to see the *last saved* version in the actual public-site layout. This preview is private: only holders of a valid editor session can open `/admin/preview/<article-uuid>`, which has noindex and no-store protections. It does not publish an article.
 
-Select **Review** to open the guided editorial workspace. There you can open the sources individually, check the stored verification timestamp, and complete four manual checks covering (1) article/layout preview, (2) evidence, (3) freshness/time-sensitive travel details and (4) language and images. **Approve & publish** and **Approve & schedule** remain disabled until the saved article has been previewed and the checklist completed. The backend also requires the reviewer confirmation for these actions; simply visiting a URL cannot publish a guide.
+Select **Review** to open the guided editorial workspace. There you can open the sources individually, check the stored verification timestamp, and complete four manual checks covering (1) article/layout preview, (2) evidence, (3) freshness/time-sensitive travel details and (4) language and images. **Approve & publish** and **Approve & schedule** remain disabled until the saved article has been previewed, all four checklist items are complete, and the editor has entered a substantive claim–source verification note and selected the next review interval (7, 30 or 90 days). The backend checks those fields and stores the editorial review record and next due date in D1 `audit_logs`. Do not check boxes without actually opening the sources.
 
 If you edit the article or upload a new image, **Save changes** first, open the preview again and redo the checklist. Previously published articles that have been edited move back into review. Publishing-queue bulk approval is disabled in the UI, so imported guides need to be reviewed individually.
+
+### Sprint 0: editorial contact, robots, research-only imports and revisions
+
+**Public correction email is a deliberate owner decision.** In **Cloudflare > Workers & Pages > tripcaution > Settings > Variables and Secrets > Production**, add a **plaintext Variable** named `EDITORIAL_CONTACT_EMAIL` containing a dedicated editorial address that you consent to display publicly. Use a different address from your private login when possible. Save/deploy the updated Worker settings. Send a real test email and confirm receipt. Never add your password or private `ADMIN_LOGIN_KEY` to this variable. The Contact page remains flagged as pre-launch/noindex until this address is set. About, Privacy and Contact disclose actual current practices, including externally loaded Google Fonts; update the policy BEFORE enabling trackers or ads.
+
+`/robots.txt` is served dynamically from `SITE_URL` (the same host used for canonicals and sitemap). The outdated static robots file referencing a different domain was removed. If you later change the public domain, set `SITE_URL` first and verify the dynamic robots, canonical and sitemap again.
+
+**Applying the three revised starter articles to existing production D1 is NOT automatic when GitHub deploys.** The curated corrections are in `content/starter-guides.json`. **Make a D1 backup first.** In Admin > Import content, download that revised JSON from GitHub, enable **Apply corrections to matching existing slugs**, confirm the withdrawal warning and import. Existing matching public articles are **immediately withdrawn to Review**, preserving their article IDs; inspect each updated draft, manually cross-check each claim and source, open the private preview, complete all four review checks, write your evidence note and approve individually. If an article is insufficiently supported, leave it unpublished. Ingestion tokens cannot enable revision mode.
+
+**Production verification** must still be done by the owner. Run the manual GitHub workflow `TripCaution production smoke` (once it is installed), then confirm the actual Cloudflare Deployment SHA, mobile Safari/Chrome, private review access, backup/restore and email receipt. CI mocks and a successful GitHub run are not replacements for those checks.
 
 ## 5. Configure custom domain
 
@@ -146,7 +156,7 @@ A run:
 - Fetches current HTML from two configured official government advice pages and asks Gemini to analyze the retrieved content, unless you explicitly opt into Gemini Search grounding.
 - Writes one candidate article, checks cited links against the fetched/grounded source list and applies basic quality rules.
 - Imports it via authenticated `/api/ingest`.
-- **Low-risk before-you-go and etiquette** articles with 2+ evidence links and a verification date may publish automatically; higher-risk categories enter review.
+- **Every** article enters the private Review queue. No topic category, source count or AI timestamp permits automatic public publication.
 - Logs an error instead of publishing fabricated or unsupported material when research is insufficient.
 
 **No API cost guarantee:** default curated mode uses government public pages and free-tier Gemini *text* when available. Most current Gemini 3.x models do **not** include Search grounding in the free API tier; image-generation APIs generally are not free. Research skips publication if fewer than two official pages can be read. Model access, page availability, billing and quotas can change. Verify all service terms before enabling a paid feature.
@@ -161,7 +171,7 @@ Workflow:
 3. A package's research references and preferred date are stored; imported articles are held in **Review** (never silently auto-published).
 4. Open an article to edit its title, body, category, source URLs, metadata, hero illustration prompt or image.
 5. **Approve & publish** immediately or **Approve & schedule** for a specific time in your browser's local time.
-6. From **Publishing queue**, choose **Approve & schedule eligible guides** to fill one daily slot for imported low-risk articles with at least two sources. Higher-risk topics require individual review.
+6. If editing an already published guide, save it; it returns to private Review until you verify and reapprove the changed content. Scheduling also requires the recorded review.
 7. The hourly Cloudflare Cron publishes approved scheduled articles whose timestamp has arrived, independent of whether GitHub is running.
 
 Manual import does not require Gemini API usage. Importing one file with 20 articles does **not** trigger 20 simultaneous posts.
@@ -173,7 +183,7 @@ Manual import does not require Gemini API usage. Importing one file with 20 arti
 - Check source claims manually when publishing allegations, health/safety/visa advice, crime numbers or laws.
 - Do not scrape and permanently store Google Maps reviews or pictures without applicable rights.
 - An imported source URL isn't automatically verified merely because a language model supplied it.
-- The privacy/contact text contains prelaunch placeholders. Replace contact text with a real, working editorial email **before production or AdSense submission**.
+- Configure an actual editorial inbox via `EDITORIAL_CONTACT_EMAIL` and **test receiving a real correction email before launch**. Until then, the Contact page explicitly reports that the inbox is not configured and is marked noindex.
 - Configure any applicable consent and privacy disclosures **before adding advertising or analytics**. No ads or affiliate trackers are installed by default.
 
 ## 10. Validation and troubleshooting
@@ -187,7 +197,7 @@ npx wrangler d1 migrations apply tripcaution-db --local
 npx wrangler dev
 ```
 
-Go to `/admin`: without an Access identity, the editor should reject access (this is expected locally). Public pages can load on an empty local DB.
+Go to `/admin`: without a signed key session, the editor should redirect to `/sign-in`. An admin key shorter than 32 characters will not work. Public pages can load on an empty local DB.
 
 If you need to reset an article, use **Restore draft** rather than hard-deleting; deletes are soft by design. The admin's batch JSON import reports accepted and rejected articles individually.
 
@@ -196,7 +206,7 @@ If you need to reset an article, use **Restore draft** rather than hard-deleting
 - [ ] D1 remote migrations applied
 - [ ] Workers Git deployment succeeded
 - [ ] `SITE_URL` matches your live domain
-- [ ] Access protects `/admin*` and `/api/admin/*` on all active hostnames
+- [ ] `ADMIN_LOGIN_KEY` is stored as a production Secret, `INGEST_TOKEN` is different and the old Access redirect app no longer intercepts admin routes
 - [ ] Signed-out admin/API requests are denied
 - [ ] Valid article imported, reviewed, published, and visible
 - [ ] Scheduled article actually published by hourly Cron
