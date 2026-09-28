@@ -212,7 +212,7 @@ function renderGuideArticle(env,a,preview=false,reviewedAt=null){
 }
 async function latestEditorialReview(env,id){
  if(!env.DB)return null;
- const audit=(await env.DB.prepare("SELECT created_at FROM audit_logs WHERE article_id=? AND action IN ('reviewed-and-published','reviewed-and-scheduled') ORDER BY created_at DESC LIMIT 1").bind(id).first());
+ const audit=(await env.DB.prepare("SELECT created_at FROM audit_logs WHERE article_id=? AND action IN ('reviewed-and-published','reviewed-and-scheduled') AND json_valid(details) AND length(json_extract(details,'$.evidence_note'))>=30 ORDER BY created_at DESC LIMIT 1").bind(id).first());
  return audit?.created_at||null;
 }
 async function guidePage(env,slug){
@@ -342,7 +342,13 @@ async function api(request,env,url,admin=false){
  if(method==='GET' && pathname==='/api/admin/overview'){
   const status=(await env.DB.prepare("SELECT status,COUNT(*) count FROM articles GROUP BY status").all()).results;
   const auditLogs=(await env.DB.prepare("SELECT action,created_at FROM audit_logs ORDER BY created_at DESC LIMIT 8").all()).results;
-  return json({status,auditLogs});
+  const reviewDue=(await env.DB.prepare(`SELECT a.id,a.title,
+   (SELECT json_extract(l.details,'$.next_review_due_at') FROM audit_logs l
+      WHERE l.article_id=a.id AND l.action IN ('reviewed-and-published','reviewed-and-scheduled')
+      AND json_valid(l.details) AND length(json_extract(l.details,'$.evidence_note'))>=30
+      ORDER BY l.created_at DESC LIMIT 1) next_review_due_at
+   FROM articles a WHERE a.status='published' ORDER BY a.created_at DESC LIMIT 100`).all()).results;
+  return json({status,auditLogs,reviewDue});
  }
  if(method==='POST' && (pathname==='/api/ingest'||pathname==='/api/admin/import')){
   const body=await request.json();
