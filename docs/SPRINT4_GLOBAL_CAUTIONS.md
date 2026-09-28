@@ -6,7 +6,7 @@ TripCaution is **a worldwide, destination-specific guide to the problems travele
 - The homepage now leads with **travel problems** rather than generic vacation inspiration.
 - `/cautions` groups published, reviewed guides into six worldwide issue categories: **Scams & theft**, **Payments & money**, **Transport difficulties**, **Local laws & customs**, **Safety & health** and **Travel essentials**.
 - `/cautions/<topic>` lists only currently published guides and optionally filters by countries with **published coverage for that topic**. Unresearched subjects display *Research planned* without counterfeit article links. Country-specific filters are nonindexable; missing standalone topics are noindex until there is published guidance.
-- The existing global destination directory and previously published articles keep working. Old `tourist-traps`, `things-to-avoid`, `before-you-go`, `food`, `local-laws` and `etiquette` records remain unchanged; their visitor-facing group comes from `src/cautions.js`, with exactly one global topic per category ID.
+- The worldwide destination directory now includes all countries in the curated continent lists, while countries without published articles are plain **Research planned** labels, not SEO indexable empty destinations. Existing published articles retain their URLs. Old `tourist-traps`, `things-to-avoid`, `before-you-go`, `food`, `local-laws` and `etiquette` records remain unchanged; their visitor-facing group comes from `src/cautions.js`, with exactly one global topic per category ID.
 - Global caution directory and topic URLs join the sitemap **only after** an eligible published article exists; unpublished topics never create indexable thin SEO pages.
 
 ## Editorial principle: location and situation first
