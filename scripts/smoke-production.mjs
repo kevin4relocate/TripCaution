@@ -70,6 +70,31 @@ await run('Sitemap and ACTUALLY published articles (no hard-coded draft assumpti
  }
  if(paths.length<3)warnings.push('Fewer than three published articles were visible: ensure the planned starter articles are genuinely reviewed before soft launch');
 });
+await run('Published-guide Article schema, on-page outline and sitemap lastmod',async()=>{
+ const map=await get('/sitemap.xml');
+ ensure(map.response.status===200,'Cannot inspect sitemap');
+ const match=[...map.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map(item=>item[1])
+  .find(url=>url.startsWith(origin+'/guides/'));
+ ensure(match,'No published guide to inspect');
+ const {response,body}=await get(match.slice(origin.length));
+ ensure(response.status===200,'Published guide unavailable');
+ ensure(body.includes('property="og:type" content="article"'),'Article OpenGraph type is missing');
+ const tag=body.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+ ensure(tag,'Structured article data missing');
+ const schema=JSON.parse(tag[1]);
+ ensure(schema['@graph']?.some(item=>item['@type']==='Article'),'Article JSON-LD node missing');
+ ensure(schema['@graph']?.some(item=>item['@type']==='BreadcrumbList'),'BreadcrumbList node missing');
+ ensure(body.includes('data-article-toc'),'Public guide table of contents not rendered');
+ ensure(body.includes('id="main-content"'),'Main content keyboard target missing');
+ ensure(!body.includes('PRIVATE PREVIEW'),'Preview content leaked into published page');
+ ensure(/<lastmod>\d{4}-\d{2}-\d{2}T/.test(map.body),'Public guide update date missing from sitemap');
+});
+await run('Missing public page remains HTTP 404 and noindex',async()=>{
+ const {response,body}=await get('/this-guide-must-not-exist-'+Date.now());
+ ensure(response.status===404,'Missing page does not return 404');
+ ensure(body.includes('name="robots" content="noindex'),'404 is missing noindex directive');
+ ensure((response.headers.get('x-robots-tag')||'').includes('noindex'),'404 is missing X-Robots-Tag');
+});
 await run('Robots sitemap host and private-path directives',async()=>{
  const {response,body}=await get('/robots.txt');
  ensure(response.status===200&&body.includes('Sitemap: '+origin+'/sitemap.xml'),'Robots points to the wrong sitemap host');
