@@ -480,7 +480,7 @@ export default {
    }
    if(path==='/sitemap.xml'){
     const rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
-    const urls=['/','/about',...rows.map(x=>'/guides/'+encodeURIComponent(x.slug))];
+    const urls=['/','/about','/destinations',...rows.map(x=>'/guides/'+encodeURIComponent(x.slug))];
     const countries=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published'").all()).results:[];
     urls.push(...countries.map(x=>'/destinations/'+slugify(x.country)));
     return new Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.map(p=>'<url><loc>'+esc(siteURL(env)+p)+'</loc></url>').join('')+'</urlset>',{headers:{'content-type':'application/xml;charset=utf-8'}});
