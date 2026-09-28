@@ -536,12 +536,15 @@ async function applyEditorialAction(env,old,action,body,actor){
  const approve=['publish','schedule'].includes(action)?1:
   ['review','hide','archive','delete','restore'].includes(action)?0:old.review_approved;
  const reviewed=['publish','schedule'].includes(action);
+ // Serious, change-sensitive warnings enter the human recheck queue earlier.
+ // These windows are editorial reminders, not a live safety-monitoring promise.
+ const windowDays=old.caution_level==='critical'?2:old.caution_level==='high'?7:30;
  const auditAction=reviewed?'owner-reviewed-and-'+(action==='publish'?'published':'scheduled'):action;
  const details=reviewed?JSON.stringify({
   review_confirmed:true,method:body.review_method==='bulk'?'bulk':'single',
   source_count:safeParse(old.sources_json).length,
-  editor_reviewed_at:new Date().toISOString(),review_window_days:30,
-  next_review_due_at:new Date(Date.now()+30*86400000).toISOString(),
+  editor_reviewed_at:new Date().toISOString(),review_window_days:windowDays,
+  next_review_due_at:new Date(Date.now()+windowDays*86400000).toISOString(),
   evidence_note_collected:false,
   impact_level:cautionLevel(old.caution_level).id,
   severity_confirmed:severeCaution(old.caution_level)?body.severity_confirmed===true:null
