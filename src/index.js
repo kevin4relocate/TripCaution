@@ -6,6 +6,8 @@ import {
 } from './auth.js';
 import { normalizeArticle, STATUSES, CATEGORIES, isValidSchedule, slugify } from './content.js';
 import { STARTER_DESTINATIONS, groupDestinationsByContinent } from './destinations.js';
+import { renderArticleMarkdown, editorialQuickTakes } from './article-content.js';
+import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
 
 const json = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const esc = value => String(value??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -21,16 +23,22 @@ const nav = '<a href="/destinations">Destinations</a><a href="/#latest">Field no
 function layout(env, title, body, meta={}) {
  const description=meta.description||'Evidence-led travel precautions and practical guides. Know before you go.';
  const url=siteURL(env)+(meta.path||'/');
- const image=safe(meta.image);
+ const image=rasterImage(meta.image);
+ const ogType=meta.ogType==='article'?'article':'website';
+ const main=String(body).replace(/<main\b/,'<main id="main-content"');
  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
  <title>${esc(title)} | TripCaution</title><meta name="description" content="${esc(description)}">${meta.noindex?'<meta name="robots" content="'+(meta.preview?'noindex,nofollow,noarchive':'noindex,follow')+'">':''}
  ${meta.preview?'':'<link rel="canonical" href="'+esc(url)+'">'}<meta property="og:title" content="${esc(title)} | TripCaution">
- <meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}"><meta property="og:type" content="website">
+ <meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}"><meta property="og:type" content="${ogType}"><meta property="og:site_name" content="TripCaution">
+ <meta name="twitter:card" content="${image?'summary_large_image':'summary'}">
+ ${ogType==='article'&&meta.publishedAt?'<meta property="article:published_time" content="'+esc(meta.publishedAt)+'">':''}
+ ${ogType==='article'&&meta.modifiedAt?'<meta property="article:modified_time" content="'+esc(meta.modifiedAt)+'">':''}
  ${image?'<meta property="og:image" content="'+esc(image)+'">':''}
+ ${!meta.preview&&meta.schema?jsonLdTag(meta.schema):''}
  <link rel="stylesheet" href="/styles.css"><link rel="icon" type="image/svg+xml" href="/favicon.svg">
- </head><body${meta.preview?' class="private-preview"':''}><header class="header"><div class="shell nav-wrap"><a class="brand" href="/" aria-label="TripCaution homepage"><span class="brand-mark">!</span>TRIP<span>CAUTION</span></a>
+ </head><body${meta.preview?' class="private-preview"':''}><a class="skip-link" href="#main-content">Skip to main content</a><header class="header"><div class="shell nav-wrap"><a class="brand" href="/" aria-label="TripCaution homepage"><span class="brand-mark">!</span>TRIP<span>CAUTION</span></a>
  <nav aria-label="Main navigation">${nav}</nav><a href="/#destinations" class="header-cta">Explore <span>↗</span></a></div></header>
- ${body}<footer><div class="shell footer-grid"><div><div class="footer-brand">TRIP<span>CAUTION</span><span class="tiny-star"> ✳</span></div>
+ ${main}<footer><div class="shell footer-grid"><div><div class="footer-brand">TRIP<span>CAUTION</span><span class="tiny-star"> ✳</span></div>
  <p>Know before you go. Independent travel information with linked sources. Not an emergency alert service.</p></div>
  <div><strong>EXPLORE</strong><a href="/destinations">Destinations</a><a href="/#latest">Latest guides</a></div>
  <div><strong>INFORMATION</strong><a href="/about">About & editorial policy</a><a href="/privacy">Privacy</a><a href="/contact">Contact</a></div>
