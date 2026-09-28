@@ -53,6 +53,28 @@ await run('Destination directory is published without a dead-end index',async()=
  const {response,body}=await get('/destinations');
  ensure(response.status===200&&body.includes('Research planned'),'Destination directory missing or incomplete');
 });
+await run('Southeast Asia-first hub honestly represents all eleven destinations',async()=>{
+ const home=await get('/');
+ ensure(home.response.status===200&&home.body.includes('Southeast Asia guide hub'),'Regional homepage priority missing');
+ const {response,body}=await get('/southeast-asia');
+ ensure(response.status===200,'Regional hub failed to load');
+ const names=['Brunei','Cambodia','Indonesia','Laos','Malaysia','Myanmar','Philippines',
+  'Singapore','Thailand','Timor-Leste','Vietnam'];
+ for(const name of names)ensure(body.includes('<strong>'+name+'</strong>'),'Missing regional destination: '+name);
+ ensure((body.match(/class="sea-country sea-country-(?:ready|pending)"/g)||[]).length===11,
+  'Regional hub must display exactly eleven honestly labelled country cards');
+ for(const name of names){
+  const tag='<strong>'+name+'</strong>',at=body.indexOf(tag),tile=body.slice(Math.max(0,at-160),at+tag.length+170);
+  if(tile.includes('Research planned'))
+   ensure(!tile.includes('href="/destinations/'+name.toLowerCase().replaceAll(' ','-')+'"'),
+     'Planned country advertised as a live destination: '+name);
+ }
+ const sitemap=await get('/sitemap.xml');
+ ensure(sitemap.response.status===200,'Sitemap unavailable');
+ const listed=sitemap.body.includes('<loc>'+origin+'/southeast-asia</loc>');
+ const noindex=body.includes('name="robots" content="noindex');
+ ensure(listed!==noindex,'Regional hub must be indexed only when real regional articles are published');
+});
 let publicGuideCount=0;
 await run('Sitemap and ACTUALLY published articles (no hard-coded draft assumptions)',async()=>{
  const {response,body}=await get('/sitemap.xml');
