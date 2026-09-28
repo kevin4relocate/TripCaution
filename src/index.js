@@ -5,7 +5,7 @@ import {
   requireKeySession, checkLoginThrottle, recordLoginFailure
 } from './auth.js';
 import { normalizeArticle, STATUSES, CATEGORIES, isValidSchedule, slugify } from './content.js';
-import { STARTER_DESTINATIONS, groupDestinationsByContinent } from './destinations.js';
+import { STARTER_DESTINATIONS, SOUTHEAST_ASIA_COUNTRIES, isSoutheastAsia, groupDestinationsByContinent } from './destinations.js';
 import { renderArticleMarkdown, editorialQuickTakes } from './article-content.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
 
@@ -19,7 +19,7 @@ const privateRedirect = target=>new Response(null,{
   'x-robots-tag':'noindex, nofollow, noarchive','referrer-policy':'no-referrer'}
 });
 const siteURL = env => (env.SITE_URL||'https://tripcaution.com').replace(/\/$/,'');
-const nav = '<a href="/destinations">Destinations</a><a href="/#latest">Field notes</a><a href="/about">About</a>';
+const nav = '<a href="/southeast-asia">Southeast Asia</a><a href="/destinations">Destinations</a><a href="/#latest">Field notes</a><a href="/about">About</a>';
 function layout(env, title, body, meta={}) {
  const description=meta.description||'Evidence-led travel precautions and practical guides. Know before you go.';
  const url=siteURL(env)+(meta.path||'/');
@@ -74,11 +74,26 @@ function articleCard(a,variant='standard') {
  <h3><a href="${path}">${esc(a.title)}</a></h3><p>${esc(a.excerpt||'A practical guide to help you plan more confidently.')}</p>
  <div class="card-bottom"><a class="card-read" href="${path}" aria-label="Read ${esc(a.title)}">Read guide <span aria-hidden="true">↗</span></a></div></div></article>`;
 }
+// An overview is helpful before all eleven countries have live guides.
+// Pending countries are intentionally plain text cards, never dead-end links.
+function southeastAsiaTiles(countryRows){
+ const counts=new Map(countryRows.filter(row=>row?.country).map(row=>[
+  String(row.country).toLocaleLowerCase('en'),Number(row.total)||0
+ ]));
+ return '<div class="sea-priority-grid">'+SOUTHEAST_ASIA_COUNTRIES.map(country=>{
+  const ready=counts.get(country.toLocaleLowerCase('en'))||0;
+  const inner='<strong>'+esc(country)+'</strong><span>'+
+   (ready?ready+' published '+(ready===1?'guide':'guides')+' <span aria-hidden="true">↗</span>':'Research planned')+
+   '</span>';
+  return ready?'<a class="sea-country sea-country-ready" href="/destinations/'+slugify(country)+'">'+inner+'</a>':
+   '<div class="sea-country sea-country-pending">'+inner+'</div>';
+ }).join('')+'</div>';
+}
 async function homepage(env){
  let latest=[],countryRows=[],count=0;
  if(env.DB) {
   const [a,c,n] = await Promise.all([
-   env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') ORDER BY a.published_at DESC LIMIT 9").all(),
+   env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') ORDER BY CASE WHEN a.country IN ("+SOUTHEAST_ASIA_COUNTRIES.map(country=>"'"+country+"'").join(',')+") THEN 0 ELSE 1 END,a.published_at DESC LIMIT 9").all(),
    env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country ORDER BY country COLLATE NOCASE ASC LIMIT 250").all(),
    env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published' AND published_at<=datetime('now')").first()
   ]);
@@ -87,18 +102,18 @@ async function homepage(env){
  const publishedCountries=countryRows.filter(row=>row.country && Number(row.total)>0);
  const feature=latest.slice(0,3);
  const additional=latest.slice(3,9);
- const readyHints=publishedCountries.slice(0,3);
+ const readyHints=publishedCountries.filter(row=>isSoutheastAsia(row.country)).slice(0,3);
  const body=`<main>
  <section class="hero home-hero"><div class="shell hero-inner"><div class="hero-content">
    <div class="hero-label"><span class="label-line"></span> THE INDEPENDENT TRAVEL FIELD GUIDE <span class="hero-label-star">✳</span></div>
    <h1>Go somewhere new.<br><em>Know what to avoid.</em></h1>
-   <p class="hero-description">Curious about a place? Discover practical travel checks and source-backed guidance — before you pack.</p>
+   <p class="hero-description">Starting in Southeast Asia: discover practical travel checks and source-backed guidance — before you pack.</p>
    <form class="destination-search" action="/search" method="get">
      <label class="sr-only" for="q">Search destinations and guides</label><span class="search-icon" aria-hidden="true">⌕</span>
      <input id="q" type="search" name="q" placeholder="Country, city or topic..." required maxlength="80">
      <button type="submit">Find a guide <span aria-hidden="true">↗</span></button>
    </form>
-   <div class="search-hints"><span>${readyHints.length?'READ ABOUT':'EXPLORE'}</span>${readyHints.length?readyHints.map(row=>link('/destinations/'+slugify(row.country),row.country)).join(''):link('/destinations','All destinations')}</div>
+   <div class="search-hints"><span>${readyHints.length?'READ ABOUT':'EXPLORE'}</span>${readyHints.length?readyHints.map(row=>link('/destinations/'+slugify(row.country),row.country)).join('') :link('/southeast-asia','Southeast Asia guide hub')}</div>
   </div>
   <div class="hero-visual" aria-hidden="true">
     <div class="paper-layer paper-layer-back"></div><div class="paper-layer paper-layer-mid"></div>
@@ -122,16 +137,12 @@ async function homepage(env){
      '<div class="inline-empty"><span class="empty-icon" aria-hidden="true">✳</span><div><small>RESEARCH IN PROGRESS</small><h3>Our first field notes are on the way.</h3><p>Explore the destinations we are preparing, or search for a country.</p></div><a href="/destinations">Explore destinations ↗</a></div>'}
  </div></section>
  <section class="section shell home-destinations-section" id="destinations">
-   <div class="section-heading"><div><div class="eyebrow">02 — EXPLORE BY DESTINATION</div>
-     <h2>Where to <em>next?</em></h2>
-     <p>Start with a destination that already has published guides.</p></div>
-     <a class="section-action" href="/destinations">View all destinations <span aria-hidden="true">↗</span></a>
+   <div class="section-heading"><div><div class="eyebrow">02 — SOUTHEAST ASIA FIRST</div>
+     <h2>Explore all <em>11 countries.</em></h2>
+     <p>Our first editorial focus is every Southeast Asian country. Choose a published guide; other destinations are clearly marked as research planned.</p></div>
+     <a class="section-action" href="/southeast-asia">Southeast Asia guide hub <span aria-hidden="true">↗</span></a>
    </div>
-   ${publishedCountries.length?
-     '<div class="ready-destinations">'+publishedCountries.slice(0,8).map(row=>
-      '<a class="ready-destination" href="/destinations/'+slugify(row.country)+'"><strong>'+esc(row.country)+'</strong><span>'+row.total+' '+(row.total===1?'guide':'guides')+' <span aria-hidden="true">↗</span></span></a>'
-     ).join('')+'</div>':
-     '<p class="destination-pending-note">The destination library is growing; browse the planned places below.</p>'}
+   ${southeastAsiaTiles(countryRows)}
    <div class="home-destination-actions">
      <form action="/search" method="get" class="destination-inline-search">
        <label class="sr-only" for="country-search">Search guides and destinations</label>
@@ -154,15 +165,45 @@ async function homepage(env){
  </main>`;
  return html(layout(env,'Know before you go',body,{path:'/'}),200,{'cache-control':'public, max-age=60'});
 }
+async function southeastAsiaPage(env){
+ const rows=env.DB?(await env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country").all()).results:[];
+ const regionalRows=rows.filter(row=>isSoutheastAsia(row.country)&&Number(row.total)>0);
+ const publishedCount=regionalRows.reduce((sum,row)=>sum+Number(row.total),0);
+ let articles=[];
+ if(publishedCount && env.DB){
+  const placeholders=SOUTHEAST_ASIA_COUNTRIES.map(()=>'?').join(',');
+  articles=(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND a.country IN ("+placeholders+") ORDER BY a.published_at DESC LIMIT 6")
+   .bind(...SOUTHEAST_ASIA_COUNTRIES).all()).results;
+ }
+ const body=`<main><section class="destination-hero sea-hub-hero"><div class="shell">
+  <a class="backlink" href="/">← Back to TripCaution</a>
+  <div class="eyebrow">REGIONAL GUIDE / ALL 11 COUNTRIES</div>
+  <h1>Southeast Asia, <em>one country at a time.</em></h1>
+  <p>Travel preparation rooted in source links, not invented local experiences. We're researching all 11 countries. Only published guides are linked below.</p>
+  <span class="dest-count">${publishedCount} PUBLISHED ${publishedCount===1?'GUIDE':'GUIDES'} · 11 DESTINATIONS</span>
+ </div></section>
+ <section class="section shell sea-hub-list" aria-label="Southeast Asian destinations">
+  <div class="section-heading"><div><div class="eyebrow">BROWSE THE REGION</div><h2>All eleven <em>destinations.</em></h2></div></div>
+  ${southeastAsiaTiles(rows)}
+  <p class="sea-hub-note">Research planned means that TripCaution has not yet published an independently reviewed guide for this destination. For urgent travel decisions, check your government's current official advice.</p>
+ </section>
+ ${articles.length?'<section class="section alt-section sea-hub-latest"><div class="shell"><div class="section-heading"><div><div class="eyebrow">NOW AVAILABLE</div><h2>Published <em>field notes.</em></h2></div></div><div class="guide-grid">'+articles.map(article=>articleCard(article)).join('')+'</div></div></section>':''}
+ <section class="shell sea-hub-other"><a class="all-destinations-link" href="/destinations">Full A–Z destination index, including previously published guides elsewhere ↗</a></section></main>`;
+ return html(layout(env,'Southeast Asia travel guides',body,{
+  path:'/southeast-asia',noindex:publishedCount===0,
+  description:'Explore practical travel preparation and published, source-linked TripCaution guides for all 11 Southeast Asian countries.'
+ }),200,{'cache-control':'public, max-age=60'});
+}
 async function destinationIndexPage(env){
  const rows=env.DB?(await env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country ORDER BY country COLLATE NOCASE ASC LIMIT 250").all()).results:[];
  const countByCountry=new Map(rows.map(row=>[row.country.toLocaleLowerCase('en'),Number(row.total)]));
  const groups=groupDestinationsByContinent([...STARTER_DESTINATIONS,...rows.map(row=>row.country)]);
  const body=`<main>
  <section class="destination-hero"><div class="shell"><a href="/" class="backlink">← Back to the latest guides</a>
-   <div class="eyebrow">TRIPCAUTION / FULL DESTINATION INDEX</div>
-   <h1>Everywhere we're <em>exploring.</em></h1>
-   <p>Places with published guides are ready to read. The rest are on our research list.</p>
+   <div class="eyebrow">SOUTHEAST ASIA FIRST / FULL DESTINATION INDEX</div>
+   <h1>All 11 Southeast Asian <em>countries first.</em></h1>
+   <p>We are researching every country in Southeast Asia. Previously published guides elsewhere remain available, but our new editorial focus is this region.</p>
+   <p><a class="all-destinations-link" href="/southeast-asia">Explore the Southeast Asia guide hub ↗</a></p>
    <form action="/search" method="get" class="destination-inline-search directory-search">
      <label for="directory-search" class="sr-only">Search destinations and guides</label>
      <input id="directory-search" name="q" type="search" maxlength="80" placeholder="Search a country or topic…" required>
@@ -703,7 +744,8 @@ export default {
    if(path==='/')return await homepage(env);
    if(path==='/about'||path==='/privacy'||path==='/contact')return staticPage(env,path.slice(1));
    if(path==='/search')return await searchPage(env,url);
-   if(path==='/destinations')return await destinationIndexPage(env);
+   if(path==='/southeast-asia')return await southeastAsiaPage(env);
+    if(path==='/destinations')return await destinationIndexPage(env);
    if(path.startsWith('/destinations/'))return await destinationPage(env,decodeURIComponent(path.split('/')[2]||''));
    if(path.startsWith('/guides/'))return await guidePage(env,decodeURIComponent(path.split('/')[2]||''));
    if(path==='/health'){
@@ -720,7 +762,7 @@ export default {
     const rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at,published_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
     const countries=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
     const hasContact=Boolean(editorialEmail(env))&&env.EDITORIAL_CONTACT_VERIFIED==='true';
-    return new Response(sitemapXML(siteURL(env),rows,countries,hasContact),{
+    return new Response(sitemapXML(siteURL(env),rows,countries,hasContact,countries.some(row=>isSoutheastAsia(row.country))),{
      headers:{'content-type':'application/xml;charset=utf-8','cache-control':'public,max-age=300','x-content-type-options':'nosniff'}
     });
    }

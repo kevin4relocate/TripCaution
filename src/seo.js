@@ -51,10 +51,11 @@ export function jsonLdTag(value){
   .replace(/&/g,'\\u0026').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
  return '<script type="application/ld+json">'+data+'</script>';
 }
-export function sitemapXML(origin,guides=[],countries=[],includeContact=false){
+export function sitemapXML(origin,guides=[],countries=[],includeContact=false,includeSoutheastAsia=false){
  const site=String(origin).replace(/\/$/,'');
  const urls=[{path:'/'},{path:'/about'},{path:'/privacy'},{path:'/destinations'}];
  if(includeContact)urls.push({path:'/contact'});
+ if(includeSoutheastAsia)urls.push({path:'/southeast-asia'});
  for(const row of guides){
   const slug=String(row?.slug||'');
   if(!slug)continue;

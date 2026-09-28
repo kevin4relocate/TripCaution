@@ -598,3 +598,42 @@ footer {padding-top:36px;background:#26392f;}
 @media(prefers-reduced-motion:reduce){
  .article-toc>summary span{transition:none;}
 }
+
+/* Southeast Asia first: an honest 11-country directory, with no dead-end links. */
+.sea-priority-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;}
+.sea-country{min-height:80px;min-width:0;display:flex;flex-direction:column;gap:5px;
+ justify-content:space-between;padding:13px 16px;background:#edf3e9;border:1px solid #d8e4d4;
+ border-radius:5px;overflow-wrap:anywhere;transition:background-color .15s,border-color .15s;}
+.sea-country strong{font:400 23px/1.2 'DM Serif Display',Georgia,serif;letter-spacing:-.4px;color:#294733;}
+.sea-country>span{font-size:10px;font-weight:700;color:#52735c;letter-spacing:.15px;}
+.sea-country-ready{background:#dce9d9;border-color:#b9cfb9;cursor:pointer;}
+.sea-country-ready:hover{background:#cde0cd;border-color:#92b99b;}
+.sea-country-ready:focus-visible{outline:2px solid #31573c;outline-offset:3px;}
+.sea-country-ready>span>span{color:#b26e50;font-size:15px;margin-left:3px;}
+.sea-country-pending{background:#f6f5ef;border-color:#e8e8df;}
+.sea-country-pending strong{color:#657567;}
+.sea-country-pending>span{color:#909b91;}
+.home-destinations-section .section-heading p{max-width:570px;}
+.sea-hub-hero{padding:37px 0 39px;}
+.sea-hub-hero .backlink{margin-bottom:13px;}
+.sea-hub-hero h1{font-size:clamp(42px,5.3vw,64px);max-width:930px;letter-spacing:-1.4px;}
+.sea-hub-hero p{max-width:680px;font-size:14px;line-height:1.65;}
+.sea-hub-list{padding-top:33px;padding-bottom:34px;}
+.sea-hub-list .section-heading{margin-bottom:18px;}
+.sea-hub-list h2{font-size:clamp(32px,3.7vw,46px);margin:0;}
+.sea-hub-note{color:#65796a;font-size:12px;line-height:1.6;margin:18px 0 0;}
+.sea-hub-latest{padding:30px 0 38px;}
+.sea-hub-latest .section-heading{margin-bottom:20px;}
+.sea-hub-latest h2{font-size:clamp(30px,4vw,44px);}
+.sea-hub-other{padding-top:18px;padding-bottom:38px;}
+@media(max-width:1000px){.sea-priority-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media(max-width:650px){
+ .sea-priority-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}
+ .sea-country{min-height:70px;padding:11px;}
+ .sea-country strong{font-size:19px;}
+ .sea-country>span{font-size:9px;}
+ .sea-hub-hero{padding:25px 0;}
+ .sea-hub-list{padding-top:24px;}
+ .sea-hub-latest .guide-grid{grid-template-columns:1fr;}
+}
+@media(prefers-reduced-motion:reduce){.sea-country{transition:none;}}
