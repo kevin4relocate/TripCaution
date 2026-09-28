@@ -388,6 +388,34 @@ async function applyEditorialAction(env,old,action,body,actor){
  await env.DB.batch([stateChange,auditEvent]);
  return {id:old.id,title:old.title,status:target};
 }
+async function readImageWithinLimit(request,maxBytes){
+ // Guard both advertised length and untrusted streaming/chunked bodies.
+ const lengthHeader=request.headers.get('Content-Length');
+ if(lengthHeader!==null){
+  const length=Number(lengthHeader);
+  if(!Number.isFinite(length)||length<0||length>maxBytes)
+   throw Object.assign(new Error('Image exceeds 5 MB'),{status:413});
+ }
+ if(!request.body)return new Uint8Array();
+ const reader=request.body.getReader(),chunks=[];
+ let size=0;
+ try{
+  for(;;){
+   const {done,value}=await reader.read();
+   if(done)break;
+   size+=value.byteLength;
+   if(size>maxBytes){
+    await reader.cancel();
+    throw Object.assign(new Error('Image exceeds 5 MB'),{status:413});
+   }
+   chunks.push(value);
+  }
+ }finally{reader.releaseLock();}
+ const bytes=new Uint8Array(size);
+ let offset=0;
+ for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+ return bytes;
+}
 async function api(request,env,url,admin=false){
  if(!env.DB)throw Object.assign(new Error('D1 database missing'),{status:503});
  const pathname=url.pathname,method=request.method;
@@ -553,16 +581,15 @@ async function api(request,env,url,admin=false){
   if(!env.MEDIA)return json({error:'R2 not configured; follow README to enable uploads'},503);
   const type=request.headers.get('content-type')||'';
   if(!['image/jpeg','image/png','image/webp'].includes(type))return json({error:'Upload JPEG, PNG or WebP only'},415);
-  const bytes=await request.arrayBuffer();
-  if(bytes.byteLength>5*1024*1024)return json({error:'Image exceeds 5 MB'},413);
-  const signature=new Uint8Array(bytes.slice(0,12));
-  const valid=type==='image/png'&&signature[0]===137&&signature[1]===80
-   ||type==='image/jpeg'&&signature[0]===255&&signature[1]===216
+  const bytes=await readImageWithinLimit(request,5*1024*1024);
+  const signature=bytes.slice(0,12);
+  const valid=type==='image/png'&&[137,80,78,71,13,10,26,10].every((byte,index)=>signature[index]===byte)
+   ||type==='image/jpeg'&&signature[0]===255&&signature[1]===216&&signature[2]===255
    ||type==='image/webp'&&String.fromCharCode(...signature.slice(0,4))==='RIFF'&&String.fromCharCode(...signature.slice(8,12))==='WEBP';
   if(!valid)return json({error:'Image bytes do not match content type'},415);
   const ext={'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[type];
   const key='editorial/'+crypto.randomUUID()+'.'+ext;
-  await env.MEDIA.put(key,bytes,{httpMetadata:{contentType:type}});
+  await env.MEDIA.put(key,bytes.buffer,{httpMetadata:{contentType:type}});
   await audit(env,actor,'uploaded-image',null,key);
   return json({url:siteURL(env)+'/media/'+key});
  }
