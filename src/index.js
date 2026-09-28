@@ -19,7 +19,7 @@ function layout(env, title, body, meta={}) {
  const url=siteURL(env)+(meta.path||'/');
  const image=safe(meta.image);
  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
- <title>${esc(title)} | TripCaution</title><meta name="description" content="${esc(description)}">${meta.noindex?'<meta name="robots" content="noindex,nofollow,noarchive">':''}
+ <title>${esc(title)} | TripCaution</title><meta name="description" content="${esc(description)}">${meta.noindex?'<meta name="robots" content="'+(meta.preview?'noindex,nofollow,noarchive':'noindex,follow')+'">':''}
  ${meta.preview?'':'<link rel="canonical" href="'+esc(url)+'">'}<meta property="og:title" content="${esc(title)} | TripCaution">
  <meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}"><meta property="og:type" content="website">
  ${image?'<meta property="og:image" content="'+esc(image)+'">':''}
@@ -153,7 +153,7 @@ function renderGuideArticle(env,a,preview=false){
  <div class="prose">${markdown(a.content_markdown)}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
  <p class="verified">Last checked: ${esc(utc(a.verified_at))}</p></section></article>
  <aside class="article-aside"><div class="aside-card"><span>THE QUICK TAKE</span><h3>Keep exploring.<br><em>Stay informed.</em></h3><p>Travel is better when you know what to expect.</p><a href="/destinations/${slugify(a.country)}">More in ${esc(a.country)} ↗</a></div><div class="aside-share">SHARE THIS GUIDE <button type="button" onclick="navigator.clipboard.writeText(location.href).then(()=>this.textContent='Copied!')">Copy link ↗</button></div></aside></div></main>`;
- const previewBanner=preview?`<aside class="editorial-preview-banner" role="note"><div class="shell editorial-preview-inner"><div><strong>PRIVATE PREVIEW · NOT PUBLISHED</strong><p>This is the last SAVED version, shown in the public article layout. Verify all claims, source links, dates and images before approval. This URL only works when signed in.</p></div><a href="/admin?edit=${encodeURIComponent(a.id)}">← Back to editor</a></div></aside>`:'';
+ const previewBanner=preview?`<aside class="editorial-preview-banner" role="note"><div class="shell editorial-preview-inner"><div><strong>PRIVATE PREVIEW · ${a.status==='published'?'CURRENTLY LIVE':'NOT PUBLISHED'}</strong><p>This is the last SAVED version, shown in the public article layout. Verify all claims, source links, dates and images before approval. This URL only works when signed in.</p></div><a href="/admin?edit=${encodeURIComponent(a.id)}">← Back to editor</a></div></aside>`:'';
  const page=layout(env,a.seo_title||a.title,previewBanner+body,{path:'/guides/'+a.slug,description:a.seo_description||a.excerpt,image:a.hero_image_url,noindex:preview,preview});
  return html(page,200,preview?{'cache-control':'private, no-store','x-robots-tag':'noindex, nofollow, noarchive','referrer-policy':'no-referrer','x-frame-options':'DENY'}:{'cache-control':'public, max-age=60'});
 }
