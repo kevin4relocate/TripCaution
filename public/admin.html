@@ -7,9 +7,11 @@
  <button id="bulk-schedule" type="button" disabled>Schedule selected</button>
  <button id="bulk-restore" type="button" disabled>Restore selected</button>
  <button id="bulk-delete" class="bulk-danger" type="button" disabled>Delete selected</button>
+ <button id="bulk-purge" class="bulk-danger bulk-purge" type="button" disabled hidden>Delete permanently</button>
+ <button id="empty-trash" class="bulk-danger bulk-purge" type="button" hidden>Empty Trash</button>
  <button id="bulk-clear" type="button" class="bulk-clear">Clear</button>
 </div>
-<p class="bulk-notice">Select all only selects articles visible with the current search/filter. Hide keeps articles private; Delete is recoverable.</p>
+<p class="bulk-notice">Select all affects only visible rows. Hide is private; Delete is recoverable. For irreversible deletion, filter by <strong>Deleted</strong>, make a D1 backup, then use Delete permanently or Empty Trash. R2 images are not automatically erased.</p>
 <div id="bulk-result" role="status" aria-live="polite"></div>
 <div class="table-wrap"><table><thead><tr><th class="select-col"><input id="select-all-visible" type="checkbox" aria-label="Select all visible articles"></th><th>TITLE / DESTINATION</th><th>CATEGORY</th><th>STATUS</th><th>PUBLISH DATE</th><th>ACTIONS</th></tr></thead><tbody id="article-rows"></tbody></table></div></div></section>
 <section id="import" class="view" hidden><div class="admin-head"><div><small>IMPORT CENTER</small><h1>Bring in great research.</h1><p>Import TripCaution JSON from your research AI. Everything is checked before it enters your queue.</p></div></div><div class="panel narrow"><h2>Import JSON package</h2><p>Upload a valid JSON file or paste JSON below. Up to 30 articles per batch. New articles always enter Review; existing slugs are rejected unless you explicitly enable revision mode.</p><input id="json-file" type="file" accept=".json,application/json"><textarea id="json-input" rows="13" placeholder='{"schema_version":"1.0","articles":[...]}'></textarea>
