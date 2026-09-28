@@ -157,7 +157,7 @@ async function insertArticle(env,raw,actor){
  if(found)throw Object.assign(new Error('Duplicate slug: '+a.slug),{status:409});
  // Any imported article needs explicit human approval; automation may publish only low-risk evidence-backed content.
  const automatic=actor==='github-automation' && canAutoPublish(a);
- const status=automatic?'published':'review', published=automatic?new Date().toISOString():null;
+ const status=automatic?'published':'review', published=automatic?new Date().toISOString().replace('T',' ').slice(0,19):null;
  await env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
  .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at).run();
  await audit(env,actor,'created:'+status,a.id);
@@ -253,13 +253,13 @@ async function media(env,key){
 async function publishDue(env){
  if(!env.DB)return;
  // Publish only records manually approved and explicitly scheduled. Idempotent conditional update.
- await env.DB.prepare("UPDATE articles SET status='published',published_at=datetime('now'),updated_at=datetime('now') WHERE status='scheduled' AND review_approved=1 AND scheduled_at<=datetime('now') AND verified_at IS NOT NULL AND json_array_length(sources_json)>0").run();
+ await env.DB.prepare("UPDATE articles SET status='published',published_at=datetime('now'),updated_at=datetime('now') WHERE status='scheduled' AND review_approved=1 AND julianday(scheduled_at)<=julianday('now') AND verified_at IS NOT NULL AND json_array_length(sources_json)>0").run();
 }
 export default {
  async fetch(request,env){
   const url=new URL(request.url),path=url.pathname;
   try {
-   if(path==='/admin'||path.startsWith('/admin/')){
+   if(path==='/admin'||path==='/admin.html'||path.startsWith('/admin/')){
     await requireAdmin(request,env);
     return env.ASSETS.fetch(new Request(new URL('/admin.html',request.url),request));
    }
