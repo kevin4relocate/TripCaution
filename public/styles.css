@@ -319,3 +319,6 @@ footer {padding-top:36px;background:#26392f;}
   .article-wrap {padding-top:26px;padding-bottom:48px;}
   .simple {padding-top:42px;padding-bottom:50px;}
 }
+
+/* Country search suggestions remain compact until article inventory grows. */
+.search-destinations{margin:18px 0 26px}.search-destinations h2{font:400 25px/1.2 'DM Serif Display',Georgia,serif;margin:0 0 12px}.search-destinations .destination-grid{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:600px){.search-destinations .destination-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
