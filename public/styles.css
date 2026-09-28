@@ -485,3 +485,8 @@ footer {padding-top:36px;background:#26392f;}
  .all-destination-section .directory-tile-meta{font-size:9px;}
  .home-editorial-strip .editorial-strip-inner{min-height:40px;}
 }
+
+/* Final specificity for compact featured-card actions and non-clickable research-only destinations. */
+.featured-layout .card-bottom .card-read{font-size:10px}
+.guide-card-side .card-bottom .card-read{font-size:9px}
+.destination-pending:hover{transform:none!important;background:#f6f4ee!important}
