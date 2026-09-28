@@ -497,6 +497,19 @@ async function applyEditorialAction(env,old,action,body,actor){
   const sources=safeParse(old.sources_json);
   if(!Array.isArray(sources)||!sources.some(source=>safe(source?.url)))
    throw Object.assign(new Error('Add at least one valid HTTPS source before publishing'),{status:422});
+  const level=cautionLevel(old.caution_level).id;
+  if(isRatedCaution(level)){
+   // Avoid turning a headline, country or bot-provided draft into a danger
+   // rating. Scope and rationale are persisted by a human editor.
+   if(String(old.severity_scope||'').trim().length<12||String(old.severity_rationale||'').trim().length<40)
+    throw Object.assign(new Error('Explain the specific situation (12+ characters) and evidence-backed potential impact (40+ characters) before publishing a warning level'),{status:422});
+   if(severeCaution(level)){
+    if(body.review_method==='bulk')
+     throw Object.assign(new Error('High and critical impact articles must be reviewed and published individually'),{status:422});
+    if(body.severity_confirmed!==true)
+     throw Object.assign(new Error('Explicitly confirm the evidence, scope and impact before publishing high or critical impact'),{status:422});
+   }
+  }
   if(action==='schedule' && (!isValidSchedule(body.scheduled_at)||Date.parse(body.scheduled_at)<=Date.now()))
    throw Object.assign(new Error('Choose a future publication date and time with timezone'),{status:422});
  }
@@ -511,7 +524,9 @@ async function applyEditorialAction(env,old,action,body,actor){
   source_count:safeParse(old.sources_json).length,
   editor_reviewed_at:new Date().toISOString(),review_window_days:30,
   next_review_due_at:new Date(Date.now()+30*86400000).toISOString(),
-  evidence_note_collected:false
+  evidence_note_collected:false,
+  impact_level:cautionLevel(old.caution_level).id,
+  severity_confirmed:severeCaution(old.caution_level)?body.severity_confirmed===true:null
  }):'';
  // Atomic: when an audit write fails, publication and scheduling roll back too.
  const stateChange=env.DB.prepare("UPDATE articles SET status=?,review_approved=?,scheduled_at=?,published_at=CASE WHEN ?='published' THEN COALESCE(published_at,datetime('now')) ELSE published_at END,updated_at=datetime('now') WHERE id=?")
@@ -627,6 +642,10 @@ async function api(request,env,url,admin=false){
     const at=body.action==='schedule'&&body.stagger_days===true?
       new Date(Date.parse(body.scheduled_at)+86400000*scheduledIndex).toISOString():body.scheduled_at;
     const item={...body,review_method:'bulk',scheduled_at:at};
+    if(['publish','schedule'].includes(body.action)&&severeCaution(existing.caution_level)){
+     results.push({id,ok:false,error:'High and critical impact articles require individual review and explicit impact confirmation'});
+     continue;
+    }
     const completed=await applyEditorialAction(env,existing,body.action,item,actor);
     if(body.action==='schedule')scheduledIndex++;
     results.push({ok:true,...completed,scheduled_at:body.action==='schedule'?at:undefined});
@@ -733,9 +752,11 @@ async function api(request,env,url,admin=false){
    research:{verified_at:body.verified_at??old.verified_at,
     uncertainties:body.uncertainties??safeParse(old.uncertainties_json)}
   };
+  if(body.caution_level!==undefined && !['unassessed','low','moderate','high','critical'].includes(body.caution_level))
+   return json({error:'Invalid impact level'},422);
   const a=normalizeArticle(merged);
-  const update=env.DB.prepare(`UPDATE articles SET title=?,slug=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,tags_json=?,sources_json=?,uncertainties_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,hero_alt=?,verified_at=?,updated_at=datetime('now'),review_approved=0,scheduled_at=CASE WHEN status IN ('published','scheduled') THEN NULL ELSE scheduled_at END,status=CASE WHEN status IN ('published','scheduled') THEN 'review' ELSE status END WHERE id=?`)
-   .bind(a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,a.verified_at,id);
+  const update=env.DB.prepare(`UPDATE articles SET title=?,slug=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,tags_json=?,sources_json=?,uncertainties_json=?,caution_level=?,severity_scope=?,severity_rationale=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,hero_alt=?,verified_at=?,updated_at=datetime('now'),review_approved=0,scheduled_at=CASE WHEN status IN ('published','scheduled') THEN NULL ELSE scheduled_at END,status=CASE WHEN status IN ('published','scheduled') THEN 'review' ELSE status END WHERE id=?`)
+   .bind(a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.caution_level,a.severity_scope,a.severity_rationale,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,a.verified_at,id);
   const editAudit=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
    .bind(crypto.randomUUID(),actor,'edited',id,'');
   await env.DB.batch([update,editAudit]);
