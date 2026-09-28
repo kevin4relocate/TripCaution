@@ -84,6 +84,7 @@ test('responsive design includes compact layouts and reduced vertical spacing',(
   assert.match(css,/@media\(max-width:600px\)/);
 });
 
+
 test('published country links are active and research-only countries remain unlinked',async()=>{
  const database={prepare(sql){
   if(sql.includes('GROUP BY country'))return {all:async()=>({results:[{country:'Singapore',total:2},{country:'Thailand',total:1}]})};
@@ -94,11 +95,11 @@ test('published country links are active and research-only countries remain unli
  });
  const page=await result.text();
  assert.equal(result.status,200);
- assert.match(page,/href="\\/destinations\\/singapore"/);
- assert.match(page,/2 guides/);
- assert.match(page,/href="\\/destinations\\/thailand"/);
- assert.doesNotMatch(page,/href="\\/destinations\\/cambodia"/);
- assert.match(page,/Research planned/);
+ assert.ok(page.includes('href="/destinations/singapore"'));
+ assert.ok(page.includes('2 guides'));
+ assert.ok(page.includes('href="/destinations/thailand"'));
+ assert.ok(!page.includes('href="/destinations/cambodia"'));
+ assert.ok(page.includes('Research planned'));
 });
 
 test('full destination directory is indexed in sitemap',async()=>{
@@ -107,5 +108,5 @@ test('full destination directory is indexed in sitemap',async()=>{
   SITE_URL:'https://example.test',DB:db,ASSETS:{fetch:async()=>new Response('not found',{status:404})}
  });
  assert.equal(result.status,200);
- assert.match(await result.text(),/<loc>https:\\/\\/example.test\\/destinations<\\/loc>/);
+ assert.ok((await result.text()).includes('<loc>https://example.test/destinations</loc>'));
 });
