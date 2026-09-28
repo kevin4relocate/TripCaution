@@ -81,12 +81,20 @@ test('publication requires an explicit reviewer confirmation after saved draft r
  }),e);
  const skipped=await patch({action:'publish'});
  assert.equal(skipped.status,422);
- assert.match(await skipped.text(),/review checklist/);
+ assert.match(await skipped.text(),/review checks/);
  assert.equal(e.updates.length,0);
- const approved=await patch({action:'publish',review_confirmed:true});
+ const approved=await patch({action:'publish',review_confirmed:true,
+  review_checklist:{layout:true,evidence:true,freshness:true,fairness:true},
+  review_note:'Reviewed the official transit fare FAQ and confirmed the daily charge before publishing.',
+  review_window_days:30
+ });
  assert.equal(approved.status,200);
  assert.equal((await approved.json()).status,'published');
  assert.ok(e.updates.some(u=>u.sql.includes('UPDATE articles SET status=')));
+ const audit=e.updates.find(u=>u.sql.includes('INSERT INTO audit_logs'));
+ assert.ok(audit);
+ assert.equal(audit.values[2],'reviewed-and-published');
+ assert.equal(JSON.parse(audit.values[4]).review_window_days,30);
 });
 
 test('scheduling is also gated by reviewer confirmation and future valid time',async()=>{
@@ -105,6 +113,8 @@ test('editor has preview and review actions, clickable source links and gated pu
  assert.match(html,/id="editor-preview-link"/);
  assert.match(html,/data-review-check/g);
  assert.match(html,/id="review-publish-btn" disabled/);
+ assert.match(html,/id="review-evidence-note-input"/);
+ assert.match(html,/id="review-window-days"/);
  assert.match(html,/id="schedule-btn" disabled/);
  assert.match(js,/class="preview-row-link"/);
  assert.match(js,/Review →/);
@@ -120,4 +130,21 @@ test('research dates are not misrepresented as a human review before new manual 
  assert.match(page,/Research reference date: Sep 28, 2026/);
  assert.doesNotMatch(page,/Last reviewed:/);
  assert.doesNotMatch(page,/VERIFIED:/);
+});
+
+test('approval without evidence note, cadence or all four checks fails closed',async()=>{
+ const e=env(),auth=await cookie(e);
+ async function tryPublish(changes){
+  return worker.fetch(new Request(origin+'/api/admin/article/'+id,{
+   method:'PATCH',headers:{Cookie:auth,Origin:origin,'Content-Type':'application/json'},
+   body:JSON.stringify({action:'publish',review_confirmed:true,
+    review_checklist:{layout:true,evidence:true,freshness:true,fairness:true},
+    review_note:'Reviewed the official source and its applicable date.',
+    review_window_days:30,...changes})
+  }),e);
+ }
+ assert.equal((await tryPublish({review_note:'ok'})).status,422);
+ assert.equal((await tryPublish({review_checklist:{layout:true,evidence:false,freshness:true,fairness:true}})).status,422);
+ assert.equal((await tryPublish({review_window_days:500})).status,422);
+ assert.equal(e.updates.length,0);
 });
