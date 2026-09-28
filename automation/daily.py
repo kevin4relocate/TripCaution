@@ -208,8 +208,15 @@ SOURCE LIST:
         return
     obj=read_json(drafted)
     new_slug=re.sub(r"[^a-z0-9]+","-",obj.get("slug","").lower()).strip("-")
-    old_slugs={re.sub(r"[^a-z0-9]+","-",t.lower()).strip("-") for t in old_titles}
-    if new_slug in old_slugs or obj.get("title","").lower() in [t.lower() for t in old_titles]:
+    old_slugs={
+        re.sub(r"[^a-z0-9]+","-",str(row.get("slug") or "").lower()).strip("-")
+        for row in existing_rows
+    }
+    same_country_titles={
+        str(row.get("title") or "").strip().casefold()
+        for row in existing_rows if str(row.get("country") or "").strip().casefold()==country.casefold()
+    }
+    if not new_slug or new_slug in old_slugs or str(obj.get("title") or "").strip().casefold() in same_country_titles:
         print("Draft duplicates an existing title; skip.")
         return
     if obj.get("category")!=category or obj.get("country")!=country:
@@ -223,7 +230,15 @@ SOURCE LIST:
         print("Too few supported sources. Saving nothing.");return
     obj["research"]["sources"]=cited
     obj["research"]["verified_at"]=now.isoformat()
-    obj["tags"]=[x for x in obj.get("tags",[]) if isinstance(x,str)][:15]+["sprint6:"+slot]
+    submitted_tags=obj.get("tags")
+    obj["tags"]=[x for x in submitted_tags if isinstance(x,str)][:15] if isinstance(submitted_tags,list) else []
+    obj["tags"].append("sprint6:"+slot)
+    uncertainty_list=obj.get("research",{}).get("uncertainties")
+    if not isinstance(uncertainty_list,list):
+        uncertainty_list=[]
+    uncertainty_list=[str(x)[:300] for x in uncertainty_list if isinstance(x,str)][:18]
+    uncertainty_list.append("AI research and its linked source claims must be independently checked by the editor before publishing.")
+    obj["research"]["uncertainties"]=uncertainty_list
     obj.pop("caution_level",None)
     obj.pop("severity_scope",None)
     obj.pop("severity_rationale",None)
