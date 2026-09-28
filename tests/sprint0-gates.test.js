@@ -94,3 +94,24 @@ test('legal pages describe current site operations; public contact requires a re
  assert.match(privacy,/Google Fonts/);
  assert.match(privacy,/Cloudflare/);
 });
+
+test('hourly cron requires persisted human evidence and legacy batch scheduling is disabled',async()=>{
+ let updateSql='',task;
+ const db={prepare(sql){
+   updateSql=sql;
+   return {async run(){return {success:true};}};
+ }};
+ app.scheduled({}, {DB:db}, {waitUntil(p){task=p;}});
+ await task;
+ assert.match(updateSql,/review_approved=1/);
+ assert.match(updateSql,/reviewed-and-scheduled/);
+ assert.match(updateSql,/json_valid/);
+ assert.match(updateSql,/evidence_note/);
+ const env={DB:fakeDB(),ADMIN_LOGIN_KEY:adminKey};
+ const {createAdminSession}=await import('../src/auth.js');
+ const cookie=(await createAdminSession(env)).split(';')[0];
+ const response=await app.fetch(new Request(origin+'/api/admin/auto-schedule',{
+  method:'POST',headers:{Origin:origin,Cookie:cookie},body:'{}'
+ }),env);
+ assert.equal(response.status,403);
+});
