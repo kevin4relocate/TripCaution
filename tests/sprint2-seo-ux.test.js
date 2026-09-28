@@ -99,13 +99,22 @@ test('public guide adds contents, optional editorial takeaways, related public l
  assert.ok(db.statements.some(sql=>sql.includes("a.status='published'")&&sql.includes('a.id!=?')));
  assert.doesNotMatch(html,/property="og:image"/);
 });
-test('public source section has no duplicate approval or AI research timestamps',async()=>{
+test('publication date and source count stay in code but not the article header UI',async()=>{
  const db=guideDB(),response=await worker.fetch(new Request(origin+'/guides/metro-start'),{SITE_URL:origin,DB:db});
  assert.equal(response.status,200);
  const page=await response.text();
- assert.match(page,/Published: Sep 26, 2026/);
- assert.doesNotMatch(page,/Research reference date:|Last editorial review:/);
- assert.match(page,/Always consult the source directly for the latest information/);
+ const visible=page.slice(page.indexOf('<main id="main-content"'),page.indexOf('</main>')+7);
+ // SEO crawlers and the CMS can still read genuine publication time and the
+ // number of linked sources without turning them into a visible byline.
+ assert.match(page,/<meta property="article:published_time" content="2026-09-26T14:00:00.000Z">/);
+ assert.match(page,/<meta name="tripcaution:source-count" content="1">/);
+ assert.match(page,/"datePublished":"2026-09-26T14:00:00.000Z"/);
+ assert.doesNotMatch(visible,/Published: Sep 26, 2026|1 SOURCES|TRIPCAUTION EDITORIAL|Editorial approval:/);
+ assert.doesNotMatch(visible,/class="article-meta"/);
+ // Source provenance remains openly accessible in its dedicated section.
+ assert.match(visible,/Sources & verification/);
+ assert.match(visible,/Official operator/);
+ assert.match(visible,/href="https:\/\/example.org\/operator"/);
 });
 test('private preview is noindex and has no public Article schema or related guide lookup',async()=>{
  const db=guideDB(),secret='review-preview-'+('z'.repeat(50)),env={SITE_URL:origin,DB:db,ADMIN_LOGIN_KEY:secret};
@@ -116,6 +125,9 @@ test('private preview is noindex and has no public Article schema or related gui
  assert.doesNotMatch(html,/type="application\/ld\+json"/);
  assert.doesNotMatch(html,/rel="canonical"/);
  assert.match(html,/PRIVATE PREVIEW/);
+ const previewUI=html.slice(html.indexOf('<main id="main-content"'),html.indexOf('</main>')+7);
+ assert.doesNotMatch(previewUI,/class="article-meta"|Published:|1 SOURCES/);
+ assert.match(html,/<meta name="tripcaution:source-count" content="1">/);
  assert.match(html,/Another Singapore guide/);
  assert.ok(db.statements.some(sql=>sql.includes("a.status='published'")&&sql.includes('a.id!=?')));
 });
