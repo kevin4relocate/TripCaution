@@ -20,6 +20,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: JavaScript validation
         run: npm run check
+      - name: Backup script syntax (non-destructive)
+        run: bash -n scripts/backup-d1.sh
       - name: Unit tests
         run: npm test
       - name: Python syntax

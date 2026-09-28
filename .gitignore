@@ -6,3 +6,8 @@ node_modules/
 .wrangler/
 .DS_Store
 *.log
+
+# Local production backups never belong in source control.
+/backups/
+tripcaution-prod-*.sql
+tripcaution-prod-*.sql.sha256
