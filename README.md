@@ -8,14 +8,14 @@ TripCaution is a Cloudflare Workers application with a GitHub Actions/Gemini res
 | Area | Implementation |
 |---|---|
 | Public website | Responsive editorial homepage, destinations, guides, search, SEO metadata, XML sitemap |
-| Content management | Cloudflare Access-protected admin, article editor, source editing, status changes, search and filters |
+| Content management | Private single-key admin login, signed session cookie, article editor, source editing, status changes, search and filters |
 | Import | Upload/paste AI research packages in JSON, duplicate-slug rejection |
 | Editorial calendar | Human-controlled publication; batch schedule eligible low-risk imported articles |
 | Automatic publishing | Hourly Cloudflare Cron publishes previously approved scheduled records |
 | AI research | Scheduled GitHub Actions reads curated official-source pages then uses Gemini text generation; optionally supports Google Search grounding. **At most one new research article per run** |
 | Database | Cloudflare D1 migrations |
 | Illustration workflow | Gemini-generated watercolor *prompts*, manual illustration URLs, optional R2 image upload |
-| Safety | Admin Access JWT validation, bot token, source gate, manual review of sensitive categories, HTML escaping, audit log |
+| Safety | 12-hour HMAC-signed HttpOnly/Secure admin cookie, D1 login throttling, same-origin mutation checks, separate bot token, source gate, manual review and audit log |
 | SEO | Per-article titles, meta descriptions, canonical, social metadata, dynamic sitemap, source lists |
 
 **Important current limitations:** Gemini-generated artwork is *not automatically rendered* by the free daily job. It creates a ready-to-use hand-painted watercolor prompt. Image generation APIs may cost money or require separate quotas. Import finished illustrations yourself with R2, when configured. Source URLs still need human verification: grounding and link matching are safeguards, not proof that every assertion is true.
@@ -72,24 +72,21 @@ Some current Cloudflare screens configure build/deploy automatically from `wrang
 
 **If Git deploy fails with a D1 binding error,** finish step 2, commit the database ID, and retry deployment. Confirm the generated `*.workers.dev` URL loads. Before connecting a domain, set `SITE_URL` in `wrangler.jsonc` to that actual `https://<worker>.<account>.workers.dev` URL so staging canonical tags and sitemap are accurate.
 
-## 4. Secure the editorial dashboard (mandatory)
+## 4. Secure the editorial dashboard with one private key (mandatory)
 
-This is a public website with a *private* editor. The Worker deliberately rejects all admin operations until Cloudflare Access is configured.
+The public website remains open. The editor lives at `/admin` and **will not open without a configured private key**. A successful login creates a 12-hour, HMAC-signed, Secure, HttpOnly, SameSite=Strict cookie. Admin APIs check that cookie and reject cross-origin write requests. Incorrect login attempts are throttled using the existing D1 `audit_logs` table (six unsuccessful attempts per IP in 15 minutes; IP addresses are keyed-hashed before logging). D1 must be initialized before logging in.
 
-1. Go to **Cloudflare Zero Trust > Access > Applications**.
-2. Create a **Self-hosted** application, called `TripCaution Admin`.
-3. Protect the site's **`/admin*`** and **`/api/admin/*`** paths in the **same** Access application, using application path/hostname settings. This ensures the same application AUD applies to the dashboard and its API. Configure both your public custom hostname and any reachable `workers.dev` hostname if enabled, otherwise disable the alternate public hostname. Check both paths on both hostnames.
-4. Create an **Allow** policy for **only your own email address**, using One-time PIN or your own chosen identity provider. Do not use an everyone policy.
-5. In the Access application's details, copy the **Application AUD tag**. Find your team's domain, e.g. `your-team.cloudflareaccess.com`.
-6. On the TripCaution Worker, set these **environment variables**:
-   - `ACCESS_TEAM_DOMAIN` = `your-team.cloudflareaccess.com`
-   - `ACCESS_AUD` = your app's actual AUD
-   - `ADMIN_EMAIL` = your own verified email, for an extra identity check.
-7. Deploy the Worker after setting them. Verify a signed-in visit to `/admin`; check that a signed-out private window cannot view the dashboard or call `/api/admin/articles`.
+**Set your key privately — never in GitHub, chat, a `wrangler.jsonc` variable, or client-side JavaScript:**
 
-Cloudflare may refer to the forwarded JWT header as `Cf-Access-Jwt-Assertion`. The Worker cryptographically checks the token signature, issuer and audience using Cloudflare's JWKS. **Do not consider merely hiding the dashboard link a security control.**
+1. Generate a cryptographically random secret of **at least 32 characters**. On macOS Terminal, for example, run `openssl rand -hex 32` to create a 64-character random key, and store it in your password manager. You may use your own high-entropy 32+ character key.
+2. In **Cloudflare > Workers & Pages > tripcaution > Settings > Variables and Secrets (Production) > Add variable**, select **Secret**, set the name to `ADMIN_LOGIN_KEY`, paste the key as its value, and choose **Deploy** when prompted. Confirm that Cloudflare shows the type as **Secret**, not plaintext Variable.
+3. Allow the latest commit to deploy through GitHub integration. Visit **`/sign-in`** (the new login path) and confirm the key-entry form loads. It is intentionally outside the former Access-protected `/admin*` path.
+4. **If the old Cloudflare Zero Trust app is still active**, it can intercept `/admin` and cause the previous login redirect loop even when the new key system works. **Only after confirming `ADMIN_LOGIN_KEY` is deployed and `/sign-in` loads**, go to Zero Trust > Access controls > Applications and delete the *old TripCaution Access application* or remove all of its TripCaution destination paths. Do not delete the Worker or its D1 database. This is the only Cloudflare Access cleanup required for this simple login.
+5. Visit **`/admin`** in a fresh private browser window. It should display the new key-entry page. Enter the key to reach the editor. Test `/api/admin/articles` without signing in: it must return HTTP 401. Use the new **Sign out** button when finished.
 
-**Important:** protect both routes inside the same Access app. If the app only covers `/admin`, its client API may return unauthorized because the API request will lack a forwarded Access JWT.
+The key is stored encrypted on Cloudflare; it is never returned to the browser or built into source code. A stolen signed session remains usable until its 12-hour expiry even after browser sign-out; **changing `ADMIN_LOGIN_KEY` on the Worker revokes all previously issued sessions**. Use a unique, random key and protect your password manager. The rate limiter is additional protection against guesses, not a substitute for high-entropy credentials.
+
+The bot's `/api/ingest` continues to use a separate `INGEST_TOKEN` Bearer secret. Never reuse your admin key as the bot token.
 
 ## 5. Configure custom domain
 
@@ -98,7 +95,7 @@ After a successful `workers.dev` launch:
 1. Add your owned domain to Cloudflare and complete DNS/nameserver setup.
 2. Under **Workers & Pages > tripcaution > Settings > Domains & Routes**, attach the domain as a **Custom Domain**.
 3. Update `SITE_URL` in `wrangler.jsonc` to the exact live `https://...` URL, commit and push.
-4. Update Access app domain/path mappings to protect admin routes on the custom domain, retest access, and keep alternate Worker hostnames protected or disable them.
+4. The built-in key login works on the custom domain as well. Test `/admin` and the `/api/admin/*` endpoints there too. Any leftover Access application protecting those paths must be removed or it can intercept the key-login flow.
 5. Check `/robots.txt`, `/sitemap.xml`, a destination page and an article page.
 
 The site can run without a purchased custom domain during testing.
