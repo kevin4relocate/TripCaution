@@ -365,16 +365,28 @@ async function api(request,env,url,admin=false){
    if(!['publish','schedule','hide','archive','delete','restore','review'].includes(action))return json({error:'Unknown action'},400);
    const target={publish:'published',schedule:'scheduled',hide:'hidden',archive:'archived',delete:'deleted',restore:'draft',review:'review'}[action];
    if(['publish','schedule'].includes(action)){
-    if(actor!=='github-automation' && body.review_confirmed!==true)return json({error:'Complete the editorial review checklist before publishing or scheduling'},422);
-    if(!Number(old.review_approved)&&actor==='github-automation')return json({error:'Approval required'},403);
-    if(safeParse(old.sources_json).length<1||!old.verified_at)return json({error:'Verified date and evidence sources required'},422);
-    if(action==='schedule' && (!isValidSchedule(body.scheduled_at)||Date.parse(body.scheduled_at)<Date.now()))return json({error:'Provide a future ISO 8601 scheduled_at with timezone'},422);
+    // There is no automated bypass. A human editor must explicitly confirm
+    // all four checks and supply a brief source-claim review record.
+    const checks=body.review_checklist||{};
+    const expected=['layout','evidence','freshness','fairness'];
+    const note=typeof body.review_note==='string'?body.review_note.trim():'';
+    if(body.review_confirmed!==true || !expected.every(key=>checks[key]===true) ||
+       note.length<30 || note.length>1500 || ![7,30,90].includes(body.review_window_days))
+      return json({error:'Complete all review checks, add a 30–1500 character evidence note and select a review interval'},422);
+    if(safeParse(old.sources_json).length<1 || !old.verified_at)
+      return json({error:'Research reference timestamp and evidence sources are required'},422);
+    if(action==='schedule' && (!isValidSchedule(body.scheduled_at)||Date.parse(body.scheduled_at)<Date.now()))
+      return json({error:'Provide a future ISO 8601 scheduled_at with timezone'},422);
    }
    await env.DB.prepare("UPDATE articles SET status=?,review_approved=?,scheduled_at=?,published_at=CASE WHEN ?='published' THEN datetime('now') ELSE published_at END,updated_at=datetime('now') WHERE id=?")
     .bind(target,['publish','schedule'].includes(action)?1:old.review_approved,target==='scheduled'?body.scheduled_at:null,target,id).run();
    const auditAction=body.review_confirmed===true && action==='publish'?'reviewed-and-published':
     body.review_confirmed===true && action==='schedule'?'reviewed-and-scheduled':action;
-   await audit(env,actor,auditAction,id);return json({ok:true,status:target});
+   const reviewDetails=['publish','schedule'].includes(action)?
+    JSON.stringify({checklist:body.review_checklist,evidence_note:body.review_note.trim(),
+      review_window_days:body.review_window_days,editor_reviewed_at:new Date().toISOString(),
+      next_review_due_at:new Date(Date.now()+body.review_window_days*86400000).toISOString()}):'';
+   await audit(env,actor,auditAction,id,reviewDetails);return json({ok:true,status:target});
   }
   const merged={
    ...old,...body,seo_title:body.seo_title??old.seo_title,seo_description:body.seo_description??old.seo_description,
@@ -382,7 +394,7 @@ async function api(request,env,url,admin=false){
    research:{verified_at:body.verified_at??old.verified_at,uncertainties:safeParse(old.uncertainties_json)}
   };
   const a=normalizeArticle(merged);
-  await env.DB.prepare(`UPDATE articles SET title=?,slug=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,tags_json=?,sources_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,hero_alt=?,verified_at=?,updated_at=datetime('now'),review_approved=0,status=CASE WHEN status='published' THEN 'review' ELSE status END WHERE id=?`)
+  await env.DB.prepare(`UPDATE articles SET title=?,slug=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,tags_json=?,sources_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,hero_alt=?,verified_at=?,updated_at=datetime('now'),review_approved=0,scheduled_at=CASE WHEN status IN ('published','scheduled') THEN NULL ELSE scheduled_at END,status=CASE WHEN status IN ('published','scheduled') THEN 'review' ELSE status END WHERE id=?`)
   .bind(a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,a.verified_at,id).run();
   await audit(env,actor,'edited',id);return json({ok:true});
  }
