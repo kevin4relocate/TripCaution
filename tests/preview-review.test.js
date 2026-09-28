@@ -111,7 +111,7 @@ test('editor has direct publish and quick bulk controls without mandatory review
  const html=readFileSync(new URL('../public/admin.html',import.meta.url),'utf8');
  const js=readFileSync(new URL('../public/admin.js',import.meta.url),'utf8');
  assert.match(html,/id="editor-preview-link"/);
- assert.match(html,/id="review-publish-btn" disabled/);
+ assert.match(html,/<button[^>]+id="review-publish-btn"[^>]+disabled/);
  assert.match(html,/id="select-all-visible"/);
  for(const action of ['publish','hide','schedule','restore','delete'])
    assert.ok(html.includes('id="bulk-'+action+'"'));
