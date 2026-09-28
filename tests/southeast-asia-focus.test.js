@@ -107,7 +107,8 @@ test('research sources and daily automation only target the eleven-country SEA p
  const sources=JSON.parse(readFileSync(new URL('../automation/sources.json',import.meta.url),'utf8'));
  assert.deepEqual(Object.keys(sources).sort(),[...list].sort());
  for(const [country,urls] of Object.entries(sources)){
-  assert.equal(urls.length,2,country+' needs two initial government-source URLs');
+  assert.ok(urls.length>=2,country+' needs at least two reputable official source candidates');
+  assert.equal(new Set(urls).size,urls.length,country+' should not repeat identical source URLs');
   assert.ok(urls.every(url=>url.startsWith('https://')),country+' source URL');
  }
  const daily=readFileSync(new URL('../automation/daily.py',import.meta.url),'utf8');

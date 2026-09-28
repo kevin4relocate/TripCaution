@@ -135,10 +135,14 @@ def curated_research(country):
                 print("Official source had insufficient readable content:",url)
                 continue
             collected.append("SOURCE "+url+"\n"+content)
-            publisher="UK Foreign, Commonwealth & Development Office" if "gov.uk" in url else "Government of Canada"
+            publisher=("UK Foreign, Commonwealth & Development Office" if "gov.uk" in url
+                       else "Government of Canada" if "travel.gc.ca" in url
+                       else "Timor-Leste Ministry of Tourism and Environment" if "timorleste.tl" in url
+                       else "Relevant original authority")
             source_refs.append({"title":country+" travel advice","publisher":publisher,"url":url,"published_at":None})
         except Exception as e:
             print("Could not read curated source",url,type(e).__name__)
+    print("Official source fetch: "+country+": "+str(len(source_refs))+" of "+str(len(urls))+" readable source pages")
     return "\n\n".join(collected),source_refs
 
 def read_json(text):
@@ -219,6 +223,8 @@ delicate paper grain, gentle muted palette, illustrative not photographic,
 no recognizable real people, no text, horizontal 16:9.
 Only include sources present in the provided list AND relevant to material claims. verified_at is AI research date, NOT evidence of editor verification.
 If there is insufficient evidence for the slot's concrete problem, reply INSUFFICIENT EVIDENCE; NEVER pad a category with generic travel boilerplate.
+Use exact HTTPS URLs from SOURCE LIST in research.sources ONLY if the page supports a distinct material claim.
+Do not invent sources, mutate source URLs or append irrelevant references merely to reach the source threshold.
 RESEARCH:
 {researched[:14500]}
 SOURCE LIST:
@@ -249,7 +255,11 @@ SOURCE LIST:
     cited=obj.get("research",{}).get("sources",[])
     cited=[s for s in cited if s.get("url") in source_urls]
     if len({s.get("url") for s in cited})<2:
-        print("Too few supported sources. Saving nothing.");return
+        print("Evidence gate: "+str(len(grounded))+" readable sources available, "+
+              str(len({s.get("url") for s in cited}))+
+              " distinct exact cited source URLs. Saving nothing.")
+        print("Need relevant topic-specific evidence or corrected exact URL citations; never pad with unrelated sources.")
+        return
     obj["research"]["sources"]=cited
     obj["research"]["verified_at"]=now.isoformat()
     submitted_tags=obj.get("tags")
