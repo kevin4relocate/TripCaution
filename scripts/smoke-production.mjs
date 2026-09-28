@@ -61,13 +61,16 @@ await run('Southeast Asia-first hub honestly represents all eleven destinations'
  const names=['Brunei','Cambodia','Indonesia','Laos','Malaysia','Myanmar','Philippines',
   'Singapore','Thailand','Timor-Leste','Vietnam'];
  for(const name of names)ensure(body.includes('<strong>'+name+'</strong>'),'Missing regional destination: '+name);
- ensure((body.match(/class="sea-country sea-country-(?:ready|pending)"/g)||[]).length===11,
-  'Regional hub must display exactly eleven honestly labelled country cards');
- for(const name of names){
-  const tag='<strong>'+name+'</strong>',at=body.indexOf(tag),tile=body.slice(Math.max(0,at-160),at+tag.length+170);
-  if(tile.includes('Research planned'))
-   ensure(!tile.includes('href="/destinations/'+name.toLowerCase().replaceAll(' ','-')+'"'),
-     'Planned country advertised as a live destination: '+name);
+ const cards=[...body.matchAll(/<(a|div) class="sea-country sea-country-(ready|pending)"([^>]*)>([\s\S]*?)<\/\1>/g)];
+ ensure(cards.length===11,'Regional hub must display exactly eleven honestly labelled country cards');
+ for(const card of cards){
+  const name=card[4].match(/<strong>([^<]+)<\/strong>/)?.[1];
+  ensure(names.includes(name),'Unexpected regional destination card: '+name);
+  if(card[2]==='pending')
+   ensure(card[1]==='div'&&!card[3].includes('href=')&&card[4].includes('Research planned'),
+    'Unpublished regional country must not be an active link: '+name);
+  else ensure(card[1]==='a'&&card[3].includes('href="/destinations/'),
+    'Published regional country must have a working destination link: '+name);
  }
  const sitemap=await get('/sitemap.xml');
  ensure(sitemap.response.status===200,'Sitemap unavailable');
