@@ -155,7 +155,7 @@ const report={origin,github_source_sha:process.env.GITHUB_SHA||null,cloudflare_d
  decision:failed?'AUTOMATED_CHECKS_FAILED':'AUTOMATED_CHECKS_PASS__MANUAL_GATES_OPEN',
  note:'Automated checks intentionally exclude owner-only Cloudflare settings, inbox receipt and any database mutations.'};
 writeFileSync('sprint1-production-security.json',JSON.stringify(report,null,2));
-console.log('\nTripCaution Sprint 1 production/security:',pass+'/'+results.length,'PASS');
+console.log('\nTripCaution release smoke (including Sprint 2):',pass+'/'+results.length,'PASS');
 for(const r of results)console.log(r.status,r.name,r.details);
 for(const w of warnings)console.log('WARNING',w);
 for(const g of manualGates)console.log('MANUAL GATE',g);
