@@ -1,6 +1,9 @@
 
 const $=id=>document.getElementById(id);
-const state={articles:[],categories:[],selected:null,dirty:false,previewOpened:false};
+const state={articles:[],categories:[],selected:null,dirty:false};
+const selectedIds=new Set();
+let quickBusy=false;
+let pendingSchedule=null;
 const escapeHTML=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 async function api(path,options={}){
  const response=await fetch(path,{...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})},credentials:'same-origin'});
@@ -42,22 +45,62 @@ async function refresh(){
  $('edit-category').innerHTML=state.categories.map(c=>'<option value="'+escapeHTML(c.id)+'">'+escapeHTML(c.name)+'</option>').join('');
  renderArticles();renderQueue();
 }
+function visibleArticles(){
+ const q=$('article-search').value.trim().toLowerCase(),filter=$('article-filter').value;
+ return state.articles.filter(a=>(!filter||a.status===filter)&&(!q||[a.title,a.country,a.city].join(' ').toLowerCase().includes(q)));
+}
+function selectedVisible(){
+ return visibleArticles().filter(a=>selectedIds.has(a.id));
+}
+function updateBulkToolbar(){
+ const visible=visibleArticles(),selected=selectedVisible();
+ const all=$('select-all-visible');
+ all.checked=visible.length>0&&selected.length===visible.length;
+ all.indeterminate=selected.length>0&&selected.length<visible.length;
+ all.disabled=visible.length===0||quickBusy;
+ $('bulk-count').textContent=selected.length+' selected';
+ const has=selected.length>0&&!quickBusy;
+ for(const name of ['publish','hide','schedule','restore','delete'])$('bulk-'+name).disabled=!has;
+ $('bulk-clear').disabled=!has;
+}
+function quickOptions(a){
+ const ops=['<option value="">Quick action…</option>'];
+ if(['review','draft','hidden','scheduled'].includes(a.status)){
+  ops.push('<option value="publish">Publish now</option><option value="schedule">Schedule…</option>');
+ }
+ if(!['hidden','deleted','archived'].includes(a.status))ops.push('<option value="hide">Hide · private</option>');
+ if(['hidden','archived','deleted'].includes(a.status))ops.push('<option value="restore">Restore draft</option>');
+ if(['published','scheduled','draft','hidden'].includes(a.status))ops.push('<option value="review">Move to Review</option>');
+ if(a.status!=='deleted')ops.push('<option value="delete">Delete · recoverable</option>');
+ return ops.join('');
+}
 function renderArticles(){
- const q=$('article-search').value.toLowerCase(),filter=$('article-filter').value;
- const rows=state.articles.filter(a=>(!filter||a.status===filter)&&(!q||[a.title,a.country,a.city].join(' ').toLowerCase().includes(q)));
+ const rows=visibleArticles();
  $('article-rows').innerHTML=rows.map(a=>{
-  const published=a.status==='published';
+  const published=a.status==='published',deleted=a.status==='deleted';
   const link=published?'/guides/'+encodeURIComponent(a.slug):'/admin/preview/'+encodeURIComponent(a.id);
-  const linkText=published?'View live ↗':'Preview ↗';
-  const trackPreview=published?'':' data-preview-id="'+escapeHTML(a.id)+'" data-preview-update="'+escapeHTML(a.updated_at||'')+'"';
-  const editText=a.status==='review'?'Review →':'Edit →';
-  const statusLabel=a.status==='review'?'AWAITING YOUR REVIEW':a.status.toUpperCase();
-  return '<tr><td><strong>'+escapeHTML(a.title)+'</strong><small>'+escapeHTML([a.city,a.country].filter(Boolean).join(', '))+'</small></td><td>'+escapeHTML(a.category_id)+'</td><td><span class="status '+escapeHTML(a.status)+'" title="'+escapeHTML(statusLabel)+'">'+escapeHTML(statusLabel)+'</span></td><td>'+escapeHTML(a.scheduled_at||a.published_at||'—')+'</td><td><div class="row-actions"><a class="preview-row-link" href="'+escapeHTML(link)+'" target="_blank" rel="noopener noreferrer"'+trackPreview+'>'+linkText+'</a><button type="button" class="review-row-btn edit-link" data-id="'+escapeHTML(a.id)+'">'+editText+'</button></div></td></tr>';
- }).join('')||'<tr><td colspan="5">No articles match this view.</td></tr>';
- document.querySelectorAll('.edit-link').forEach(btn=>btn.onclick=()=>loadArticle(btn.dataset.id));
- document.querySelectorAll('#article-rows [data-preview-id]').forEach(link=>link.addEventListener('click',()=>{
-   sessionStorage.setItem('tc-preview:'+link.dataset.previewId,link.dataset.previewUpdate);
+  const trackPreview=published||deleted?'':' data-preview-id="'+escapeHTML(a.id)+'" data-preview-update="'+escapeHTML(a.updated_at||'')+'"';
+  const viewLink=deleted?'<span class="deleted-label">Deleted</span>':
+   '<a class="preview-row-link" href="'+escapeHTML(link)+'" target="_blank" rel="noopener noreferrer"'+trackPreview+'>'+(published?'View live ↗':'Preview ↗')+'</a>';
+  const statusLabel=a.status==='review'?'AWAITING REVIEW':a.status.toUpperCase();
+  return '<tr><td class="select-col"><input type="checkbox" class="row-select" data-id="'+escapeHTML(a.id)+'" aria-label="Select '+escapeHTML(a.title)+'"'+(selectedIds.has(a.id)?' checked':'')+'></td>'+
+   '<td><strong>'+escapeHTML(a.title)+'</strong><small>'+escapeHTML([a.city,a.country].filter(Boolean).join(', '))+'</small></td>'+
+   '<td>'+escapeHTML(a.category_id)+'</td><td><span class="status '+escapeHTML(a.status)+'">'+escapeHTML(statusLabel)+'</span></td>'+
+   '<td>'+escapeHTML(a.scheduled_at||a.published_at||'—')+'</td>'+
+   '<td><div class="row-actions">'+viewLink+
+   '<button type="button" class="review-row-btn edit-link" data-id="'+escapeHTML(a.id)+'">'+(a.status==='review'?'Review →':'Edit →')+'</button>'+
+   '<select class="row-quick" data-id="'+escapeHTML(a.id)+'" aria-label="Quick actions for '+escapeHTML(a.title)+'">'+quickOptions(a)+'</select></div></td></tr>';
+ }).join('')||'<tr><td colspan="6">No articles match this view.</td></tr>';
+ document.querySelectorAll('#article-rows .edit-link').forEach(btn=>btn.onclick=()=>loadArticle(btn.dataset.id));
+ document.querySelectorAll('#article-rows .row-select').forEach(el=>el.addEventListener('change',()=>{
+  if(el.checked)selectedIds.add(el.dataset.id);else selectedIds.delete(el.dataset.id);
+  updateBulkToolbar();
  }));
+ document.querySelectorAll('#article-rows .row-quick').forEach(drop=>drop.addEventListener('change',()=>{
+  const action=drop.value;drop.value='';
+  if(action)quickRowAction(drop.dataset.id,action);
+ }));
+ updateBulkToolbar();
 }
 function renderQueue(){
  const rows=state.articles.filter(a=>['review','scheduled','draft'].includes(a.status)).sort((a,b)=>(a.scheduled_at||'9999').localeCompare(b.scheduled_at||'9999'));
@@ -67,8 +110,21 @@ function renderQueue(){
    sessionStorage.setItem('tc-preview:'+link.dataset.previewId,link.dataset.previewUpdate);
  }));
 }
-$('article-search').addEventListener('input',renderArticles);
-$('article-filter').addEventListener('change',renderArticles);
+function clearSelection(){
+ selectedIds.clear();renderArticles();
+}
+$('article-search').addEventListener('input',clearSelection);
+$('article-filter').addEventListener('change',clearSelection);
+$('select-all-visible').addEventListener('change',event=>{
+ // Only select currently visible rows; never silently include filtered-out articles.
+ const visible=visibleArticles();
+ for(const a of visible){
+  if(event.target.checked)selectedIds.add(a.id);
+  else selectedIds.delete(a.id);
+ }
+ renderArticles();
+});
+$('bulk-clear').addEventListener('click',clearSelection);
 $('json-file').addEventListener('change',async ev=>{
  const file=ev.target.files[0];if(file){if(file.size>2_000_000){toast('JSON file is too large',true);return;}$('json-input').value=await file.text();}
 });
