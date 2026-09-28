@@ -30,9 +30,22 @@ function layout(env, title, body, meta={}) {
  <p>Know before you go. Independent travel information with linked sources. Not an emergency alert service.</p></div>
  <div><strong>EXPLORE</strong><a href="/destinations">Destinations</a><a href="/#latest">Latest guides</a></div>
  <div><strong>INFORMATION</strong><a href="/about">About & editorial policy</a><a href="/privacy">Privacy</a><a href="/contact">Contact</a></div>
- </div><div class="shell foot-bottom"><span>© ${new Date().getUTCFullYear()} TripCaution</span><span>Travel prepared. Travel curious.</span></div></footer></body></html>`;
+ </div><div class="shell foot-bottom"><span>© ${new Date().getUTCFullYear()} TripCaution</span><span>Travel prepared. Travel curious.</span></div></footer><script src="/site.js" defer></script></body></html>`;
 }
-function html(content,status=200,headers={}) {return new Response(content,{status,headers:{'content-type':'text/html; charset=utf-8','x-content-type-options':'nosniff',...headers}});}
+// Public and owner pages do not need arbitrary scripts, framing or device APIs.
+// Update CSP deliberately when an ad or analytics provider is actually enabled.
+const SITE_CSP=["default-src 'self'","base-uri 'self'","object-src 'none'","frame-ancestors 'none'",
+ "script-src 'self'","style-src 'self' https://fonts.googleapis.com",
+ "font-src 'self' https://fonts.gstatic.com","img-src 'self' https: data:",
+ "connect-src 'self'","form-action 'self'","upgrade-insecure-requests"].join('; ');
+const SITE_PERMISSIONS='camera=(), microphone=(), geolocation=(), payment=()';
+function html(content,status=200,headers={}) {
+ return new Response(content,{status,headers:{
+  'content-type':'text/html; charset=utf-8','x-content-type-options':'nosniff',
+  'x-frame-options':'DENY','content-security-policy':SITE_CSP,
+  'permissions-policy':SITE_PERMISSIONS,'referrer-policy':'strict-origin-when-cross-origin',...headers
+ }});
+}
 const utc = str => str?new Date(str).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric',timeZone:'UTC'}):'Not yet verified';
 function articleCard(a,variant='standard') {
  const path='/guides/'+encodeURIComponent(a.slug);
@@ -205,7 +218,7 @@ function renderGuideArticle(env,a,preview=false,reviewedAt=null){
  <div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
  <div class="prose">${markdown(a.content_markdown)}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
  <p class="verified research-date-note">${reviewedAt?'<strong>Last editorial review: '+esc(utc(reviewedAt))+'.</strong> ':''}${researchNote}</p></section></article>
- <aside class="article-aside"><div class="aside-card"><span>THE QUICK TAKE</span><h3>Keep exploring.<br><em>Stay informed.</em></h3><p>Travel is better when you know what to expect.</p><a href="/destinations/${slugify(a.country)}">More in ${esc(a.country)} ↗</a></div><div class="aside-share">SHARE THIS GUIDE <button type="button" onclick="navigator.clipboard.writeText(location.href).then(()=>this.textContent='Copied!')">Copy link ↗</button></div></aside></div></main>`;
+ <aside class="article-aside"><div class="aside-card"><span>THE QUICK TAKE</span><h3>Keep exploring.<br><em>Stay informed.</em></h3><p>Travel is better when you know what to expect.</p><a href="/destinations/${slugify(a.country)}">More in ${esc(a.country)} ↗</a></div><div class="aside-share">SHARE THIS GUIDE <button type="button" data-copy-guide>Copy link ↗</button></div></aside></div></main>`;
  const previewBanner=preview?`<aside class="editorial-preview-banner" role="note"><div class="shell editorial-preview-inner"><div><strong>PRIVATE PREVIEW · ${a.status==='published'?'CURRENTLY LIVE':'NOT PUBLISHED'}</strong><p>This is the last SAVED version, shown in the public article layout. Verify all claims, source links, dates and images before approval. This URL only works when signed in.</p></div><a href="/admin?edit=${encodeURIComponent(a.id)}">← Back to editor</a></div></aside>`:'';
  const page=layout(env,a.seo_title||a.title,previewBanner+body,{path:'/guides/'+a.slug,description:a.seo_description||a.excerpt,image:a.hero_image_url,noindex:preview,preview});
  return html(page,200,preview?{'cache-control':'private, no-store','x-robots-tag':'noindex, nofollow, noarchive','referrer-policy':'no-referrer','x-frame-options':'DENY'}:{'cache-control':'public, max-age=60'});
@@ -571,6 +584,7 @@ export default {
     headers.set('cache-control','private, no-store');
     headers.set('referrer-policy','no-referrer');
     headers.set('x-frame-options','DENY');
+    headers.set('permissions-policy',SITE_PERMISSIONS);
     headers.set('content-security-policy',"default-src 'none'; base-uri 'none'; frame-ancestors 'none'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; connect-src 'self'; form-action 'self'");
     return new Response(asset.body,{status:asset.status,headers});
    }
@@ -618,6 +632,8 @@ export default {
     headers.set('cache-control','private, no-store');
     headers.set('referrer-policy','no-referrer');
     headers.set('x-frame-options','DENY');
+    headers.set('content-security-policy',SITE_CSP);
+    headers.set('permissions-policy',SITE_PERMISSIONS);
     return new Response(asset.body,{status:asset.status,headers});
    }
    if(path.startsWith('/api/'))return await api(request,env,url);
