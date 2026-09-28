@@ -25,11 +25,14 @@ test('legacy categories count toward the correct topic without inflating unrevie
  ];
  const data=summarizeCountryTopicCounts(rows,['Singapore','Vietnam','Malaysia'],cautionTopicForCategory);
  assert.equal(data[0].published,2);
+ assert.equal(data[0].firstPassCovered,1);
+ assert.equal(data[0].depthCovered,2);
  assert.equal(data[0].pipeline,4);
  assert.equal(data[0].topics.find(t=>t.slug==='transport').published,2);
  assert.equal(data[0].topics.find(t=>t.slug==='scams-theft').pipeline,1);
  assert.equal(data[0].topics.find(t=>t.slug==='payments-money').pipeline,3);
  assert.equal(data[1].published,1);
+ assert.equal(data[1].firstPassCovered,1);
  assert.equal(data[2].published,0);
 });
 test('new coverage matrix is private and tracks actual database rows rather than invented guides',async()=>{
