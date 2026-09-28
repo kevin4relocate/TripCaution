@@ -316,8 +316,8 @@ async function permanentlyPurge(ids=null){
   if(!count){toast('Trash is already empty.');return;}
   const warning=(selected?'Permanently erase '+count+' selected deleted article(s)?':
    'EMPTY ALL TRASH: Permanently erase '+count+' deleted article(s), including any not loaded in this table?')+
-   '\\n\\nThis removes the articles and their article-linked audit entries from D1. It cannot be undone through Admin. Save a D1 backup before continuing. Cloudflare R2 image objects are NOT deleted.'+
-   '\\n\\nType PERMANENTLY DELETE to confirm:';
+   '\n\nThis removes the articles and their article-linked audit entries from D1. It cannot be undone through Admin. Save a D1 backup before continuing. Cloudflare R2 image objects are NOT deleted.'+
+   '\n\nType PERMANENTLY DELETE to confirm:';
   if(window.prompt(warning)!=='PERMANENTLY DELETE'){
    toast('Permanent deletion canceled.');return;
   }
