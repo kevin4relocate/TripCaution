@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 440" role="img" aria-labelledby="title desc">
+<title id="title">Illustrated travel journal landscape</title>
+<desc id="desc">A softly painted coastal travel scene with winding paths, warm sun, distant hills, and little houses.</desc>
+<defs>
+  <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#f4e6c9"/><stop offset=".75" stop-color="#f9e8cc"/><stop offset="1" stop-color="#e7e9d9"/></linearGradient>
+  <linearGradient id="hill" x1=".2" x2=".9" y1=".1" y2=".9"><stop stop-color="#b3c4a9"/><stop offset="1" stop-color="#839f89"/></linearGradient>
+  <linearGradient id="ground" x1=".2" x2=".9"><stop stop-color="#cfceb1"/><stop offset="1" stop-color="#a8b69a"/></linearGradient>
+  <linearGradient id="sea" x1="0" x2="1"><stop stop-color="#b8cbd0"/><stop offset="1" stop-color="#d7dbd0"/></linearGradient>
+  <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".46" numOctaves="3" seed="8" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".09"/></feComponentTransfer></filter>
+</defs>
+<rect width="720" height="440" fill="url(#sky)"/>
+<circle cx="528" cy="110" r="63" fill="#e6b887" opacity=".84"/>
+<circle cx="527" cy="110" r="77" fill="none" stroke="#e0bd91" opacity=".34"/>
+<path d="M0 246 Q64 205 141 227 T275 208 Q326 178 380 224 T504 205 Q594 185 720 240V440H0Z" fill="#c8cfb7" opacity=".7"/>
+<path d="M0 268 C76 241 112 252 161 269 S276 220 322 255 S423 247 478 256 S616 219 720 250 V440H0Z" fill="url(#hill)" stroke="#829b86" stroke-width="1.6"/>
+<path d="M385 281Q521 226 720 264V393L435 405Z" fill="url(#sea)" opacity=".84"/>
+<path d="M0 306Q109 269 202 297T402 297Q479 282 543 300T720 304V440H0Z" fill="url(#ground)"/>
+<path d="M245 440C277 384 297 358 342 332Q380 313 431 302" fill="none" stroke="#e7d8b5" stroke-width="42" stroke-linecap="round"/>
+<path d="M244 440C277 384 297 358 342 332Q380 313 431 302" fill="none" stroke="#bda88b" stroke-width="1.6" stroke-dasharray="2 7" stroke-linecap="round"/>
+<!-- Architectural travel illustration cluster -->
+<g stroke="#60766b" stroke-width="2.5" stroke-linejoin="round">
+  <path d="M66 263L123 228L186 268V355H66Z" fill="#f2dfbd"/>
+  <path d="M50 262L125 208L202 264L188 275L123 234L64 275Z" fill="#b76f58"/>
+  <rect x="108" y="287" width="28" height="68" rx="13" fill="#78958b"/>
+  <path d="M82 286H97V310H82ZM151 286H169V310H151Z" fill="#c7d6c4"/>
+  <path d="M175 290L225 260L270 292V370H175Z" fill="#ead3af"/>
+  <path d="M165 289L226 248L280 288L267 298L225 268L178 302Z" fill="#ad7662"/>
+  <rect x="203" y="314" width="20" height="24" rx="10" fill="#92afa2"/>
+  <rect x="244" y="314" width="16" height="24" rx="8" fill="#92afa2"/>
+  <path d="M476 262L514 230L558 263V316H476Z" fill="#f3e4c8"/>
+  <path d="M470 261L515 223L563 260L552 267L514 237L479 271Z" fill="#ba8061"/>
+  <path d="M499 278H513V296H499Z" fill="#8ba898"/>
+</g>
+<!-- trees -->
+<g stroke="#677e68" stroke-linecap="round" stroke-width="3" fill="none">
+  <path d="M32 340L40 283M41 320L22 301M38 299L54 280M293 338L299 287M298 315L281 301M299 304L315 292M590 329L599 274M599 300L580 279M602 294L619 270"/>
+</g>
+<g fill="#73917a" opacity=".87"><circle cx="26" cy="288" r="19"/><circle cx="47" cy="274" r="24"/><circle cx="60" cy="300" r="18"/><circle cx="290" cy="286" r="18"/><circle cx="309" cy="278" r="22"/><circle cx="597" cy="273" r="22"/><circle cx="619" cy="292" r="20"/></g>
+<g stroke="#647e6d" stroke-width="1" fill="none" opacity=".44">
+  <path d="M0 349Q38 341 64 354M361 354Q390 346 416 352M510 343Q541 334 571 344M612 380q48 -8 90 0M491 368q43 -6 77 0"/>
+  <path d="M350 242q10 -8 21 0m6 0q11 -8 21 0m-39 15q10 -8 21 0"/>
+</g>
+<g fill="#bd8f6d" opacity=".6"><ellipse cx="40" cy="389" rx="20" ry="4"/><ellipse cx="646" cy="324" rx="26" ry="3"/><ellipse cx="398" cy="420" rx="20" ry="3"/></g>
+<rect width="720" height="440" filter="url(#grain)" opacity=".54"/>
+</svg>
