@@ -1,0 +1,29 @@
+name: TripCaution daily research
+on:
+  workflow_dispatch:
+  schedule:
+    # 02:17 Singapore time (18:17 UTC previous day).
+    - cron: '17 18 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: tripcaution-daily-editorial
+  cancel-in-progress: false
+jobs:
+  create-article:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate one researched article
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          TRIPCAUTION_API_URL: ${{ vars.TRIPCAUTION_API_URL }}
+          TRIPCAUTION_INGEST_TOKEN: ${{ secrets.TRIPCAUTION_INGEST_TOKEN }}
+        run: python automation/daily.py

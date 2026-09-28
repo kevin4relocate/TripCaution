@@ -1,0 +1,292 @@
+
+import { jwtVerify, createRemoteJWKSet } from 'jose';
+import { normalizeArticle, STATUSES, CATEGORIES, canAutoPublish, isValidSchedule, slugify } from './content.js';
+
+const json = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
+const esc = value => String(value??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safe = (url) => { try {const u=new URL(url);return u.protocol==='https:'?u.href:null;} catch{return null;} };
+const safeParse = (value, fallback=[]) => {try {return JSON.parse(value);}catch{return fallback;}};
+const link = (href,text,cls='') => '<a href="'+esc(href)+'" class="'+cls+'">'+esc(text)+'</a>';
+const siteURL = env => (env.SITE_URL||'https://tripcaution.com').replace(/\/$/,'');
+const nav = '<a href="/">Explore</a><a href="/#destinations">Destinations</a><a href="/#latest">Latest guides</a><a href="/about">Our approach</a>';
+function layout(env, title, body, meta={}) {
+ const description=meta.description||'Evidence-led travel precautions and practical guides. Know before you go.';
+ const url=siteURL(env)+(meta.path||'/');
+ const image=safe(meta.image);
+ return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>${esc(title)} | TripCaution</title><meta name="description" content="${esc(description)}">
+ <link rel="canonical" href="${esc(url)}"><meta property="og:title" content="${esc(title)} | TripCaution">
+ <meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}"><meta property="og:type" content="website">
+ ${image?'<meta property="og:image" content="'+esc(image)+'">':''}
+ <link rel="stylesheet" href="/styles.css"><link rel="icon" type="image/svg+xml" href="/favicon.svg">
+ </head><body><header class="header"><div class="shell nav-wrap"><a class="brand" href="/" aria-label="TripCaution homepage"><span class="brand-mark">!</span>TRIP<span>CAUTION</span></a>
+ <nav aria-label="Main navigation">${nav}</nav><a href="/#destinations" class="header-cta">Explore destinations <span>↗</span></a></div></header>
+ ${body}<footer><div class="shell footer-grid"><div><div class="footer-brand">TRIP<span>CAUTION</span><span class="tiny-star"> ✳</span></div>
+ <p>Know before you go. Independent travel information with linked sources. Not an emergency alert service.</p></div>
+ <div><strong>EXPLORE</strong><a href="/#destinations">Destinations</a><a href="/#latest">Latest guides</a></div>
+ <div><strong>INFORMATION</strong><a href="/about">About & editorial policy</a><a href="/privacy">Privacy</a><a href="/contact">Contact</a></div>
+ </div><div class="shell foot-bottom"><span>© ${new Date().getUTCFullYear()} TripCaution</span><span>Travel prepared. Travel curious.</span></div></footer></body></html>`;
+}
+function html(content,status=200,headers={}) {return new Response(content,{status,headers:{'content-type':'text/html; charset=utf-8','x-content-type-options':'nosniff',...headers}});}
+const utc = str => str?new Date(str).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric',timeZone:'UTC'}):'Not yet verified';
+function articleCard(a, featured=false) {
+ const path='/guides/'+encodeURIComponent(a.slug);
+ const country=esc(a.country), category=esc(a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
+ return `<article class="guide-card ${featured?'featured':''}"><a class="card-visual" href="${path}">
+ ${safe(a.hero_image_url)?'<img loading="lazy" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
+ <span class="visual-tag">${category}</span></a><div class="card-body"><div class="eyebrow">${country}${a.city?' <span>·</span> '+esc(a.city):''}</div>
+ <h3><a href="${path}">${esc(a.title)}</a></h3><p>${esc(a.excerpt||'A practical guide to help you plan more confidently.')}</p>
+ <div class="card-bottom"><span>${a.verified_at?'Verified '+esc(utc(a.verified_at)):'Editorial guide'}</span><a href="${path}" aria-label="Read guide">↗</a></div></div></article>`;
+}
+async function homepage(env){
+ let latest=[],countryRows=[],count=0;
+ if(env.DB) {
+  const [a,c,n] = await Promise.all([
+   env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') ORDER BY a.published_at DESC LIMIT 6").all(),
+   env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country ORDER BY total DESC LIMIT 18").all(),
+   env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published' AND published_at<=datetime('now')").first()
+  ]);
+  latest=a.results;countryRows=c.results;count=n.count;
+ }
+ const destinations=['Vietnam','Cambodia','Thailand','Laos','Japan','Singapore','France','Indonesia','Malaysia','Italy','Spain','United States'];
+ const countries=[...new Set([...countryRows.map(x=>x.country),...destinations])].slice(0,18);
+ const body=`<main><section class="hero"><div class="hero-texture"></div><div class="shell hero-content">
+ <div class="pill"><span class="live-dot"></span> THE SMARTER WAY TO EXPLORE</div>
+ <h1>The world is beautiful.<br><em>Know what to avoid.</em></h1>
+ <p class="hero-description">Honest, well-researched travel precautions, common mistakes and local know-how. So the only surprises you bring home are the good ones.</p>
+ <form class="destination-search" action="/search" method="get"><span class="search-icon">⌕</span><label class="sr-only" for="q">Search destinations and guides</label><input id="q" type="search" name="q" placeholder="Where are you heading?" required maxlength="80">
+ <button type="submit">Explore guides <span>↗</span></button></form>
+ <div class="search-hints"><span>POPULAR:</span>${['Vietnam','Bangkok','Cambodia'].map(x=>link('/destinations/'+slugify(x),x)).join('')}</div>
+ </div><div class="hero-art" aria-hidden="true"><div class="circle-one"></div><div class="circle-two"></div><div class="hero-landscape"><div class="sun"></div><div class="mountain m1"></div><div class="mountain m2"></div><div class="road"></div></div><div class="hero-stamp">BE CURIOUS.<br>BE PREPARED. <span>↗</span></div></div></section>
+ <section class="value-bar"><div class="shell value-grid"><div><span>01 /</span><b>Research first</b><small>Information linked to sources</small></div><div><span>02 /</span><b>Stay aware</b><small>Practical advice, not fear</small></div><div><span>03 /</span><b>Go confidently</b><small>Know what matters before you go</small></div></div></section>
+ <section class="section shell" id="destinations"><div class="section-heading"><div><div class="eyebrow">YOUR NEXT STOP</div><h2>Everywhere starts <em>somewhere.</em></h2><p>Pick a destination to explore local customs, common pitfalls and practical precautions.</p></div><span class="section-icon">✳</span></div>
+ <div class="destination-grid">${countries.map((x,i)=>`<a class="destination-tile tone-${i%6}" href="/destinations/${slugify(x)}"><span class="destination-number">${String(i+1).padStart(2,'0')}</span><span class="destination-name">${esc(x)}</span><span class="destination-arrow">↗</span></a>`).join('')}</div></section>
+ <section class="section alt-section" id="latest"><div class="shell"><div class="section-heading"><div><div class="eyebrow">THE FIELD NOTES</div><h2>Good to know <em>before you go.</em></h2><p>Carefully sourced articles on everyday travel decisions.</p></div><span class="guide-count">${count} PUBLISHED GUIDES</span></div>
+ ${latest.length?'<div class="guide-grid">'+latest.map(a=>articleCard(a)).join('')+'</div>':'<div class="empty-state"><span>✳</span><h3>Our first field notes are on their way.</h3><p>We publish only when research and source checks meet our editorial standards. Explore a destination or return soon.</p></div>'}
+ </div></section><section class="shell prefooter"><span>THE TRIPCAUTION PHILOSOPHY</span><h2>More wonder.<br><em>Less worry.</em></h2><p>Travel caution isn't about staying home. It's about arriving informed and experiencing more.</p><a href="/about" class="pill-button">How we research <span>↗</span></a></section></main>`;
+ return html(layout(env,'Know before you go',body,{path:'/'}),200,{'cache-control':'public, max-age=60'});
+}
+async function destinationPage(env,slug){
+ const all=env.DB?await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND lower(replace(a.country,' ','-'))=? ORDER BY a.published_at DESC LIMIT 100").bind(slug).all():{results:[]};
+ const common={'vietnam':'Vietnam','cambodia':'Cambodia','thailand':'Thailand','laos':'Laos','japan':'Japan','singapore':'Singapore','france':'France','indonesia':'Indonesia','malaysia':'Malaysia','italy':'Italy','spain':'Spain','united-states':'United States'};
+ const country=common[slug]||all.results[0]?.country;
+ if(!country)return html(layout(env,'Destination not found','<main class="shell simple"><h1>We could not find that destination.</h1><a href="/">Explore destinations ↗</a></main>'),404);
+ const articles=all.results, grouped=Object.groupBy?Object.groupBy(articles,a=>a.city||'All areas'):{};
+ const body=`<main><div class="destination-hero"><div class="shell"><a class="backlink" href="/">← All destinations</a><div class="eyebrow">DESTINATION GUIDE / ${esc(country.toUpperCase())}</div><h1>${esc(country)}<span class="title-star"> ✳</span></h1><p>What to know, what to double-check, and how to travel with more confidence.</p><span class="dest-count">${articles.length} RESEARCHED GUIDES</span></div></div><section class="section shell">
+ ${articles.length?'<div class="guide-grid">'+articles.map(a=>articleCard(a)).join('')+'</div>':'<div class="empty-state"><span>✳</span><h3>Research in progress.</h3><p>We are building carefully sourced guides for this destination. No warnings are published until evidence is checked.</p></div>'}
+ </section></main>`;
+ return html(layout(env,country+' travel precautions',body,{path:'/destinations/'+slug,description:'Travel precautions, cultural considerations and researched guides for '+country+'.'}));
+}
+function renderInline(s){
+ let out=esc(s);
+ out=out.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+ out=out.replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g,(_full,label,url)=>'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer nofollow">'+label+'</a>');
+ return out;
+}
+function markdown(md) {
+ const lines=String(md||'').split(/\r?\n/), chunks=[]; let list=false;
+ for(const line of lines){
+  if(/^\s*[-*] /.test(line)){if(!list){chunks.push('<ul>');list=true;}chunks.push('<li>'+renderInline(line.replace(/^\s*[-*] /,''))+'</li>');continue;}
+  if(list){chunks.push('</ul>');list=false;}
+  if(/^### /.test(line))chunks.push('<h3>'+renderInline(line.slice(4))+'</h3>');
+  else if(/^## /.test(line))chunks.push('<h2>'+renderInline(line.slice(3))+'</h2>');
+  else if(/^# /.test(line))chunks.push('<h2>'+renderInline(line.slice(2))+'</h2>');
+  else if(/^> /.test(line))chunks.push('<blockquote>'+renderInline(line.slice(2))+'</blockquote>');
+  else if(line.trim())chunks.push('<p>'+renderInline(line.trim())+'</p>');
+ }
+ if(list)chunks.push('</ul>');
+ return chunks.join('');
+}
+async function guidePage(env,slug){
+ const a=env.DB?await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.slug=? AND a.status='published' AND a.published_at<=datetime('now') LIMIT 1").bind(slug).first():null;
+ if(!a)return html(layout(env,'Guide unavailable','<main class="shell simple"><h1>Guide not found.</h1><a href="/">Browse destinations ↗</a></main>'),404);
+ const sources=safeParse(a.sources_json).filter(s=>safe(s.url));
+ const body=`<main><div class="article-top"><div class="shell article-head"><a href="/destinations/${slugify(a.country)}" class="backlink">← ${esc(a.country)} guides</a><div class="eyebrow">${esc(a.country.toUpperCase())}${a.city?' / '+esc(a.city.toUpperCase()):''} / ${esc((a.category_name||'GUIDE').toUpperCase())}</div><h1>${esc(a.title)}</h1><p class="article-deck">${esc(a.excerpt)}</p>
+ <div class="article-meta"><span>TRIPCAUTION EDITORIAL</span><span>VERIFIED: ${esc(utc(a.verified_at))}</span><span>${sources.length} SOURCES</span></div></div></div>
+ <div class="shell article-wrap"><article class="article-content">${safe(a.hero_image_url)?'<figure class="hero-image"><img src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial illustration')+'"><figcaption>AI-generated editorial illustration; not a photograph or evidence of an incident.</figcaption></figure>':''}
+ <div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
+ <div class="prose">${markdown(a.content_markdown)}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
+ <p class="verified">Last checked: ${esc(utc(a.verified_at))}</p></section></article>
+ <aside class="article-aside"><div class="aside-card"><span>THE QUICK TAKE</span><h3>Keep exploring.<br><em>Stay informed.</em></h3><p>Travel is better when you know what to expect.</p><a href="/destinations/${slugify(a.country)}">More in ${esc(a.country)} ↗</a></div><div class="aside-share">SHARE THIS GUIDE <button type="button" onclick="navigator.clipboard.writeText(location.href).then(()=>this.textContent='Copied!')">Copy link ↗</button></div></aside></div></main>`;
+ return html(layout(env,a.seo_title||a.title,body,{path:'/guides/'+a.slug,description:a.seo_description||a.excerpt,image:a.hero_image_url}),200,{'cache-control':'public, max-age=60'});
+}
+function staticPage(env,type){
+ const pages={
+ about:['About & editorial policy','We believe awareness makes better journeys. TripCaution publishes research-based guides, not first-hand reviews. Our articles explain relevant precautions, provide practical steps, and link to their sources.','We avoid naming individual small businesses as unsafe or fraudulent without strong verified evidence. High-impact claims, including legal and safety alerts, require human editorial approval. We correct or withdraw material if the supporting evidence changes. AI may assist research and drafting, but published claims are the responsibility of our editorial process. AI-generated illustrations are labeled and never presented as photos or evidence.'],
+ privacy:['Privacy policy','This website uses essential technical processing to provide its pages and protect admin access. We do not currently provide user accounts or sell visitor data.','If analytics, advertising, or affiliate programs are enabled, this policy must be updated before those tools are activated. Admin identity is processed through Cloudflare Access when configured.'],
+ contact:['Contact & corrections','To request a correction, report an outdated source, or inquire about TripCaution, please use the contact details we publish once the site is configured.','Until an editorial contact address is configured, do not treat this site as an emergency reporting channel. Contact local authorities in an emergency.']
+ };
+ const p=pages[type];
+ return html(layout(env,p[0],'<main class="shell simple"><div class="eyebrow">TRIPCAUTION / INFORMATION</div><h1>'+esc(p[0])+'</h1><p>'+esc(p[1])+'</p><p>'+esc(p[2])+'</p><a href="/">← Back home</a></main>',{path:'/'+type}));
+}
+async function searchPage(env,url){
+ const q=String(url.searchParams.get('q')||'').slice(0,80).trim();
+ const rows=q&&env.DB?(await env.DB.prepare("SELECT * FROM articles WHERE status='published' AND published_at<=datetime('now') AND (title LIKE ? OR country LIKE ? OR city LIKE ?) ORDER BY published_at DESC LIMIT 30").bind(...Array(3).fill('%'+q+'%')).all()).results:[];
+ return html(layout(env,'Search',`<main class="shell simple search-results"><div class="eyebrow">DISCOVER</div><h1>Search TripCaution</h1><form action="/search" class="inline-search"><input name="q" maxlength="80" placeholder="Country, city or topic" value="${esc(q)}"><button>Search ↗</button></form><p>${rows.length} results ${q?'for '+esc(q):''}</p><div class="guide-grid">${rows.map(a=>articleCard(a)).join('')}</div></main>`,{path:'/search'}),200,{'x-robots-tag':'noindex'});
+}
+async function requireAdmin(request,env){
+ if(!env.ACCESS_TEAM_DOMAIN||!env.ACCESS_AUD)throw Object.assign(new Error('Admin access is not configured'),{status:503});
+ const assertion=request.headers.get('Cf-Access-Jwt-Assertion');
+ if(!assertion)throw Object.assign(new Error('Cloudflare Access login required'),{status:401});
+ const domain=env.ACCESS_TEAM_DOMAIN.replace(/^https?:\/\//,'').replace(/\/$/,'');
+ if(!/^[a-z0-9.-]+\.cloudflareaccess\.com$/i.test(domain))throw Object.assign(new Error('Invalid Access configuration'),{status:503});
+ const issuer='https://'+domain;
+ const jwks=createRemoteJWKSet(new URL(issuer+'/cdn-cgi/access/certs'));
+ try {
+  const {payload}=await jwtVerify(assertion,jwks,{issuer,audience:env.ACCESS_AUD});
+  const email=String(payload.email||'');
+  if(env.ADMIN_EMAIL && email.toLowerCase()!==env.ADMIN_EMAIL.toLowerCase())throw Error('Not the configured administrator');
+  return email||String(payload.sub);
+ } catch {throw Object.assign(new Error('Not authorized'),{status:403});}
+}
+async function requireIngest(request,env){
+ if(!env.INGEST_TOKEN || env.INGEST_TOKEN.length<32)throw Object.assign(new Error('Ingest token not configured'),{status:503});
+ const provided=request.headers.get('Authorization')?.replace(/^Bearer /i,'')||'';
+ const enc=new TextEncoder();
+ const [x,y]=await Promise.all([crypto.subtle.digest('SHA-256',enc.encode(provided)),crypto.subtle.digest('SHA-256',enc.encode(env.INGEST_TOKEN))]);
+ const a=new Uint8Array(x),b=new Uint8Array(y);let diff=0;for(let i=0;i<a.length;i++)diff|=a[i]^b[i];
+ if(diff || !provided)throw Object.assign(new Error('Not authorized'),{status:401});
+ return 'github-automation';
+}
+async function audit(env,actor,action,id,details=''){
+ await env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),actor,action,id,details).run();
+}
+async function insertArticle(env,raw,actor){
+ const a=normalizeArticle(raw);
+ const found=await env.DB.prepare("SELECT id,title FROM articles WHERE slug=?").bind(a.slug).first();
+ if(found)throw Object.assign(new Error('Duplicate slug: '+a.slug),{status:409});
+ // Any imported article needs explicit human approval; automation may publish only low-risk evidence-backed content.
+ const automatic=actor==='github-automation' && canAutoPublish(a);
+ const status=automatic?'published':'review', published=automatic?new Date().toISOString():null;
+ await env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+ .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at).run();
+ await audit(env,actor,'created:'+status,a.id);
+ return {id:a.id,title:a.title,slug:a.slug,status};
+}
+async function api(request,env,url,admin=false){
+ if(!env.DB)throw Object.assign(new Error('D1 database missing'),{status:503});
+ const pathname=url.pathname,method=request.method;
+ let actor;
+ if(pathname==='/api/ingest' && method==='POST')actor=await requireIngest(request,env);
+ else actor=await requireAdmin(request,env);
+ if(method==='GET' && pathname==='/api/admin/articles'){
+  const rows=await env.DB.prepare("SELECT id,title,slug,country,city,category_id,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles ORDER BY created_at DESC LIMIT 300").all();
+  return json({articles:rows.results});
+ }
+ if(method==='GET' && pathname==='/api/admin/categories'){
+  return json({categories:(await env.DB.prepare('SELECT * FROM categories ORDER BY name').all()).results});
+ }
+ if(method==='GET' && pathname.startsWith('/api/admin/article/')){
+  const a=await env.DB.prepare('SELECT * FROM articles WHERE id=?').bind(pathname.split('/').pop()).first();
+  return a?json({article:a}):json({error:'Not found'},404);
+ }
+ if(method==='GET' && pathname==='/api/admin/overview'){
+  const status=(await env.DB.prepare("SELECT status,COUNT(*) count FROM articles GROUP BY status").all()).results;
+  const auditLogs=(await env.DB.prepare("SELECT action,created_at FROM audit_logs ORDER BY created_at DESC LIMIT 8").all()).results;
+  return json({status,auditLogs});
+ }
+ if(method==='POST' && (pathname==='/api/ingest'||pathname==='/api/admin/import')){
+  const body=await request.json();
+  const list=Array.isArray(body.articles)?body.articles:[body];
+  if(list.length<1||list.length>30)return json({error:'Import requires 1–30 articles'},400);
+  const results=[];
+  for(const entry of list){try{results.push({ok:true,...await insertArticle(env,entry,actor)});}catch(e){results.push({ok:false,error:e.message,title:entry?.title||''});}}
+  return json({results},207);
+ }
+ if(method==='POST' && pathname==='/api/admin/article'){
+  const body=await request.json();return json(await insertArticle(env,body,actor),201);
+ }
+ const match=pathname.match(/^\/api\/admin\/article\/([a-f0-9-]{36})$/);
+ if(match && method==='PATCH'){
+  const id=match[1],body=await request.json();
+  const old=await env.DB.prepare('SELECT * FROM articles WHERE id=?').bind(id).first();
+  if(!old)return json({error:'Article not found'},404);
+  const action=body.action;
+  if(action){
+   if(!['publish','schedule','hide','archive','delete','restore','review'].includes(action))return json({error:'Unknown action'},400);
+   const target={publish:'published',schedule:'scheduled',hide:'hidden',archive:'archived',delete:'deleted',restore:'draft',review:'review'}[action];
+   if(['publish','schedule'].includes(action)){
+    if(!Number(old.review_approved)&&actor==='github-automation')return json({error:'Approval required'},403);
+    if(safeParse(old.sources_json).length<1||!old.verified_at)return json({error:'Verified date and evidence sources required'},422);
+    if(action==='schedule' && (!isValidSchedule(body.scheduled_at)||Date.parse(body.scheduled_at)<Date.now()))return json({error:'Provide a future ISO 8601 scheduled_at with timezone'},422);
+   }
+   await env.DB.prepare("UPDATE articles SET status=?,review_approved=?,scheduled_at=?,published_at=CASE WHEN ?='published' THEN datetime('now') ELSE published_at END,updated_at=datetime('now') WHERE id=?")
+    .bind(target,['publish','schedule'].includes(action)?1:old.review_approved,target==='scheduled'?body.scheduled_at:null,target,id).run();
+   await audit(env,actor,action,id);return json({ok:true,status:target});
+  }
+  const merged={
+   ...old,...body,seo_title:body.seo_title??old.seo_title,seo_description:body.seo_description??old.seo_description,
+   sources:body.sources??safeParse(old.sources_json),tags:body.tags??safeParse(old.tags_json),
+   research:{verified_at:body.verified_at??old.verified_at,uncertainties:safeParse(old.uncertainties_json)}
+  };
+  const a=normalizeArticle(merged);
+  await env.DB.prepare(`UPDATE articles SET title=?,slug=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,tags_json=?,sources_json=?,seo_title=?,seo_description=?,hero_image_url=?,hero_prompt=?,hero_alt=?,verified_at=?,updated_at=datetime('now'),review_approved=0,status=CASE WHEN status='published' THEN 'review' ELSE status END WHERE id=?`)
+  .bind(a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,a.verified_at,id).run();
+  await audit(env,actor,'edited',id);return json({ok:true});
+ }
+ if(pathname==='/api/admin/media' && method==='POST'){
+  if(!env.MEDIA)return json({error:'R2 not configured; follow README to enable uploads'},503);
+  const type=request.headers.get('content-type')||'';
+  if(!['image/jpeg','image/png','image/webp'].includes(type))return json({error:'Upload JPEG, PNG or WebP only'},415);
+  const bytes=await request.arrayBuffer();
+  if(bytes.byteLength>5*1024*1024)return json({error:'Image exceeds 5 MB'},413);
+  const signature=new Uint8Array(bytes.slice(0,12));
+  const valid=type==='image/png'&&signature[0]===137&&signature[1]===80
+   ||type==='image/jpeg'&&signature[0]===255&&signature[1]===216
+   ||type==='image/webp'&&String.fromCharCode(...signature.slice(0,4))==='RIFF'&&String.fromCharCode(...signature.slice(8,12))==='WEBP';
+  if(!valid)return json({error:'Image bytes do not match content type'},415);
+  const ext={'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[type];
+  const key='editorial/'+crypto.randomUUID()+'.'+ext;
+  await env.MEDIA.put(key,bytes,{httpMetadata:{contentType:type}});
+  await audit(env,actor,'uploaded-image',null,key);
+  return json({url:siteURL(env)+'/media/'+key});
+ }
+ return json({error:'API endpoint not found'},404);
+}
+async function media(env,key){
+ if(!env.MEDIA)return new Response('Not found',{status:404});
+ if(!/^editorial\/[a-f0-9-]{36}\.(png|jpg|webp)$/.test(key))return new Response('Not found',{status:404});
+ const asset=await env.MEDIA.get(key);
+ if(!asset)return new Response('Not found',{status:404});
+ return new Response(asset.body,{headers:{'content-type':asset.httpMetadata?.contentType||'image/webp','cache-control':'public,max-age=31536000,immutable','x-content-type-options':'nosniff'}});
+}
+async function publishDue(env){
+ if(!env.DB)return;
+ // Publish only records manually approved and explicitly scheduled. Idempotent conditional update.
+ await env.DB.prepare("UPDATE articles SET status='published',published_at=datetime('now'),updated_at=datetime('now') WHERE status='scheduled' AND review_approved=1 AND scheduled_at<=datetime('now') AND verified_at IS NOT NULL AND json_array_length(sources_json)>0").run();
+}
+export default {
+ async fetch(request,env){
+  const url=new URL(request.url),path=url.pathname;
+  try {
+   if(path==='/admin'||path.startsWith('/admin/')){
+    await requireAdmin(request,env);
+    return env.ASSETS.fetch(new Request(new URL('/admin.html',request.url),request));
+   }
+   if(path.startsWith('/api/'))return await api(request,env,url);
+   if(path.startsWith('/media/'))return await media(env,path.slice(7));
+   if(path==='/')return await homepage(env);
+   if(path==='/about'||path==='/privacy'||path==='/contact')return staticPage(env,path.slice(1));
+   if(path==='/search')return await searchPage(env,url);
+   if(path.startsWith('/destinations/'))return await destinationPage(env,decodeURIComponent(path.split('/')[2]||''));
+   if(path.startsWith('/guides/'))return await guidePage(env,decodeURIComponent(path.split('/')[2]||''));
+   if(path==='/sitemap.xml'){
+    const rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
+    const urls=['/','/about',...rows.map(x=>'/guides/'+encodeURIComponent(x.slug))];
+    const countries=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published'").all()).results:[];
+    urls.push(...countries.map(x=>'/destinations/'+slugify(x.country)));
+    return new Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.map(p=>'<url><loc>'+esc(siteURL(env)+p)+'</loc></url>').join('')+'</urlset>',{headers:{'content-type':'application/xml;charset=utf-8'}});
+   }
+   const asset=await env.ASSETS.fetch(request);
+   if(asset.status!==404)return asset;
+   return html(layout(env,'Not found','<main class="shell simple"><h1>We took a wrong turn.</h1><p>This page is not available.</p><a href="/">← Back home</a></main>'),404);
+  }catch(e){
+   const status=e.status||500;
+   if(path.startsWith('/api/'))return json({error:status<500?e.message:'Server error'},status);
+   if(path.startsWith('/admin'))return new Response(status===503?'Configure Cloudflare Access before opening /admin.':'Unauthorized',{status,headers:{'cache-control':'no-store'}});
+   console.error(e);
+   return html(layout(env,'Something went wrong','<main class="shell simple"><h1>Temporary detour</h1><p>We could not load this page. Try again shortly.</p><a href="/">Back home ↗</a></main>'),500);
+  }
+ },
+ async scheduled(_event,env,ctx){ctx.waitUntil(publishDue(env));}
+};
