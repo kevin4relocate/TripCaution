@@ -74,6 +74,7 @@ test('high impact publication requires individual scope, evidence and explicit a
  assert.equal(f.updates.length,2);
  const audit=f.updates.find(row=>row.sql.includes('INSERT INTO audit_logs'));
  assert.equal(JSON.parse(audit.params[4]).impact_level,'high');
+ assert.equal(JSON.parse(audit.params[4]).review_window_days,7);
  assert.equal(JSON.parse(audit.params[4]).severity_confirmed,true);
 });
 test('unscoped or unexplained graded claims are blocked; legacy unassessed publication remains possible',async()=>{
@@ -83,6 +84,10 @@ test('unscoped or unexplained graded claims are blocked; legacy unassessed publi
  assert.equal(res.status,422);
  assert.match(await res.text(),/specific situation/);
  assert.equal(f.updates.length,0);
+ f=await fixture('critical');
+ res=await f.patch({action:'schedule',scheduled_at:'2035-09-30T12:00:00Z',review_confirmed:true,severity_confirmed:true});
+ assert.equal(res.status,200);
+ assert.equal(JSON.parse(f.updates.find(row=>row.sql.includes('INSERT INTO audit_logs')).params[4]).review_window_days,2);
  f=await fixture('unassessed');
  res=await f.patch({action:'publish',review_confirmed:true});
  assert.equal(res.status,200);
