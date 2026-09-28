@@ -212,7 +212,9 @@ function renderGuideArticle(env,a,preview=false,reviewedAt=null){
 }
 async function latestEditorialReview(env,id){
  if(!env.DB)return null;
- const audit=(await env.DB.prepare("SELECT created_at FROM audit_logs WHERE article_id=? AND action IN ('reviewed-and-published','reviewed-and-scheduled') AND json_valid(details) AND length(json_extract(details,'$.evidence_note'))>=30 ORDER BY created_at DESC LIMIT 1").bind(id).first());
+ // Older detailed reviews and owner-confirmed quick reviews are both valid.
+ // The latter records who approved and when, but does not claim source-by-source verification.
+ const audit=(await env.DB.prepare("SELECT created_at FROM audit_logs WHERE article_id=? AND ((action IN ('reviewed-and-published','reviewed-and-scheduled') AND json_valid(details) AND length(json_extract(CASE WHEN json_valid(details) THEN details ELSE '{}' END,'$.evidence_note'))>=30) OR (action IN ('owner-reviewed-and-published','owner-reviewed-and-scheduled') AND json_valid(details) AND json_extract(CASE WHEN json_valid(details) THEN details ELSE '{}' END,'$.review_confirmed')=1)) ORDER BY created_at DESC LIMIT 1").bind(id).first());
  return audit?.created_at||null;
 }
 async function guidePage(env,slug){
@@ -308,6 +310,54 @@ async function replaceArticleWithReviewDraft(env,raw,actor){
  await audit(env,actor,'revision-imported-to-review',old.id,JSON.stringify({old_status:old.status,slug:a.slug}));
  return {id:old.id,title:a.title,slug:a.slug,status:'review',updated:true};
 }
+const EDITOR_ACTIONS={
+ publish:'published',schedule:'scheduled',hide:'hidden',archive:'archived',
+ delete:'deleted',restore:'draft',review:'review'
+};
+function editorialActionAllowed(old,action){
+ if(!old || !(action in EDITOR_ACTIONS))return false;
+ const status=old.status;
+ if(action==='publish')return ['review','draft','hidden','scheduled'].includes(status);
+ if(action==='schedule')return ['review','draft','hidden','scheduled'].includes(status);
+ if(action==='hide')return !['hidden','deleted','archived'].includes(status);
+ if(action==='delete')return status!=='deleted';
+ if(action==='restore')return ['deleted','hidden','archived'].includes(status);
+ if(action==='review')return ['published','scheduled','hidden','draft'].includes(status);
+ if(action==='archive')return !['archived','deleted'].includes(status);
+ return false;
+}
+async function applyEditorialAction(env,old,action,body,actor){
+ if(!(action in EDITOR_ACTIONS))throw Object.assign(new Error('Unknown action'),{status:400});
+ if(!editorialActionAllowed(old,action))
+  throw Object.assign(new Error('Action is not available for status '+old.status),{status:409});
+ const target=EDITOR_ACTIONS[action];
+ if(['publish','schedule'].includes(action)){
+  if(body.review_confirmed!==true)
+   throw Object.assign(new Error('Confirm that you have reviewed the selected article before publishing or scheduling'),{status:422});
+  // Basic source gate remains. This is not a substitute for owner review.
+  if(safeParse(old.sources_json).filter(source=>safe(source.url)).length<1)
+   throw Object.assign(new Error('Add at least one valid HTTPS source before publishing'),{status:422});
+  if(action==='schedule' && (!isValidSchedule(body.scheduled_at)||Date.parse(body.scheduled_at)<=Date.now()))
+   throw Object.assign(new Error('Choose a future publication date and time with timezone'),{status:422});
+ }
+ // Soft delete and private hide never destroy an article's text or source links.
+ // Any return from hidden/deleted/archived requires explicit owner action.
+ const approve=['publish','schedule'].includes(action)?1:
+  ['review','hide','archive','delete','restore'].includes(action)?0:old.review_approved;
+ await env.DB.prepare("UPDATE articles SET status=?,review_approved=?,scheduled_at=?,published_at=CASE WHEN ?='published' THEN datetime('now') ELSE published_at END,updated_at=datetime('now') WHERE id=?")
+  .bind(target,approve,target==='scheduled'?body.scheduled_at:null,target,old.id).run();
+ const reviewed=['publish','schedule'].includes(action);
+ const auditAction=reviewed?'owner-reviewed-and-'+(action==='publish'?'published':'scheduled'):action;
+ const details=reviewed?JSON.stringify({
+  review_confirmed:true,method:body.review_method==='bulk'?'bulk':'single',
+  source_count:safeParse(old.sources_json).length,
+  editor_reviewed_at:new Date().toISOString(),review_window_days:30,
+  next_review_due_at:new Date(Date.now()+30*86400000).toISOString(),
+  evidence_note_collected:false
+ }):'';
+ await audit(env,actor,auditAction,old.id,details);
+ return {id:old.id,title:old.title,status:target};
+}
 async function api(request,env,url,admin=false){
  if(!env.DB)throw Object.assign(new Error('D1 database missing'),{status:503});
  const pathname=url.pathname,method=request.method;
@@ -335,6 +385,35 @@ async function api(request,env,url,admin=false){
   const a=await env.DB.prepare('SELECT * FROM articles WHERE id=?').bind(pathname.split('/').pop()).first();
   return a?json({article:a}):json({error:'Not found'},404);
  }
+ if(method==='POST' && pathname==='/api/admin/bulk'){
+  // A deliberately selected set of articles; there is no "update every row" route.
+  if(actor==='github-automation')return json({error:'Admin login required'},403);
+  const body=await request.json();
+  const allowed=['publish','hide','schedule','delete','restore','review'];
+  if(!allowed.includes(body?.action))return json({error:'Unsupported bulk action'},400);
+  if(!Array.isArray(body.ids)||body.ids.length<1||body.ids.length>300||
+    body.ids.some(id=>typeof id!=='string'||! /^[a-f0-9-]{36}$/.test(id))||
+    new Set(body.ids).size!==body.ids.length)return json({error:'Select 1–300 unique article IDs'},400);
+  if(body.confirm_selection!==true||body.confirm_count!==body.ids.length)
+   return json({error:'Explicit confirmation of the exact selected count is required'},422);
+  if(['publish','schedule'].includes(body.action)&&body.review_confirmed!==true)
+   return json({error:'Confirm that every selected article has been reviewed'},422);
+  if(body.action==='schedule'&&(!isValidSchedule(body.scheduled_at)||Date.parse(body.scheduled_at)<=Date.now()))
+   return json({error:'Choose a valid future UTC time before scheduling'},422);
+  const results=[];
+  for(let i=0;i<body.ids.length;i++){
+   const id=body.ids[i];
+   try{
+    const existing=await env.DB.prepare('SELECT * FROM articles WHERE id=?').bind(id).first();
+    if(!existing){results.push({id,ok:false,error:'Article not found'});continue;}
+    const at=body.action==='schedule'&&body.stagger_days===true?
+      new Date(Date.parse(body.scheduled_at)+86400000*i).toISOString():body.scheduled_at;
+    const item={...body,review_method:'bulk',scheduled_at:at};
+    results.push({ok:true,...await applyEditorialAction(env,existing,body.action,item,actor),scheduled_at:body.action==='schedule'?at:undefined});
+   }catch(e){results.push({id,ok:false,error:e.status&&e.status<500?e.message:'Could not process article'});}
+  }
+  return json({results,processed:results.filter(x=>x.ok).length,failed:results.filter(x=>!x.ok).length},207);
+ }
  if(method==='POST' && pathname==='/api/admin/auto-schedule'){
   // Sprint 0 launch freeze: no bulk publishing without a per-article evidence record.
   return json({error:'Bulk scheduling disabled. Review and schedule each article individually.'},403);
@@ -344,8 +423,10 @@ async function api(request,env,url,admin=false){
   const auditLogs=(await env.DB.prepare("SELECT action,created_at FROM audit_logs ORDER BY created_at DESC LIMIT 8").all()).results;
   const reviewDue=(await env.DB.prepare(`SELECT a.id,a.title,
    (SELECT json_extract(l.details,'$.next_review_due_at') FROM audit_logs l
-      WHERE l.article_id=a.id AND l.action IN ('reviewed-and-published','reviewed-and-scheduled')
-      AND json_valid(l.details) AND length(json_extract(l.details,'$.evidence_note'))>=30
+      WHERE l.article_id=a.id AND ((l.action IN ('reviewed-and-published','reviewed-and-scheduled')
+        AND json_valid(l.details) AND length(json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.evidence_note'))>=30)
+       OR (l.action IN ('owner-reviewed-and-published','owner-reviewed-and-scheduled')
+        AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1))
       ORDER BY l.created_at DESC LIMIT 1) next_review_due_at
    FROM articles a WHERE a.status='published' ORDER BY a.created_at DESC LIMIT 100`).all()).results;
   return json({status,auditLogs,reviewDue});
@@ -374,31 +455,9 @@ async function api(request,env,url,admin=false){
   if(!old)return json({error:'Article not found'},404);
   const action=body.action;
   if(action){
-   if(!['publish','schedule','hide','archive','delete','restore','review'].includes(action))return json({error:'Unknown action'},400);
-   const target={publish:'published',schedule:'scheduled',hide:'hidden',archive:'archived',delete:'deleted',restore:'draft',review:'review'}[action];
-   if(['publish','schedule'].includes(action)){
-    // There is no automated bypass. A human editor must explicitly confirm
-    // all four checks and supply a brief source-claim review record.
-    const checks=body.review_checklist||{};
-    const expected=['layout','evidence','freshness','fairness'];
-    const note=typeof body.review_note==='string'?body.review_note.trim():'';
-    if(body.review_confirmed!==true || !expected.every(key=>checks[key]===true) ||
-       note.length<30 || note.length>1500 || ![7,30,90].includes(body.review_window_days))
-      return json({error:'Complete all review checks, add a 30–1500 character evidence note and select a review interval'},422);
-    if(safeParse(old.sources_json).length<1 || !old.verified_at)
-      return json({error:'Research reference timestamp and evidence sources are required'},422);
-    if(action==='schedule' && (!isValidSchedule(body.scheduled_at)||Date.parse(body.scheduled_at)<Date.now()))
-      return json({error:'Provide a future ISO 8601 scheduled_at with timezone'},422);
-   }
-   await env.DB.prepare("UPDATE articles SET status=?,review_approved=?,scheduled_at=?,published_at=CASE WHEN ?='published' THEN datetime('now') ELSE published_at END,updated_at=datetime('now') WHERE id=?")
-    .bind(target,['publish','schedule'].includes(action)?1:action==='review'?0:old.review_approved,target==='scheduled'?body.scheduled_at:null,target,id).run();
-   const auditAction=body.review_confirmed===true && action==='publish'?'reviewed-and-published':
-    body.review_confirmed===true && action==='schedule'?'reviewed-and-scheduled':action;
-   const reviewDetails=['publish','schedule'].includes(action)?
-    JSON.stringify({checklist:body.review_checklist,evidence_note:body.review_note.trim(),
-      review_window_days:body.review_window_days,editor_reviewed_at:new Date().toISOString(),
-      next_review_due_at:new Date(Date.now()+body.review_window_days*86400000).toISOString()}):'';
-   await audit(env,actor,auditAction,id,reviewDetails);return json({ok:true,status:target});
+   if(actor==='github-automation')return json({error:'Admin session required'},403);
+   try{return json({ok:true,...await applyEditorialAction(env,old,action,body,actor)});}
+   catch(e){return json({error:e.message},e.status||500);}
   }
   const merged={
    ...old,...body,seo_title:body.seo_title??old.seo_title,seo_description:body.seo_description??old.seo_description,
@@ -439,7 +498,7 @@ async function media(env,key){
 async function publishDue(env){
  if(!env.DB)return;
  // Publish only records manually approved and explicitly scheduled. Idempotent conditional update.
- await env.DB.prepare("UPDATE articles SET status='published',published_at=datetime('now'),updated_at=datetime('now') WHERE status='scheduled' AND review_approved=1 AND julianday(scheduled_at)<=julianday('now') AND verified_at IS NOT NULL AND json_array_length(sources_json)>0 AND EXISTS (SELECT 1 FROM audit_logs l WHERE l.article_id=articles.id AND l.action='reviewed-and-scheduled' AND json_valid(l.details) AND length(json_extract(l.details,'$.evidence_note'))>=30)").run();
+ await env.DB.prepare("UPDATE articles SET status='published',published_at=datetime('now'),updated_at=datetime('now') WHERE status='scheduled' AND review_approved=1 AND julianday(scheduled_at)<=julianday('now') AND verified_at IS NOT NULL AND json_array_length(sources_json)>0 AND EXISTS (SELECT 1 FROM audit_logs l WHERE l.article_id=articles.id AND ((l.action='reviewed-and-scheduled' AND json_valid(l.details) AND length(json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.evidence_note'))>=30) OR (l.action='owner-reviewed-and-scheduled' AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1)))").run();
 }
 export default {
  async fetch(request,env){
