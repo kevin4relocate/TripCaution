@@ -6,6 +6,7 @@ import {
 } from './auth.js';
 import { normalizeArticle, STATUSES, CATEGORIES, isValidSchedule, slugify } from './content.js';
 import { STARTER_DESTINATIONS, SOUTHEAST_ASIA_COUNTRIES, isSoutheastAsia, groupDestinationsByContinent } from './destinations.js';
+import {CAUTION_GROUPS,cautionGroup,cautionGroupForArticle} from './cautions.js';
 import { renderArticleMarkdown, editorialQuickTakes } from './article-content.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
 
@@ -19,7 +20,7 @@ const privateRedirect = target=>new Response(null,{
   'x-robots-tag':'noindex, nofollow, noarchive','referrer-policy':'no-referrer'}
 });
 const siteURL = env => (env.SITE_URL||'https://tripcaution.com').replace(/\/$/,'');
-const nav = '<a href="/southeast-asia">Southeast Asia</a><a href="/destinations">Destinations</a><a href="/#latest">Field notes</a><a href="/about">About</a>';
+const nav = '<a href="/cautions">Travel cautions</a><a href="/destinations">Destinations</a><a href="/southeast-asia">Southeast Asia</a><a href="/about">About</a>';
 function layout(env, title, body, meta={}) {
  const description=meta.description||'Evidence-led travel precautions and practical guides. Know before you go.';
  const url=siteURL(env)+(meta.path||'/');
@@ -61,7 +62,7 @@ function html(content,status=200,headers={}) {
 }
 function articleCard(a,variant='standard') {
  const path='/guides/'+encodeURIComponent(a.slug);
- const country=esc(a.country), category=esc(a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
+ const country=esc(a.country), category=esc(cautionGroupForArticle(a.category_id)?.label||a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
  const cls=variant==='lead'?' guide-card-lead':variant==='side'?' guide-card-side':'';
  return `<article class="guide-card${cls}"><a class="card-visual" href="${path}" aria-label="Read ${esc(a.title)}">
  ${safe(a.hero_image_url)?'<img loading="lazy" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
@@ -84,6 +85,45 @@ function southeastAsiaTiles(countryRows){
    '<div class="sea-country sea-country-pending">'+inner+'</div>';
  }).join('')+'</div>';
 }
+
+async function publishedCautionCounts(env){
+ if(!env.DB)return new Map();
+ const rows=await env.DB.prepare("SELECT category_id,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY category_id").all();
+ return new Map((rows.results||[]).map(row=>[row.category_id,Number(row.total)||0]));
+}
+function cautionTiles(counts){
+ return '<div class="caution-grid">'+CAUTION_GROUPS.map(group=>{
+  const total=group.categories.reduce((sum,id)=>sum+(counts.get(id)||0),0);
+  const inner='<span class="caution-tile-heading">'+esc(group.label)+'</span><span class="caution-tile-desc">'+esc(group.description)+'</span>'+
+   '<small>'+(total?total+' published '+(total===1?'guide':'guides'):'Research planned')+'</small>';
+  return total?'<a class="caution-tile" href="/cautions/'+group.id+'">'+inner+' <span aria-hidden="true">↗</span></a>':
+   '<div class="caution-tile caution-tile-pending">'+inner+'</div>';
+ }).join('')+'</div>';
+}
+async function cautionsPage(env){
+ const counts=await publishedCautionCounts(env);
+ const available=CAUTION_GROUPS.some(group=>group.categories.some(id=>counts.get(id)));
+ const body='<main><section class="destination-hero caution-hub"><div class="shell"><div class="eyebrow">GLOBAL TRAVEL CAUTIONS</div>'+
+  '<h1>What can go wrong? <em>Find out before you travel.</em></h1>'+
+  '<p>Discover evidence-backed travel inconveniences, potential scams, payment limitations and local rules by topic. These are situation-specific guides, not blanket judgments about people or countries.</p>'+
+  '<a class="all-destinations-link" href="/destinations">Browse destinations worldwide ↗</a></div></section>'+
+  '<section class="section shell"><div class="section-heading"><div><h2>Explore travel <em>cautions.</em></h2><p>Only topics with published guides open a results page. Empty topics are clearly marked for research.</p></div></div>'+
+  cautionTiles(counts)+'</section></main>';
+ return html(layout(env,'Travel cautions by topic',body,{path:'/cautions',noindex:!available,description:'Evidence-led travel cautions around the world: scams, payments, transport, local customs, safety and essential preparations.'}),200,{'cache-control':'public, max-age=60'});
+}
+async function cautionTopicPage(env,id){
+ const group=cautionGroup(id);
+ if(!group)return html(layout(env,'Topic not found','<main class="shell simple"><h1>Topic unavailable.</h1><a href="/cautions">Browse travel cautions ↗</a></main>',{noindex:true}),404,{'cache-control':'no-store','x-robots-tag':'noindex'});
+ const slots=group.categories.map(()=>'?').join(',');
+ const rows=env.DB?(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND a.category_id IN ("+slots+") ORDER BY a.published_at DESC,a.id DESC LIMIT 60")
+  .bind(...group.categories).all()).results:[];
+ const body='<main><section class="destination-hero caution-topic"><div class="shell"><a class="backlink" href="/cautions">← All travel cautions</a>'+
+  '<div class="eyebrow">WORLDWIDE / TRAVEL CAUTIONS</div><h1>'+esc(group.label)+'</h1><p>'+esc(group.description)+'</p>'+
+  '<p>Check the country, location, relevant payment method or service, source and publication context in each guide before applying it to your trip.</p></div></section>'+
+  '<section class="section shell">'+(rows.length?'<div class="guide-grid">'+rows.map(row=>articleCard(row)).join('')+'</div>':
+   '<div class="empty-state"><h2>Research in progress.</h2><p>No published guides are available in this category yet.</p></div>')+'</section></main>';
+ return html(layout(env,group.label+' travel cautions',body,{path:'/cautions/'+id,noindex:rows.length===0,description:group.description}),200,{'cache-control':'public, max-age=60'});
+}
 async function homepage(env){
  let latest=[],countryRows=[],count=0;
  if(env.DB) {
@@ -94,15 +134,16 @@ async function homepage(env){
   ]);
   latest=a.results;countryRows=c.results;count=n?.count||0;
  }
+ const cautionCounts=await publishedCautionCounts(env);
  const publishedCountries=countryRows.filter(row=>row.country && Number(row.total)>0);
  const feature=latest.slice(0,3);
  const additional=latest.slice(3,9);
  const readyHints=publishedCountries.filter(row=>isSoutheastAsia(row.country)).slice(0,3);
  const body=`<main>
  <section class="hero home-hero"><div class="shell hero-inner"><div class="hero-content">
-   <div class="hero-label"><span class="label-line"></span> THE INDEPENDENT TRAVEL FIELD GUIDE <span class="hero-label-star">✳</span></div>
+   <div class="hero-label"><span class="label-line"></span> PRACTICAL CAUTIONS FOR TRAVELERS <span class="hero-label-star">✳</span></div>
    <h1>Go somewhere new.<br><em>Know what to avoid.</em></h1>
-   <p class="hero-description">Starting in Southeast Asia: discover practical travel checks and source-backed guidance — before you pack.</p>
+   <p class="hero-description">Explore real travel difficulties worldwide, from cash-only payments to documented scams. Our first editorial focus is Southeast Asia.</p>
    <form class="destination-search" action="/search" method="get">
      <label class="sr-only" for="q">Search destinations and guides</label><span class="search-icon" aria-hidden="true">⌕</span>
      <input id="q" type="search" name="q" placeholder="Country, city or topic..." required maxlength="80">
@@ -119,6 +160,9 @@ async function homepage(env){
     </div>
     <div class="postcard-sticker">BEFORE<br>YOU GO <span>↗</span></div>
   </div></div></section>
+ <section class="section shell home-cautions" id="caution-topics"><div class="section-heading"><div><div class="eyebrow">EXPLORE BY PROBLEM</div><h2>Travel surprises worth <em>preparing for.</em></h2><p>Scams, payment acceptance, transport and more — research matched to the actual destination and service.</p></div><a class="section-action" href="/cautions">All caution topics ↗</a></div>
+ ${cautionTiles(cautionCounts)}
+ </section>
  <section class="section featured-section" id="latest"><div class="shell">
    <div class="section-heading"><div><div class="eyebrow">01 — START READING</div>
      <h2>Field notes for <em>curious travelers.</em></h2>
@@ -148,7 +192,7 @@ async function homepage(env){
    </div>
  </section>
  ${additional.length?`<section class="section alt-section more-notes-section"><div class="shell">
-   <div class="section-heading"><div><div class="eyebrow">03 — MORE FIELD NOTES</div><h2>Keep <em>exploring.</em></h2></div>
+   <div class="section-heading"><div><div class="eyebrow">03 — MORE TRAVEL CAUTIONS</div><h2>Keep <em>exploring.</em></h2></div>
      <a class="section-action" href="/destinations">Explore destinations <span aria-hidden="true">↗</span></a></div>
    <div class="guide-grid">${additional.map(a=>articleCard(a)).join('')}</div>
  </div></section>`:''}
@@ -234,7 +278,7 @@ async function destinationPage(env,slug){
   articles=(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND lower(a.city)=? ORDER BY a.published_at DESC LIMIT 100").bind(city.name.toLowerCase()).all()).results;
  }
  const heading=city?.name||country;
- const body=`<main><div class="destination-hero"><div class="shell"><a class="backlink" href="/">← All destinations</a><div class="eyebrow">DESTINATION GUIDE / ${esc(country.toUpperCase())}${city?' / '+esc(city.name.toUpperCase()):''}</div><h1>${esc(heading)}<span class="title-star"> ✳</span></h1><p>What to know, what to double-check, and how to travel with more confidence.</p><span class="dest-count">${articles.length} RESEARCHED GUIDES</span></div></div><section class="section shell">
+ const body=`<main><div class="destination-hero"><div class="shell"><a class="backlink" href="/">← All destinations</a><div class="eyebrow">DESTINATION GUIDE / ${esc(country.toUpperCase())}${city?' / '+esc(city.name.toUpperCase()):''}</div><h1>${esc(heading)}<span class="title-star"> ✳</span></h1><p>Practical difficulties and precautions researched for this destination. Check each guide for the exact situation and applicable rules.</p><span class="dest-count">${articles.length} RESEARCHED GUIDES</span></div></div><section class="section shell">
  ${articles.length?'<div class="guide-grid">'+articles.map(a=>articleCard(a)).join('')+'</div>':'<div class="empty-state"><span>✳</span><h3>Research in progress.</h3><p>We are building carefully sourced guides for this destination. No warnings are published until evidence is checked.</p></div>'}
  </section></main>`;
  return html(layout(env,heading+' travel precautions',body,{path:'/destinations/'+slug,description:'Travel precautions, cultural considerations and researched guides for '+heading+', '+country+'.',noindex:articles.length===0}));
@@ -310,7 +354,7 @@ function staticPage(env,type){
  const contact=emailReady?'<a class="editorial-email" href="mailto:'+esc(email)+'?subject=TripCaution%20correction">'+esc(email)+'</a>':
    '<strong class="contact-not-ready">Our editorial contact inbox is being set up. Please check back later to submit a correction. For urgent travel concerns, contact the relevant authority directly.</strong>';
  const blocks={
-   about:['About & editorial policy',`<p>TripCaution is an independent, research-led travel guide. Our articles describe practical travel questions and point readers to original sources. We do not claim personal visits, personal interviews or firsthand incident reports. We are not an emergency-alert service.</p>
+   about:['About & editorial policy',`<p>TripCaution is an independent, research-led worldwide travel-caution resource. Our articles focus on location-specific difficulties such as payment acceptance, transport restrictions, documented scams and practical preparations, with links to original sources. We do not claim personal visits, personal interviews or firsthand incident reports. We are not an emergency-alert service.</p>
      <h2>Our research process</h2><p>We prioritize official operators, local tourism authorities, government guidance and dated primary evidence. AI tools may assist with research and initial drafts; source lists and AI-generated timestamps are not proof that an editor has checked a claim. Every new article must be checked and approved by an editor before publishing.</p>
      <h2>Corrections and limitations</h2><p>Conditions, fees, routes and rules can change. Readers should confirm time-sensitive details with the responsible operator or authority. If we receive a well-supported correction, we may clarify, update or withdraw the affected content. Share the article URL, exact statement, supporting source and relevant dates with the editorial desk.</p><p><strong>Editorial contact:</strong> ${contact}</p>`],
    privacy:['Privacy notice',`<p>This notice describes the services currently enabled. TripCaution publishes travel information using Cloudflare Workers and D1, without public accounts. At present we do not run third-party advertising, sell user data or deliberately deploy marketing-analytics trackers. We will revise this notice before enabling new tracking or advertising.</p>
@@ -772,6 +816,8 @@ export default {
    if(path==='/')return await homepage(env);
    if(path==='/about'||path==='/privacy'||path==='/contact')return staticPage(env,path.slice(1));
    if(path==='/search')return await searchPage(env,url);
+   if(path==='/cautions')return await cautionsPage(env);
+   if(path.startsWith('/cautions/'))return await cautionTopicPage(env,path.split('/')[2]||'');
    if(path==='/southeast-asia')return await southeastAsiaPage(env);
     if(path==='/destinations')return await destinationIndexPage(env);
    if(path.startsWith('/destinations/'))return await destinationPage(env,decodeURIComponent(path.split('/')[2]||''));
