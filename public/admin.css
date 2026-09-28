@@ -225,3 +225,4 @@
 .severity-editor label{display:block;margin:0 0 14px}
 .severity-confirm{display:block;background:#fff0e7;border:1px solid #d0a28c;border-radius:6px;padding:14px;margin:18px 0 0;font-size:13px;font-weight:700;color:#69381d}
 .severity-confirm input{margin-right:10px;vertical-align:middle}
+.severity-confirm[hidden]{display:none}
