@@ -36,6 +36,18 @@ await run('Homepage uses expected canonical, content and safe response type',asy
  ensure(response.status===200&&body.includes('Field notes for'),'Homepage missing or old build');
  ensure(body.includes('rel="canonical" href="'+origin+'/"'),'Homepage canonical host mismatch');
  ensure((response.headers.get('x-content-type-options')||'').toLowerCase()==='nosniff','Missing nosniff on HTML');
+ ensure(response.headers.get('x-frame-options')==='DENY','Public HTML missing anti-frame header');
+ ensure((response.headers.get('content-security-policy')||'').includes("script-src 'self'"),'Public HTML missing restrictive script policy');
+ ensure((response.headers.get('content-security-policy')||'').includes("frame-ancestors 'none'"),'Public HTML missing frame-ancestors');
+ ensure(!body.includes('onclick="navigator.clipboard'),'Old unsafe inline share script still deployed');
+});
+await run('Critical first-party assets are deployed',async()=>{
+ const css=await get('/styles.css');
+ ensure(css.response.status===200&&css.body.includes('.shell'),'Public stylesheet missing or stale');
+ const site=await get('/site.js');
+ ensure(site.response.status===200&&site.body.includes('data-copy-guide'),'CSP-compatible first-party script missing');
+ const dashboard=await get('/admin.js');
+ ensure(dashboard.response.status===200&&dashboard.body.includes('function renderArticles'),'Admin script missing or stale');
 });
 await run('Destination directory is published without a dead-end index',async()=>{
  const {response,body}=await get('/destinations');
@@ -85,6 +97,7 @@ await run('Public search and 404 behave correctly',async()=>{
 await run('Anonymous visitor cannot open owner UI or private previews',async()=>{
  const admin=await get('/admin',{redirect:'manual'});
  ensure(admin.response.status===302&&admin.response.headers.get('location')===origin+'/sign-in','Admin does not enforce sign-in');
+ ensure((admin.response.headers.get('cache-control')||'').includes('no-store'),'Admin redirect is cacheable and can cause stale login loops');
  const preview=await get('/admin/preview/a0000000-0000-4000-a000-000000000001',{redirect:'manual'});
  ensure(preview.response.status===302&&preview.response.headers.get('location')===origin+'/sign-in','Draft preview does not enforce sign-in');
 });
