@@ -36,16 +36,23 @@ function renderArticles(){
   const published=a.status==='published';
   const link=published?'/guides/'+encodeURIComponent(a.slug):'/admin/preview/'+encodeURIComponent(a.id);
   const linkText=published?'View live ↗':'Preview ↗';
+  const trackPreview=published?'':' data-preview-id="'+escapeHTML(a.id)+'" data-preview-update="'+escapeHTML(a.updated_at||'')+'"';
   const editText=a.status==='review'?'Review →':'Edit →';
   const statusLabel=a.status==='review'?'AWAITING YOUR REVIEW':a.status.toUpperCase();
-  return '<tr><td><strong>'+escapeHTML(a.title)+'</strong><small>'+escapeHTML([a.city,a.country].filter(Boolean).join(', '))+'</small></td><td>'+escapeHTML(a.category_id)+'</td><td><span class="status '+escapeHTML(a.status)+'" title="'+escapeHTML(statusLabel)+'">'+escapeHTML(statusLabel)+'</span></td><td>'+escapeHTML(a.scheduled_at||a.published_at||'—')+'</td><td><div class="row-actions"><a class="preview-row-link" href="'+escapeHTML(link)+'" target="_blank" rel="noopener noreferrer">'+linkText+'</a><button type="button" class="review-row-btn edit-link" data-id="'+escapeHTML(a.id)+'">'+editText+'</button></div></td></tr>';
+  return '<tr><td><strong>'+escapeHTML(a.title)+'</strong><small>'+escapeHTML([a.city,a.country].filter(Boolean).join(', '))+'</small></td><td>'+escapeHTML(a.category_id)+'</td><td><span class="status '+escapeHTML(a.status)+'" title="'+escapeHTML(statusLabel)+'">'+escapeHTML(statusLabel)+'</span></td><td>'+escapeHTML(a.scheduled_at||a.published_at||'—')+'</td><td><div class="row-actions"><a class="preview-row-link" href="'+escapeHTML(link)+'" target="_blank" rel="noopener noreferrer"'+trackPreview+'>'+linkText+'</a><button type="button" class="review-row-btn edit-link" data-id="'+escapeHTML(a.id)+'">'+editText+'</button></div></td></tr>';
  }).join('')||'<tr><td colspan="5">No articles match this view.</td></tr>';
  document.querySelectorAll('.edit-link').forEach(btn=>btn.onclick=()=>loadArticle(btn.dataset.id));
+ document.querySelectorAll('#article-rows [data-preview-id]').forEach(link=>link.addEventListener('click',()=>{
+   sessionStorage.setItem('tc-preview:'+link.dataset.previewId,link.dataset.previewUpdate);
+ }));
 }
 function renderQueue(){
  const rows=state.articles.filter(a=>['review','scheduled','draft'].includes(a.status)).sort((a,b)=>(a.scheduled_at||'9999').localeCompare(b.scheduled_at||'9999'));
- $('queue').innerHTML=rows.map(a=>'<div><span class="status '+escapeHTML(a.status)+'">'+escapeHTML(a.status)+'</span> &nbsp; '+escapeHTML(a.scheduled_at||'Not scheduled')+' — <strong>'+escapeHTML(a.title)+'</strong><span class="queue-actions"><a href="/admin/preview/'+encodeURIComponent(a.id)+'" target="_blank" rel="noopener noreferrer">Preview ↗</a><button type="button" class="text-button queue-btn" data-id="'+escapeHTML(a.id)+'">Review →</button></span></div>').join('')||'<p>Your queue is clear.</p>';
+ $('queue').innerHTML=rows.map(a=>'<div><span class="status '+escapeHTML(a.status)+'">'+escapeHTML(a.status)+'</span> &nbsp; '+escapeHTML(a.scheduled_at||'Not scheduled')+' — <strong>'+escapeHTML(a.title)+'</strong><span class="queue-actions"><a href="/admin/preview/'+encodeURIComponent(a.id)+'" data-preview-id="'+escapeHTML(a.id)+'" data-preview-update="'+escapeHTML(a.updated_at||'')+'" target="_blank" rel="noopener noreferrer">Preview ↗</a><button type="button" class="text-button queue-btn" data-id="'+escapeHTML(a.id)+'">Review →</button></span></div>').join('')||'<p>Your queue is clear.</p>';
  document.querySelectorAll('.queue-btn').forEach(btn=>btn.onclick=()=>loadArticle(btn.dataset.id));
+ document.querySelectorAll('#queue [data-preview-id]').forEach(link=>link.addEventListener('click',()=>{
+   sessionStorage.setItem('tc-preview:'+link.dataset.previewId,link.dataset.previewUpdate);
+ }));
 }
 $('article-search').addEventListener('input',renderArticles);
 $('article-filter').addEventListener('change',renderArticles);
@@ -100,16 +107,22 @@ function populateReviewEvidence(a){
 $('editor-preview-link').addEventListener('click',event=>{
  if(!state.selected){event.preventDefault();return;}
  if(state.dirty && !confirm('You have unsaved changes. Preview only shows the last saved version. Open it anyway?')){event.preventDefault();return;}
- state.previewOpened=true;updateReviewGate();
+ state.previewOpened=true;
+ sessionStorage.setItem('tc-preview:'+state.selected.id,state.selected.updated_at||'');
+ updateReviewGate();
 });
 reviewChecks.forEach(input=>input.addEventListener('change',updateReviewGate));
 editorForm.addEventListener('input',event=>{
  if(!state.selected || event.target.id==='schedule-date' || event.target.id==='image-file')return;
- state.dirty=true;state.previewOpened=false;reviewChecks.forEach(input=>input.checked=false);updateReviewGate();
+ state.dirty=true;state.previewOpened=false;
+ sessionStorage.removeItem('tc-preview:'+state.selected.id);
+ reviewChecks.forEach(input=>input.checked=false);updateReviewGate();
 });
 editorForm.addEventListener('change',event=>{
  if(!state.selected || event.target.id==='schedule-date' || event.target.id==='image-file')return;
- state.dirty=true;state.previewOpened=false;reviewChecks.forEach(input=>input.checked=false);updateReviewGate();
+ state.dirty=true;state.previewOpened=false;
+ sessionStorage.removeItem('tc-preview:'+state.selected.id);
+ reviewChecks.forEach(input=>input.checked=false);updateReviewGate();
 });
 $('review-publish-btn').onclick=()=>action('publish');
 const fields=['title','slug','excerpt','country','city','content_markdown','verified_at','seo_title','seo_description','hero_image_url','hero_alt','hero_prompt'];
@@ -126,7 +139,7 @@ async function loadArticle(id){
   $('schedule-date').value=a.scheduled_at?new Date(Date.parse(a.scheduled_at) - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16):'';
   const preview=$('image-preview');preview.replaceChildren();
   if(a.hero_image_url){const img=new Image();img.src=a.hero_image_url;img.alt='Current editorial illustration';preview.append(img);}
-  state.dirty=false;state.previewOpened=false;
+  state.dirty=false;state.previewOpened=sessionStorage.getItem('tc-preview:'+a.id)===(a.updated_at||'');
   reviewChecks.forEach(input=>input.checked=false);
   populateReviewEvidence(a);updateReviewGate();
   show('editor');
@@ -139,6 +152,7 @@ $('article-form').onsubmit=async event=>{
   body.category=form.elements.namedItem('category').value;
   body.sources=JSON.parse(form.elements.namedItem('sources').value||'[]');
   if(!Array.isArray(body.sources))throw Error('Sources must be a JSON array');
+  sessionStorage.removeItem('tc-preview:'+state.selected.id);
   await api('/api/admin/article/'+state.selected.id,{method:'PATCH',body:JSON.stringify(body)});
   toast('Saved. Previously published changes return to review to avoid silent changes.');
   await refresh();await loadArticle(state.selected.id);
@@ -176,6 +190,9 @@ $('upload-btn').onclick=async()=>{
   const response=await fetch('/api/admin/media',{method:'POST',body:file,headers:{'Content-Type':file.type}});
   const result=await response.json();if(!response.ok)throw Error(result.error||'Upload failed');
   $('article-form').elements.namedItem('hero_image_url').value=result.url;
+  state.dirty=true;state.previewOpened=false;
+  sessionStorage.removeItem('tc-preview:'+state.selected.id);
+  reviewChecks.forEach(input=>input.checked=false);updateReviewGate();
   const preview=$('image-preview');preview.replaceChildren();const img=new Image();img.src=result.url;img.alt='Uploaded image';preview.append(img);
   toast('Image uploaded. Save article changes to attach it.');
  }catch(e){toast(e.message,true);}
