@@ -187,6 +187,27 @@ async function api(request,env,url,admin=false){
   const a=await env.DB.prepare('SELECT * FROM articles WHERE id=?').bind(pathname.split('/').pop()).first();
   return a?json({article:a}):json({error:'Not found'},404);
  }
+ if(method==='POST' && pathname==='/api/admin/auto-schedule'){
+  // Explicit admin action: bulk-approve only low-risk editorial guides with adequate sources.
+  const eligible=(await env.DB.prepare("SELECT id,category_id,sources_json,verified_at,scheduled_at FROM articles WHERE status='review' AND category_id IN ('before-you-go','etiquette') ORDER BY created_at ASC LIMIT 30").all()).results
+   .filter(a=>safeParse(a.sources_json).length>=2 && Boolean(a.verified_at));
+  const existing=(await env.DB.prepare("SELECT scheduled_at FROM articles WHERE status='scheduled'").all()).results;
+  const occupied=new Set(existing.filter(x=>x.scheduled_at).map(x=>x.scheduled_at.slice(0,10)));
+  let cursor=new Date();cursor.setUTCDate(cursor.getUTCDate()+1);cursor.setUTCHours(2,0,0,0);
+  const results=[];
+  for(const article of eligible) {
+   // Prefer an imported publication date when available and unoccupied, otherwise next open daily slot.
+   let date=article.scheduled_at&&isValidSchedule(article.scheduled_at)&&Date.parse(article.scheduled_at)>Date.now()
+     ?new Date(article.scheduled_at):new Date(cursor);
+   if(occupied.has(date.toISOString().slice(0,10)))date=new Date(cursor);
+   while(occupied.has(date.toISOString().slice(0,10))){date.setUTCDate(date.getUTCDate()+1);date.setUTCHours(2,0,0,0);}
+   const iso=date.toISOString();
+   await env.DB.prepare("UPDATE articles SET status='scheduled',review_approved=1,scheduled_at=?,updated_at=datetime('now') WHERE id=? AND status='review'").bind(iso,article.id).run();
+   occupied.add(iso.slice(0,10));results.push({id:article.id,scheduled_at:iso});
+   await audit(env,actor,'bulk-approved-and-scheduled',article.id);
+  }
+  return json({scheduled:results,skipped_sensitive_or_insufficient_evidence:true});
+ }
  if(method==='GET' && pathname==='/api/admin/overview'){
   const status=(await env.DB.prepare("SELECT status,COUNT(*) count FROM articles GROUP BY status").all()).results;
   const auditLogs=(await env.DB.prepare("SELECT action,created_at FROM audit_logs ORDER BY created_at DESC LIMIT 8").all()).results;
