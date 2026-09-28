@@ -45,7 +45,7 @@ def api_request(prompt, grounding=False):
     return text,refs
 
 def read_json(text):
-    clean=re.sub(r"^\\s*```(?:json)?|\u0060``\\s*$","",text.strip(),flags=re.IGNORECASE).strip()
+    clean=re.sub(r"^\s*```(?:json)?|```\s*$","",text.strip(),flags=re.IGNORECASE).strip()
     try:return json.loads(clean)
     except json.JSONDecodeError:
         start=clean.find("{");end=clean.rfind("}")
@@ -119,7 +119,7 @@ SOURCE LIST:
     obj["research"]["verified_at"]=now.isoformat()
     obj["source_mode"]="github-automation"
     # Editorial guard: do not auto-publish content that mentions a named accusation or emergency.
-    suspicious=re.search(r"(?i)\\b(fraud|criminal|arrest|outbreak|fatal|unsafe|emergency|visa requirements)\\b",content)
+    suspicious=re.search(r"(?i)\b(fraud|criminal|arrest|outbreak|fatal|unsafe|emergency|visa requirements)\b",content)
     if suspicious:obj["category"]="things-to-avoid" # CMS routes this into manual review
     result=request_json(SITE+"/api/ingest",{"articles":[obj]},
         {"Authorization":"Bearer "+TOKEN,"Content-Type":"application/json"})
