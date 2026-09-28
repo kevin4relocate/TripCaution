@@ -83,3 +83,29 @@ test('responsive design includes compact layouts and reduced vertical spacing',(
   assert.match(css,/\.destination-tile\s*\{[^}]*min-height:50px/s);
   assert.match(css,/@media\(max-width:600px\)/);
 });
+
+test('published country links are active and research-only countries remain unlinked',async()=>{
+ const database={prepare(sql){
+  if(sql.includes('GROUP BY country'))return {all:async()=>({results:[{country:'Singapore',total:2},{country:'Thailand',total:1}]})};
+  throw Error('Unexpected directory query '+sql);
+ }};
+ const result=await app.fetch(new Request('https://example.test/destinations'),{
+  SITE_URL:'https://example.test',DB:database,ASSETS:{fetch:async()=>new Response('not found',{status:404})}
+ });
+ const page=await result.text();
+ assert.equal(result.status,200);
+ assert.match(page,/href="\\/destinations\\/singapore"/);
+ assert.match(page,/2 guides/);
+ assert.match(page,/href="\\/destinations\\/thailand"/);
+ assert.doesNotMatch(page,/href="\\/destinations\\/cambodia"/);
+ assert.match(page,/Research planned/);
+});
+
+test('full destination directory is indexed in sitemap',async()=>{
+ const db={prepare(){return {all:async()=>({results:[]})};}};
+ const result=await app.fetch(new Request('https://example.test/sitemap.xml'),{
+  SITE_URL:'https://example.test',DB:db,ASSETS:{fetch:async()=>new Response('not found',{status:404})}
+ });
+ assert.equal(result.status,200);
+ assert.match(await result.text(),/<loc>https:\\/\\/example.test\\/destinations<\\/loc>/);
+});
