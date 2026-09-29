@@ -1,0 +1,138 @@
+/*
+ * TripCaution | Travel Safety Intelligence
+ * Navy builds trust; amber calls attention; red is reserved for verified
+ * critical-impact content. This is a visual system, NOT a live alert feed.
+ * Keep this stylesheet after styles.css (and after admin.css on admin pages).
+ */
+:root{
+ --ink:#202b38;
+ --paper:#f5f7fa;
+ --cream:#edf1f6;
+ --dark:#101d2e;
+ --sage:#9aadc2;
+ --coral:#ffb020;
+ --mint:#e8eef5;
+ --line:#d8e0e9;
+ --tc-navy:#101d2e;
+ --tc-slate:#25374a;
+ --tc-amber:#ffb020;
+ --tc-red:#d93636;
+ --tc-muted:#536579;
+ --tc-paper:#f5f7fa;
+}
+body{background:var(--tc-paper);color:var(--ink)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
+summary:focus-visible{outline:3px solid #d68a08;outline-offset:3px}
+.header{background:#fff;border-bottom:1px solid #dce4ed;box-shadow:0 2px 15px #101d2e09}
+.brand{color:var(--tc-navy)}
+.brand>span:last-child,.footer-brand>span:first-child{color:#c87a00}
+.brand-mark{background:var(--tc-amber);color:var(--tc-navy);transform:none;border-radius:6px;font-family:'DM Sans',system-ui,sans-serif;font-size:19px}
+.header nav a:hover,.header nav a:focus-visible,.backlink:hover{color:#915d00}
+.header-cta{border:1px solid #b7c6d7;color:var(--tc-navy);border-radius:6px}
+.header-cta:hover{background:#e9eff6}
+.header-cta span{color:#a56700}
+.eyebrow,.prefooter>span{color:#a76600}
+.hero h1 em,.section h2 em,.prefooter h2 em,.aside-card em{color:#b77506}
+.section-heading p,.card-body>p,.hero-description{color:#536579}
+.value-bar,footer{background:var(--tc-navy);color:#f3f6fa}
+.value-grid>div{border-color:#344a62}
+.value-grid span,.value-grid small{color:#c4d2e2}
+.home-hero{background:linear-gradient(120deg,#e8eef6 0%,#f5f7fa 56%,#e6edf5 100%);border-bottom:1px solid #d5e0ec}
+.home-hero .hero-inner{grid-template-columns:minmax(0,1.16fr) minmax(265px,.8fr);gap:34px}
+.home-hero .hero-content{padding:39px 0 44px}
+.home-hero h1{color:var(--tc-navy);font-family:'DM Sans',system-ui,sans-serif;font-weight:800;letter-spacing:-2.5px;line-height:1.08;font-size:clamp(42px,4.2vw,59px);margin:17px 0 14px}
+.home-hero h1 em{font-style:normal;color:#a46600}
+.home-hero .hero-description{font-size:14px;line-height:1.7;max-width:570px}
+.hero-label{color:#294966;font-weight:800;letter-spacing:1.6px}
+.hero-label .label-line{background:#e7a01d}
+.hero-label-star{color:#c1800d}
+.home-hero .destination-search{background:#fff;border:1px solid #bdcad9;border-radius:8px;box-shadow:0 10px 26px #101d2e14;margin-top:22px}
+.home-hero .destination-search:focus-within{border-color:#bd830e;box-shadow:0 0 0 3px #ffb02042}
+.destination-search button,.inline-search button,.destination-inline-search button{background:var(--tc-navy);color:#fff;border-radius:5px}
+.destination-search button:hover,.inline-search button:hover,.destination-inline-search button:hover{background:#253e58}
+.search-icon{color:#47627c}
+.search-hints{color:#526579}
+.search-hints>a{border-bottom-color:#c89024;color:#284560}
+.home-hero .hero-visual{height:286px;display:flex;align-items:center;justify-content:center;min-width:0}
+.safety-brief{width:min(100%,390px);background:var(--tc-navy);color:#f5f7fa;border:1px solid #354a61;border-radius:11px;overflow:hidden;box-shadow:15px 17px 0 #cbd7e5,0 20px 35px #101d2e1c;transform:rotate(1deg)}
+.safety-brief-top{display:flex;align-items:center;gap:11px;border-bottom:1px solid #3b5068;padding:12px 17px;font-size:10px;letter-spacing:1.3px;font-weight:800;color:#e6eef8}
+.safety-brief-mark{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:5px;background:var(--tc-amber);color:var(--tc-navy);font-size:16px}
+.safety-brief-code{margin-left:auto;color:#b5c8db;white-space:nowrap}
+.safety-brief-body{padding:21px 22px 15px}
+.safety-brief-body>strong{display:block;font-size:24px;letter-spacing:-.6px;line-height:1.25}
+.safety-brief-body>p{font-size:12px;line-height:1.6;color:#c5d5e4;margin:8px 0 17px}
+.safety-brief-row{display:grid;grid-template-columns:29px 1fr 12px;align-items:center;gap:10px;border-top:1px solid #364a61;padding:10px 0;font-size:11px}
+.safety-brief-row>span:first-child{color:var(--tc-amber);font-weight:800}
+.safety-brief-row b{font-weight:600;color:#edf3fa}
+.safety-brief-row>span:last-child{color:#9eb4c8}
+.safety-brief-foot{display:flex;justify-content:space-between;align-items:center;background:#25374a;color:#d7e3ef;font-size:9px;font-weight:800;letter-spacing:.8px;padding:10px 18px}
+.safety-brief-foot span:last-child{color:var(--tc-amber)}
+.featured-section,.alt-section,.related-guides{background:#edf2f8}
+.guide-card{border-color:#d8e1eb;border-radius:7px;box-shadow:0 5px 18px #101d2e07}
+.guide-card .card-visual,.abstract-map{background:#e5edf6}
+.abstract-map{background:linear-gradient(125deg,#e9f0f8,#bbcee0)}
+.abstract-map>span{color:#8ca8c2}
+.visual-tag{background:#fff;color:#25374a;border-radius:4px}
+.guide-card .card-body .eyebrow{color:#916007}
+.guide-card .card-body h3{color:var(--tc-navy)}
+.card-bottom{border-top-color:#dce4ed;color:#425c74}
+.card-bottom a{color:#203a56}
+.caution-topic{border-color:#d8e1eb;background:#fff;border-radius:8px;box-shadow:0 4px 14px #101d2e05}
+.caution-topic strong{color:var(--tc-navy)}
+.caution-topic span,.caution-topic small{color:#526579}
+a.caution-topic:hover,a.caution-topic:focus-visible{border-color:#c78c21;box-shadow:0 8px 22px #101d2e10}
+.caution-pending{background:#f2f5f9;border-style:dashed;box-shadow:none}
+.sea-country{background:#edf3fa;border-color:#d4e0ec}
+.sea-country strong{color:#243f5a}
+.sea-country>span{color:#4b647c}
+.sea-country-ready{background:#dce9f6;border-color:#b9ccdf}
+.sea-country-ready:hover{background:#cddff0;border-color:#93b3d0}
+.sea-country-ready:focus-visible{outline-color:#c98a12}
+.sea-country-ready>span>span{color:#a46700}
+.sea-country-pending{background:#f5f7fa;border-color:#e0e7ef}
+.sea-country-pending strong{color:#65778a}
+.sea-country-pending>span{color:#6e8093}
+.destination-tile:before{border-color:#708dab38;box-shadow:0 0 0 33px #8fa9c023,0 0 0 70px #8fa9c015}
+.tone-0{background:#dce9f6}.tone-1{background:#f6ebd7}.tone-2{background:#e5edf5}
+.tone-3{background:#e0eaf0}.tone-4{background:#ede5e3}.tone-5{background:#e5ebf5}
+.destination-number,.continent-count{color:#536d86}
+.empty-state,.inline-empty{background:#f8fafc;border-color:#c7d6e5}
+.empty-state span{color:#a66d0b}
+.caution-country-filter button{background:var(--tc-navy)}
+.editorial-policy h2{color:var(--tc-navy)}
+.editorial-policy p{color:#4e6072}
+.editorial-policy .editorial-email{color:#245a87}
+.editorial-policy .contact-action{border-color:#d39a2d;background:#fff6e6}
+.article-toc{border-color:#d4e0eb;background:#f4f8fc}
+.article-toc>summary{color:#234766}
+.article-toc nav{border-color:#d8e4ef}
+.article-toc li a{color:#325b7b}
+.editorial-takeaways{background:#e9f1f9;border-left-color:#537fa4}
+.editorial-takeaways li{color:#314a61}
+.related-guides{border-color:#d8e3ee}
+.impact-legend{background:#f8fafc;border-color:#cbd9e7}
+.impact-legend small{color:#4e6175}
+.impact-pill.impact-critical{color:#8c2424;background:#ffebeb;border-color:#d93636}
+.impact-panel.impact-critical{border-left-color:#d93636;background:#fff0f0}
+.skip-link{background:var(--tc-navy);color:#fff}
+.skip-link:focus{outline-color:var(--tc-amber)}
+/* Admin inherits the same brand without changing its editorial logic. */
+.admin-body{background:#f5f7fa}
+.sidebar{background:var(--tc-navy);color:#f5f7fa}
+.sidebar>small{color:#b8c9db}
+.sidebar button,.sidebar .site-back{color:#d2dfed}
+.sidebar button.active,.sidebar button:hover{background:#304a65;color:#fff}
+.sidebar .site-back{border-color:#3a526d}
+.admin-top{border-color:#d8e2ed;color:#536d83}
+.admin-badge{color:#315d80}
+.admin-head small{color:#98620c}
+.admin-head h1 em{color:#b97b11}
+.admin-head p{color:#536a7d}
+.primary{background:var(--tc-navy);color:#fff}
+.primary:hover{background:#284561}
+.ghost{background:#eef3f9;color:#24415b;border-color:#cad8e7}
+.danger{background:#fff0f0;border-color:#e5a3a3;color:#9b2b2b}
+@media(max-width:1000px){.home-hero .hero-inner{gap:22px;grid-template-columns:minmax(0,1.15fr) minmax(230px,.8fr)}.safety-brief{transform:none;box-shadow:8px 9px 0 #cbd7e5}}
+@media(max-width:780px){.home-hero .hero-inner{display:block}.home-hero .hero-content{padding:30px 0 28px}.home-hero .hero-visual{display:none}.home-hero h1{font-size:clamp(37px,7vw,51px)}}
+@media(max-width:600px){.home-hero .hero-content{padding:25px 0 27px}.home-hero h1{font-size:clamp(35px,9vw,45px);letter-spacing:-1.6px}.home-hero .hero-description{font-size:13px;line-height:1.6}.home-hero .destination-search{margin-top:18px}.header-cta{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.guide-card .card-visual img,.caution-topic{transition:none}}

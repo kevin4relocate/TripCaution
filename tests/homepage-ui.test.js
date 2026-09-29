@@ -3,15 +3,21 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import app from '../src/index.js';
 
-test('homepage uses compact editorial journal instead of corporate step banner',async()=>{
+test('homepage uses safety intelligence brief without claiming a live alert feed',async()=>{
   const response=await app.fetch(new Request('https://example.test/'),{
     SITE_URL:'https://example.test',
     ASSETS:{fetch:async()=>new Response('Not found',{status:404})}
   });
   assert.equal(response.status,200);
   const page=await response.text();
-  assert.match(page,/TRAVEL TROUBLE, EXPLAINED/);
-  assert.match(page,/public\/illustrations\/travel-journal\.svg|\/illustrations\/travel-journal\.svg/);
+  assert.match(page,/TRAVEL SAFETY INTELLIGENCE/);
+  assert.match(page,/Travel smart/);
+  assert.match(page,/Stay safe/);
+  assert.match(page,/class="safety-brief"/);
+  assert.match(page,/INDEPENDENT · SOURCE-LINKED GUIDES/);
+  assert.match(page,/href="\/safety-theme\.css"/);
+  assert.doesNotMatch(page,/LIVE EMERGENCY ALERTS/);
+  assert.doesNotMatch(page,/illustrations\/travel-journal\.svg/);
   assert.match(page,/class="section featured-section"/);
   assert.match(page,/id="destinations"/);
   assert.doesNotMatch(page,/class="value-bar"/);

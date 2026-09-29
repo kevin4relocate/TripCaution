@@ -145,5 +145,5 @@ test('the public website does not require the admin key',async()=>{
  delete e.ADMIN_LOGIN_KEY;
  const home=await worker.fetch(request('/'),e);
  assert.equal(home.status,200);
- assert.match(await home.text(),/Go somewhere new/);
+ assert.match(await home.text(),/Travel smart/);
 });

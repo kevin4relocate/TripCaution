@@ -40,14 +40,14 @@ function layout(env, title, body, meta={}) {
  ${ogType==='article'&&Number.isInteger(meta.sourceCount)&&meta.sourceCount>=0?'<meta name="tripcaution:source-count" content="'+meta.sourceCount+'">':''}
  ${image?'<meta property="og:image" content="'+esc(image)+'">':''}
  ${!meta.preview&&meta.schema?jsonLdTag(meta.schema):''}
- <link rel="stylesheet" href="/styles.css"><link rel="icon" type="image/svg+xml" href="/favicon.svg">
+ <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/safety-theme.css"><link rel="icon" type="image/svg+xml" href="/favicon.svg">
  </head><body${meta.preview?' class="private-preview"':''}><a class="skip-link" href="#main-content">Skip to main content</a><header class="header"><div class="shell nav-wrap"><a class="brand" href="/" aria-label="TripCaution homepage"><span class="brand-mark">!</span>TRIP<span>CAUTION</span></a>
- <nav aria-label="Main navigation">${nav}</nav><a href="/#destinations" class="header-cta">Explore <span>↗</span></a></div></header>
+ <nav aria-label="Main navigation">${nav}</nav><a href="/#destinations" class="header-cta">Browse cautions <span>↗</span></a></div></header>
  ${main}<footer><div class="shell footer-grid"><div><div class="footer-brand">TRIP<span>CAUTION</span><span class="tiny-star"> ✳</span></div>
  <p>Know before you go. Independent travel information with linked sources. Not an emergency alert service.</p></div>
  <div><strong>EXPLORE</strong><a href="/cautions">Browse cautions</a><a href="/destinations">Destinations worldwide</a><a href="/#latest">Latest guides</a></div>
  <div><strong>INFORMATION</strong><a href="/about">About & editorial policy</a><a href="/privacy">Privacy</a><a href="/contact">Contact</a></div>
- </div><div class="shell foot-bottom"><span>© ${new Date().getUTCFullYear()} TripCaution</span><span>Travel prepared. Travel curious.</span></div></footer><script src="/site.js" defer></script></body></html>`;
+ </div><div class="shell foot-bottom"><span>© ${new Date().getUTCFullYear()} TripCaution</span><span>Travel smart. Stay safe.</span></div></footer><script src="/site.js" defer></script></body></html>`;
 }
 // Public and owner pages do not need arbitrary scripts, framing or device APIs.
 // Update CSP deliberately when an ad or analytics provider is actually enabled.
@@ -108,30 +108,34 @@ async function homepage(env){
  const topicCounts=new Map(categoryRows.map(row=>[row.category_id,Number(row.total)||0]));
  const body=`<main>
  <section class="hero home-hero"><div class="shell hero-inner"><div class="hero-content">
-   <div class="hero-label"><span class="label-line"></span> TRAVEL TROUBLE, EXPLAINED <span class="hero-label-star">✳</span></div>
-   <h1>Go somewhere new.<br><em>Know what to avoid.</em></h1>
-   <p class="hero-description">Unexpected problems happen everywhere. Research scams, payment limits, transport difficulties and practical precautions worldwide. Our first research priority is Southeast Asia.</p>
+   <div class="hero-label"><span class="label-line"></span> TRAVEL SAFETY INTELLIGENCE <span class="hero-label-star">✳</span></div>
+   <h1>Travel smart.<br><em>Stay safe.</em></h1>
+   <p class="hero-description">Know the problems travelers actually encounter. Explore source-linked cautions about scams, payments, transport and local rules, with Southeast Asia as our first research priority.</p>
    <form class="destination-search" action="/search" method="get">
      <label class="sr-only" for="q">Search destinations and guides</label><span class="search-icon" aria-hidden="true">⌕</span>
      <input id="q" type="search" name="q" placeholder="Country, city or topic..." required maxlength="80">
-     <button type="submit">Find a guide <span aria-hidden="true">↗</span></button>
+     <button type="submit">Find cautions <span aria-hidden="true">↗</span></button>
    </form>
    <div class="search-hints"><span>${readyHints.length?'READ ABOUT':'EXPLORE'}</span>${readyHints.length?readyHints.map(row=>link('/destinations/'+slugify(row.country),row.country)).join('') :link('/southeast-asia','Southeast Asia guide hub')}</div>
   </div>
   <div class="hero-visual" aria-hidden="true">
-    <div class="paper-layer paper-layer-back"></div><div class="paper-layer paper-layer-mid"></div>
-    <div class="postcard">
-      <div class="postcard-top"><span>NOTES FROM THE ROAD</span><span>NO. 001 ↗</span></div>
-      <img src="/illustrations/travel-journal.svg" width="720" height="440" alt="">
-      <div class="postcard-bottom"><span>GO CURIOUS. STAY INFORMED.</span><span>✳</span></div>
-    </div>
-    <div class="postcard-sticker">BEFORE<br>YOU GO <span>↗</span></div>
-  </div></div></section>
+     <div class="safety-brief">
+       <div class="safety-brief-top"><span class="safety-brief-mark">!</span><span>YOUR PRE-TRIP BRIEF</span><span class="safety-brief-code">TC / 01</span></div>
+       <div class="safety-brief-body">
+         <strong>Know before you go.</strong>
+         <p>Practical cautions for real travel situations.</p>
+         <div class="safety-brief-row"><span>01</span><b>Find your destination</b><span aria-hidden="true">↗</span></div>
+         <div class="safety-brief-row"><span>02</span><b>Understand the problem</b><span aria-hidden="true">↗</span></div>
+         <div class="safety-brief-row"><span>03</span><b>Prepare a safer option</b><span aria-hidden="true">↗</span></div>
+       </div>
+       <div class="safety-brief-foot"><span>INDEPENDENT · SOURCE-LINKED GUIDES</span><span>✳</span></div>
+     </div>
+   </div></div></section>
  <section class="section shell caution-topics-home" aria-label="Browse travel problems"><div class="section-heading"><div><div class="eyebrow">REAL TRAVEL PROBLEMS</div><h2>What could <em>go wrong?</em></h2><p>Choose the issue first, then check advice for your specific destination. No country is assumed to have the same payment options or risks.</p></div><a class="section-action" href="/cautions">All travel cautions ↗</a></div><div class="caution-topic-grid">${CAUTION_TOPICS.map(topic=>{const total=topic.ids.reduce((sum,id)=>sum+(topicCounts.get(id)||0),0);const inner='<strong>'+esc(topic.title)+'</strong><span>'+esc(topic.description)+'</span><small>'+(total?total+' published '+(total===1?'guide':'guides'):'Research planned')+'</small>';return total?'<a class="caution-topic" href="/cautions/'+topic.slug+'">'+inner+'</a>':'<div class="caution-topic caution-pending">'+inner+'</div>';}).join('')}</div></section>
  <section class="section featured-section" id="latest"><div class="shell">
    <div class="section-heading"><div><div class="eyebrow">01 — START READING</div>
-     <h2>Field notes for <em>curious travelers.</em></h2>
-     <p>Practical advice with linked sources. Browse the latest published guides.</p></div>
+     <h2>Latest <em>travel cautions.</em></h2>
+     <p>Understand the problem, check the linked evidence and prepare before you travel.</p></div>
      ${count?'<span class="guide-count">'+count+' PUBLISHED '+(count===1?'GUIDE':'GUIDES')+'</span>':''}
    </div>
    ${feature.length?`<div class="featured-layout ${feature.length===1?'featured-single':''}">
