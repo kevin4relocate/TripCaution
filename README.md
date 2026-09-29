@@ -20,6 +20,10 @@ TripCaution is a Cloudflare Workers application with a GitHub Actions/Gemini res
 
 **Sprint 2 editorial geography:** All eleven Southeast Asian countries are the first research and on-site discovery focus. The daily topic rotation and curated source list cover those eleven; other regions can still display guides already published. See [Southeast Asia-first roadmap](docs/SPRINT2_EDITORIAL_ROADMAP.md). Research remains in private Review until the owner approves it.\n\n**Important current limitations:** Gemini-generated artwork is *not automatically rendered* by the free daily job. It creates a ready-to-use hand-painted watercolor prompt. Image generation APIs may cost money or require separate quotas. Import finished illustrations yourself with R2, when configured. Source URLs still need human verification: grounding and link matching are safeguards, not proof that every assertion is true.
 
+## Prelaunch content expansion and transparent auto-publication
+
+The evidence-gated writer can research up to **3 distinct articles per daily run** when explicitly enabled at both GitHub and Cloudflare. Server reservations cap unattended publication at 3 per UTC day. High-stakes articles still need the owner, and AI-authored public content awaiting human checks is explicitly labelled. **Research capacity is not a guarantee of valid, automatically publishable material.** See [prelaunch activation, source safeguards and the 33-guide/11-country target](docs/PRELAUNCH_AUTO_PUBLISH.md).
+
 ## 1. Before you deploy
 
 You need your own Cloudflare account, GitHub access to `kevin4relocate/TripCaution`, and (only if using the automatic writer) a Google AI Studio Gemini API key.
