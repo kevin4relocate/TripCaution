@@ -22,7 +22,11 @@ API_KEY = os.getenv("GEMINI_API_KEY", "")
 MODEL = os.getenv("GEMINI_MODEL") or "gemini-3.5-flash-lite"
 RESEARCH_MODE = os.getenv("TRIPCAUTION_RESEARCH_MODE") or "curated"
 CONTENT_PHASE = int(os.getenv("TRIPCAUTION_CONTENT_PHASE") or "1")
-MAX_REVIEW_BACKLOG = 6 # Never flood the owner with unchecked AI research
+MAX_REVIEW_BACKLOG = 12 # Bound sensitive-claim review backlog
+MAX_UNREVIEWED_BACKLOG = 36 # Pause ahead of the 33-guide prelaunch milestone
+AUTO_PUBLISH = os.getenv('TRIPCAUTION_AUTO_PUBLISH_ENABLED') == 'true'
+DAILY_TARGET = max(1,min(3,int(os.getenv('TRIPCAUTION_DAILY_TARGET') or ('3' if AUTO_PUBLISH else '1'))))
+COMMUNITY_RESEARCH = os.getenv('TRIPCAUTION_COMMUNITY_RESEARCH') == 'true'
 SITE = os.getenv("TRIPCAUTION_API_URL", "").rstrip("/")
 TOKEN = os.getenv("TRIPCAUTION_INGEST_TOKEN", "")
 
@@ -153,15 +157,89 @@ def read_json(text):
         if start<0 or end<=start:raise
         return json.loads(clean[start:end+1])
 
-def main():
+def verify_claim_evidence(obj):
+    """Fail closed if the linked live HTML does not literally contain claimed
+    evidence excerpts. HTML requests are bounded and limited to HTTPS URLs.
+    Retrieved pages are evidence leads, NOT a guarantee AI prose is true.
+    """
+    import html
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+    def normalize(text):
+        return re.sub(r"\\s+"," ",html.unescape(str(text))).strip().casefold()
+    refs={s.get('url') for s in obj.get('research',{}).get('sources',[])
+          if isinstance(s,dict) and isinstance(s.get('url'),str)}
+    claims=obj.get('research',{}).get('claim_evidence')
+    if not isinstance(claims,list) or len(claims)<2:
+        print('Source preflight: missing material claim-to-source records; private review.')
+        return False
+    checked={}
+    for claim in claims[:12]:
+        url=claim.get('source_url') if isinstance(claim,dict) else None
+        excerpt=claim.get('evidence_excerpt') if isinstance(claim,dict) else None
+        if url not in refs or not isinstance(excerpt,str) or len(excerpt.strip())<35:
+            print('Source preflight: uncited or short evidence excerpt.')
+            return False
+        parsed=urlparse(url)
+        host=(parsed.hostname or '').casefold()
+        if parsed.scheme!='https' or not host or host in ('localhost','127.0.0.1'):
+            return False
+        # Requests must not fetch internal addresses even after DNS changes.
+        try:
+            ips=socket.getaddrinfo(host,443,type=socket.SOCK_STREAM)
+            if not ips or any(not ipaddress.ip_address(addr[4][0]).is_global for addr in ips):
+                print('Source preflight: non-public address denied.')
+                return False
+        except (OSError,ValueError):
+            return False
+        if url not in checked:
+            try:
+                req=urllib.request.Request(url,headers={
+                    'User-Agent':'TripCaution/1.0 (+https://tripcaution.com/about)',
+                    'Accept':'text/html'})
+                with urllib.request.urlopen(req,timeout=12) as response:
+                    if 'text/html' not in response.headers.get('Content-Type',''):
+                        return False
+                    if urlparse(response.geturl()).hostname != parsed.hostname:
+                        # Prevent excerpt laundering through unknown redirects.
+                        return False
+                    page=response.read(600_000).decode('utf-8',errors='replace')
+                text=TextExtractor();text.feed(page)
+                checked[url]=normalize(' '.join(text.parts))
+            except Exception as ex:
+                print('Source preflight: could not read cited page:',type(ex).__name__)
+                return False
+        if normalize(excerpt) not in checked[url]:
+            print('Source preflight: literal evidence excerpt not on cited source; private review.')
+            return False
+    hosts={urlparse(c['source_url']).hostname.removeprefix('www.')
+           for c in claims[:12]}
+    if len(hosts)<2:
+        print('Source preflight: requires independently hosted evidence.')
+        return False
+    for claim in claims:
+        claim['source_checked']=True
+    obj['research']['source_check_passed']=True
+    print('Source preflight: checked',len(checked),'live pages and matching quoted excerpts.')
+    return True
+
+
+def run_one(rotation=0):
     if not all([API_KEY,SITE,TOKEN]):
         print("Missing GitHub secrets or variables; no content generated.",file=sys.stderr);sys.exit(2)
     if not SITE.startswith("https://"):
         raise ValueError("TRIPCAUTION_API_URL must use HTTPS")
     existing=request_json(SITE+"/api/ingest/topics",None,{"Authorization":"Bearer "+TOKEN},timeout=25)
-    if existing.get("upcoming",0)>=2:
+    if not AUTO_PUBLISH and existing.get("upcoming",0)>=2:
         print("Upcoming owner-scheduled articles fill the near-term queue; skip.")
         return
+    if AUTO_PUBLISH and existing.get('unreviewedPublished',0)>=MAX_UNREVIEWED_BACKLOG:
+        print('Unreviewed public backlog is at the configured limit; owner review required.')
+        return False
+    if AUTO_PUBLISH and (not existing.get('autoPublishEnabled') or existing.get('autoToday',0)>=3):
+        print('Server auto publication is disabled or three daily slots are used; no new unattended posts.')
+        return False
     existing_rows=existing.get("titles",[])
     open_review=sum(row.get("status") in ("review", "draft") for row in existing_rows)
     if open_review >= MAX_REVIEW_BACKLOG:
@@ -171,7 +249,7 @@ def main():
     now=datetime.now(timezone.utc)
     if CONTENT_PHASE not in (1,2):
         raise ValueError("TRIPCAUTION_CONTENT_PHASE must be 1 or 2")
-    selected=choose_slot(existing_rows,CONTENT_PHASE,now.timetuple().tm_yday)
+    selected=choose_slot(existing_rows,CONTENT_PHASE,now.timetuple().tm_yday+rotation)
     if selected is None:
         print("Sprint 6 phase",CONTENT_PHASE,"has no open research slots.")
         print("This counts drafts as work in progress; it is NOT a verified publication milestone.")
@@ -199,8 +277,17 @@ Never assert a personal visit or create allegations about identifiable businesse
         research_prompt+="\\nUse ONLY the following fresh official page extracts; report any limitations.\\n"+evidence[:26000]
         researched,_=api_request(research_prompt,grounding=False)
     elif RESEARCH_MODE == "grounded":
-        # Available only when your specific model and key support Google Search Grounding.
-        researched,grounded=api_request(research_prompt,grounding=True)
+        # Google Search grounding supplies discovery leads, NOT source confirmation.
+        # Community reports may reveal practical issues absent from operator FAQs.
+        researched,grounded=api_request(research_prompt+"\\nSearch dated public Reddit first-hand reports when relevant. Treat them as attributed anecdotes, never representative rates or proven allegations. Validate exact circumstances against independent sources.",grounding=True)
+        if COMMUNITY_RESEARCH:
+            community_notes,community_refs=api_request(
+                "Search relevant dated public Reddit first-hand accounts for "+country+
+                " and this exact travel question: "+idea+
+                ". Return exact source links, reported circumstance and uncertainty only; if none are found, report NONE. Never invent a thread or assert incidence or prevalence.",grounding=True)
+            researched+="\\nCOMMUNITY RESEARCH LEADS (unverified, never facts by themselves):\\n"+community_notes[:4200]
+            known={ref['url'] for ref in grounded}
+            grounded += [ref for ref in community_refs if ref['url'] not in known]
     else:
         raise ValueError("TRIPCAUTION_RESEARCH_MODE must be 'curated' or 'grounded'")
     if len(grounded)<2 or "INSUFFICIENT EVIDENCE" in researched.upper():
@@ -215,13 +302,18 @@ Write fluent, varied English with concrete value, not generic AI prose. Use Mark
 only if evidence supports it; otherwise reply as an error.
 Produce ONLY a JSON object with: title, slug, country, city (null when national), category,
 tags (array), excerpt, content_markdown, seo {{title,description,keywords}},
-research {{verified_at, sources (array of {{title,url,publisher,published_at}}), uncertainties (array)}},
+research {{verified_at, sources (array of {{title,url,publisher,published_at}}), uncertainties (array),
+claim_evidence (array of {{claim,source_url,scope,evidence_excerpt}} with at least two
+INDEPENDENT exact HTTPS sources and literal 35+ character excerpts from the fetched sources),
+evidence_conflict (true if source accounts or dates materially disagree)}},
 images {{hero_prompt,hero_image_url:null,alt_text}}.
 Category MUST be {category}, country MUST be {country}.
 Hero prompt: hand-painted watercolor and soft gouache editorial travel illustration,
 delicate paper grain, gentle muted palette, illustrative not photographic,
 no recognizable real people, no text, horizontal 16:9.
 Only include sources present in the provided list AND relevant to material claims. verified_at is AI research date, NOT evidence of editor verification.
+Reddit first-hand reports can support a precisely attributed personal experience, but do NOT invent a prevalence estimate. Community-only high-stakes claims need manual review.
+The exact evidence excerpts MUST be copied verbatim from the relevant linked page; automated source retrieval will independently check each excerpt. If unable to quote literally, leave the row empty for human review.
 If there is insufficient evidence for the slot's concrete problem, reply INSUFFICIENT EVIDENCE; NEVER pad a category with generic travel boilerplate.
 Use exact HTTPS URLs from SOURCE LIST in research.sources ONLY if the page supports a distinct material claim.
 Do not invent sources, mutate source URLs or append irrelevant references merely to reach the source threshold.
@@ -269,19 +361,39 @@ SOURCE LIST:
     if not isinstance(uncertainty_list,list):
         uncertainty_list=[]
     uncertainty_list=[str(x)[:300] for x in uncertainty_list if isinstance(x,str)][:18]
-    uncertainty_list.append("AI research and its linked source claims must be independently checked by the editor before publishing.")
+    uncertainty_list.append("AI-produced text has not been personally reviewed by the TripCaution owner; check linked sources before relying on change-sensitive information.")
     obj["research"]["uncertainties"]=uncertainty_list
     obj.pop("caution_level",None)
     obj.pop("severity_scope",None)
     obj.pop("severity_rationale",None)
     obj["source_mode"]="github-automation"
-    # Editorial guard: do not auto-publish content that mentions a named accusation or emergency.
+    # Auto publication is opt-in, and ONLY grounded, independently retrieved,
+    # excerpt-matched sources can receive that request. Curated generic country
+    # advisory articles stay as private drafts unless their evidence is specific.
     suspicious=re.search(r"(?i)\b(fraud|criminal|arrest|outbreak|fatal|unsafe|emergency|visa requirements)\b",content)
-    if suspicious:print("Sensitive topic found; remains in manual Review with its original category.")
+    verified=False
+    if AUTO_PUBLISH and RESEARCH_MODE=='grounded' and not suspicious:
+        verified=verify_claim_evidence(obj)
+    if suspicious:print("Sensitive topic found; requires manual Review.")
+    obj["auto_publish"]=bool(AUTO_PUBLISH and verified and not suspicious)
     result=request_json(SITE+"/api/ingest",{"articles":[obj]},
         {"Authorization":"Bearer "+TOKEN,"Content-Type":"application/json"})
     print("Ingest result:",json.dumps(result)[:700])
     if any(not x.get("ok") for x in result.get("results",[])):sys.exit(1)
+    if any(x.get('deferred') for x in result.get('results',[])):
+        print('Daily publication quota reached concurrently; stop creating more content.')
+        return False
+    return True
+
+
+def main():
+    count=0
+    for attempt in range(DAILY_TARGET if AUTO_PUBLISH else 1):
+        if not run_one(attempt):
+            break
+        count+=1
+    print('Research records created this run:',count)
+
 
 if __name__=="__main__":
     try:main()
