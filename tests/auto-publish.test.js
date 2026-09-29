@@ -81,7 +81,7 @@ test('bot only publishes unreviewed within enabled daily quota; otherwise privat
  assert.equal(resultOn.status,207);
  assert.equal(onData.results[0].status,'published');
  assert.equal(onData.results[0].review_approved,0);
- assert.ok(on.statements.some(s=>s.sql.startsWith('INSERT INTO automation_runs')));
+ assert.ok(on.statements.some(s=>/INSERT (?:OR IGNORE )?INTO automation_runs/.test(s.sql)));
  assert.ok(on.statements.some(s=>s.sql.includes('auto-published-unreviewed')));
  const full=fakeDB(['auto-publish-1','auto-publish-2','auto-publish-3']);
  const response=await ingest(full,true),data=await response.json();
