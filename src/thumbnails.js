@@ -36,7 +36,7 @@ export async function enqueueThumbnail(env,id,{force=false}={}){
  const article=await env.DB.prepare('SELECT id,title,country,category_id,hero_prompt,hero_image_url FROM articles WHERE id=?')
   .bind(id).first();
  if(!article)return {state:'not_found'};
- if(!force&&!needsThumbnail(article))return {state:'not_needed'};
+ if(!needsThumbnail(article))return {state:'not_needed'};
  if(!String(article.hero_prompt||'').trim())return {state:'missing_prompt'};
  if(!thumbnailEnabled(env))return {state:'disabled',reason:'Configure R2 MEDIA, OPENAI_API_KEY and THUMBNAIL_AUTOGEN_ENABLED=true'};
  const jobId=crypto.randomUUID();
@@ -76,7 +76,7 @@ export async function renderThumbnail(env,article,{request=fetch}={}){
  }
  const payload=await response.json();
  const bytes=decodeBase64(payload?.data?.[0]?.b64_json);
- const key='editorial/'+article.id+'.webp';
+ const key='editorial/'+crypto.randomUUID()+'.webp';
  await env.MEDIA.put(key,bytes.buffer,{httpMetadata:{contentType:'image/webp',cacheControl:'public,max-age=31536000,immutable'}});
  const base=String(env.SITE_URL||'').replace(/\/$/,'');
  return base+'/media/'+key;
