@@ -46,10 +46,16 @@ await run('Critical first-party assets are deployed',async()=>{
  ensure(css.response.status===200&&css.body.includes('.shell'),'Public stylesheet missing or stale');
  const theme=await get('/safety-theme.css');
  ensure(theme.response.status===200&&theme.body.includes('--tc-navy:#101d2e')&&theme.body.includes('--tc-amber:#ffb020'),'New safety theme is missing or old');
+ ensure(theme.body.includes('.auto-research-notice'),'Auto-publication disclosure CSS missing or stale');
  const site=await get('/site.js');
  ensure(site.response.status===200&&site.body.includes('data-copy-guide'),'CSP-compatible first-party script missing');
  const dashboard=await get('/admin.js');
- ensure(dashboard.response.status===200&&dashboard.body.includes('PUBLISHED · NOT REVIEWED')&&dashboard.body.includes('function renderArticles'),'Updated Admin script missing or stale');
+ ensure(dashboard.response.status===200&&dashboard.body.includes('PUBLISHED · NOT REVIEWED')&&dashboard.body.includes('review-claim-evidence')&&dashboard.body.includes('function renderArticles'),'Latest Admin review-evidence script missing or stale');
+});
+await run('Public editorial policy describes transparent automated publishing',async()=>{
+ const {response,body}=await get('/about');
+ ensure(response.status===200 && body.includes('Low-stakes, narrowly scoped travel guides can be published after automated live-source and excerpt checks'),
+  'New automated-publication disclosure is not deployed; do not mark latest build live');
 });
 await run('Destination directory is published without a dead-end index',async()=>{
  const {response,body}=await get('/destinations');
