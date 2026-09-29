@@ -493,7 +493,7 @@ async function insertArticle(env,raw,actor){
    SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM automation_runs WHERE id=?)`)
    .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,'published',a.source_mode,0,a.verified_at,published,null,'unassessed','','',reservationId);
   const conditionalAudit=env.DB.prepare("INSERT INTO audit_logs(id,actor,action,article_id,details) SELECT ?,?,'auto-published-unreviewed',?,? WHERE EXISTS(SELECT 1 FROM automation_runs WHERE id=?)")
-   .bind(crypto.randomUUID(),actor,a.id,JSON.stringify({source_count:JSON.parse(a.sources_json).length,human_reviewed:false}),reservationId);
+   .bind(crypto.randomUUID(),actor,a.id,JSON.stringify({source_count:JSON.parse(a.sources_json).length,human_reviewed:false,claim_evidence:raw.research.claim_evidence,source_check_passed:true}),reservationId);
   const results=await env.DB.batch([reserve,conditionalInsert,conditionalAudit]);
   if(Number(results?.[0]?.meta?.changes||0)!==1 || Number(results?.[1]?.meta?.changes||0)!==1)
    return {id:a.id,title:a.title,slug:a.slug,status:'review',deferred:true,reason:'Daily publication slot was unavailable'};
@@ -638,7 +638,8 @@ async function api(request,env,url,admin=false){
   const titles=(await env.DB.prepare("SELECT title,slug,country,city,category_id,tags_json,status FROM articles WHERE status!='deleted' ORDER BY created_at DESC LIMIT 400").all()).results;
   const upcoming=(await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='scheduled' AND julianday(scheduled_at) BETWEEN julianday('now') AND julianday('now','+2 days')").first()).count;
   const autoToday=(await env.DB.prepare("SELECT COUNT(*) count FROM automation_runs WHERE run_date=date('now') AND source LIKE 'auto-publish-%'").first()).count;
-  return json({titles,upcoming,autoToday,autoPublishEnabled:env.AUTO_PUBLISH_ENABLED==='true'});
+  const unreviewedPublished=(await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published' AND review_approved=0").first()).count;
+  return json({titles,upcoming,autoToday,autoPublishEnabled:env.AUTO_PUBLISH_ENABLED==='true',unreviewedPublished});
  }
  if(method==='GET' && pathname==='/api/admin/articles'){
   const q=String(url.searchParams.get('q')||'').trim().slice(0,80);
