@@ -504,7 +504,7 @@ async function insertArticle(env,raw,actor){
  const insert = env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at,caution_level,severity_scope,severity_rationale) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
  .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at,'unassessed','','');
  const auditInsert=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
-  .bind(crypto.randomUUID(),actor,'created:'+status,a.id,'');
+  .bind(crypto.randomUUID(),actor,'created:'+status,a.id,actor==='github-automation'?JSON.stringify({claim_evidence:raw.research?.claim_evidence||[],source_check_passed:false}):'');
  await env.DB.batch([insert,auditInsert]);
  return {id:a.id,title:a.title,slug:a.slug,status};
 }
@@ -819,7 +819,7 @@ async function api(request,env,url,admin=false){
  const evidenceMatch=pathname.match(/^\/api\/admin\/article\/([a-f0-9-]{36})\/evidence$/);
  if(evidenceMatch && method==='GET'){
   if(actor==='github-automation')return json({error:'Admin login required'},403);
-  const row=await env.DB.prepare("SELECT details FROM audit_logs WHERE article_id=? AND action='auto-published-unreviewed' ORDER BY created_at DESC LIMIT 1")
+  const row=await env.DB.prepare("SELECT details FROM audit_logs WHERE article_id=? AND actor='github-automation' AND action IN ('auto-published-unreviewed','created:review') ORDER BY created_at DESC LIMIT 1")
    .bind(evidenceMatch[1]).first();
   const metadata=safeParse(row?.details||'{}',{});
   return json({automated:!!row,claimEvidence:Array.isArray(metadata.claim_evidence)?metadata.claim_evidence:[],
