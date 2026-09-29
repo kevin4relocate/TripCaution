@@ -47,6 +47,7 @@ await run('Critical first-party assets are deployed',async()=>{
  const theme=await get('/safety-theme.css');
  ensure(theme.response.status===200&&theme.body.includes('--tc-navy:#101d2e')&&theme.body.includes('--tc-amber:#ffb020'),'New safety theme is missing or old');
  ensure(theme.body.includes('.auto-research-notice'),'Auto-publication disclosure CSS missing or stale');
+ ensure(theme.body.includes('.caution-topics-home .caution-topic')&&theme.body.includes('background:#15283c')&&theme.body.includes('background:radial-gradient('),'Dark caution identity is not deployed; old pale theme remains');
  const site=await get('/site.js');
  ensure(site.response.status===200&&site.body.includes('data-copy-guide'),'CSP-compatible first-party script missing');
  const dashboard=await get('/admin.js');
@@ -195,6 +196,10 @@ await run('Sign-in uses no-store, anti-frame protection and strict browser scrip
  ensure(!body.includes('ADMIN_LOGIN_KEY'),'Server-only secret name should not be embedded in public login HTML');
 });
 const pass=results.filter(x=>x.status==='PASS').length,failed=results.filter(x=>x.status==='FAIL').length;
+if(publicGuideCount<33||regionalCoverage.published.length<11)
+ warnings.push('PRELAUNCH EDITORIAL GAP: '+publicGuideCount+' publicly listed guides; '+regionalCoverage.published.length+'/11 Southeast Asian destinations represented. First-pass plan calls for at least 33 guides with 3+ per destination, individually evidence checked.');
+if(publicGuideCount<88)
+ warnings.push('FULL-LAUNCH CONTENT TARGET OPEN: '+publicGuideCount+'/88 actual sitemap guides; confirm editorial quality and country/topic distribution rather than counting draft inventory.');
 const report={origin,github_source_sha:process.env.GITHUB_SHA||null,cloudflare_deployment_sha:'NOT_VERIFIED_BY_THIS_SCRIPT',executed_at:new Date().toISOString(),pass,failed,total:results.length,
  publicGuideCount,regionalCoverage,results,warnings,manualGates,
  decision:failed?'AUTOMATED_CHECKS_FAILED':'AUTOMATED_CHECKS_PASS__MANUAL_GATES_OPEN',
