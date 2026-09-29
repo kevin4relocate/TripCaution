@@ -175,6 +175,19 @@ def verify_claim_evidence(obj):
         print('Source preflight: missing material claim-to-source records; private review.')
         return False
     checked={}
+    class CheckedRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self,req,fp,code,msg,headers,newurl):
+            p=urlparse(newurl)
+            if p.scheme!='https' or not p.hostname:
+                return None
+            try:
+                ips=socket.getaddrinfo(p.hostname,443,type=socket.SOCK_STREAM)
+                if not ips or any(not ipaddress.ip_address(a[4][0]).is_global for a in ips):
+                    return None
+            except (OSError,ValueError):
+                return None
+            return super().redirect_request(req,fp,code,msg,headers,newurl)
+    opener=urllib.request.build_opener(CheckedRedirect)
     for claim in claims[:12]:
         url=claim.get('source_url') if isinstance(claim,dict) else None
         excerpt=claim.get('evidence_excerpt') if isinstance(claim,dict) else None
@@ -198,10 +211,10 @@ def verify_claim_evidence(obj):
                 req=urllib.request.Request(url,headers={
                     'User-Agent':'TripCaution/1.0 (+https://tripcaution.com/about)',
                     'Accept':'text/html'})
-                with urllib.request.urlopen(req,timeout=12) as response:
+                with opener.open(req,timeout=12) as response:
                     if 'text/html' not in response.headers.get('Content-Type',''):
                         return False
-                    if urlparse(response.geturl()).hostname != parsed.hostname:
+                    if (urlparse(response.geturl()).hostname or '').removeprefix('www.') != host.removeprefix('www.'):
                         # Prevent excerpt laundering through unknown redirects.
                         return False
                     page=response.read(600_000).decode('utf-8',errors='replace')
@@ -367,12 +380,12 @@ SOURCE LIST:
     obj.pop("severity_scope",None)
     obj.pop("severity_rationale",None)
     obj["source_mode"]="github-automation"
-    # Auto publication is opt-in, and ONLY grounded, independently retrieved,
-    # excerpt-matched sources can receive that request. Curated generic country
-    # advisory articles stay as private drafts unless their evidence is specific.
+    # Auto publication is opt-in. Both curated and grounded research must pass
+    # independent live retrieval and exact excerpt matching; generic country
+    # advisory links cannot justify an unsupported operator-specific claim.
     suspicious=re.search(r"(?i)\b(fraud|criminal|arrest|outbreak|fatal|unsafe|emergency|visa requirements)\b",content)
     verified=False
-    if AUTO_PUBLISH and RESEARCH_MODE=='grounded' and not suspicious:
+    if AUTO_PUBLISH and not suspicious:
         verified=verify_claim_evidence(obj)
     if suspicious:print("Sensitive topic found; requires manual Review.")
     obj["auto_publish"]=bool(AUTO_PUBLISH and verified and not suspicious)
