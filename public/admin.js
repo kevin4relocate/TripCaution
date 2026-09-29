@@ -59,6 +59,11 @@ async function refresh(){
   (row.pipeline?' · '+row.pipeline+' in pipeline':'')+'</small></div>').join('');
  const matrix=Array.isArray(coverage.topicCoverage)?coverage.topicCoverage:[];
  const totalPublished=coverage.coverage.reduce((sum,row)=>sum+Number(row.published||0),0);
+ const launchTarget=Number(coverage.launchTarget||33),launchRemaining=Number(coverage.launchRemaining||0);
+ const launchProgress=$('launch-readiness-progress');launchProgress.max=launchTarget;launchProgress.value=Math.min(totalPublished,launchTarget);
+ $('launch-readiness-label').textContent=coverage.launchTargetMet?'CONTENT TARGET REACHED':'BUILDING INVENTORY';
+ const minDays=launchRemaining?Math.ceil(launchRemaining/3):0;
+ $('launch-readiness-detail').textContent=totalPublished+'/'+launchTarget+' published guides · '+Number(coverage.countriesAtFirstPass||0)+'/'+Number(coverage.totalCountries||11)+' countries have at least '+Number(coverage.firstPassTarget||3)+' guides · '+launchRemaining+' guides remaining'+(launchRemaining?' · minimum '+minDays+' day'+(minDays===1?'':'s')+' at 3 successful publications/day':'')+'.';
  const publishedFirst=matrix.reduce((sum,row)=>sum+row.firstPassCovered,0);
  const coveredDepth=matrix.reduce((sum,row)=>sum+row.depthCovered,0);
  $('sprint6-total').textContent=publishedFirst+'/33 phase-one topic opportunities covered · '+coveredDepth+
