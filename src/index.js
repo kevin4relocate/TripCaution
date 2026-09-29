@@ -96,7 +96,7 @@ async function homepage(env){
  let latest=[],countryRows=[],categoryRows=[],count=0;
  if(env.DB) {
   const [a,c,n,topics] = await Promise.all([
-   env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') ORDER BY CASE WHEN a.country IN ("+SOUTHEAST_ASIA_COUNTRIES.map(country=>"'"+country+"'").join(',')+") THEN 0 ELSE 1 END,a.published_at DESC LIMIT 9").all(),
+   env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') ORDER BY CASE WHEN a.country IN ("+SOUTHEAST_ASIA_COUNTRIES.map(country=>"'"+country+"'").join(',')+") THEN 0 ELSE 1 END,a.published_at DESC LIMIT 12").all(),
    env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country ORDER BY country COLLATE NOCASE ASC LIMIT 250").all(),
    env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published' AND published_at<=datetime('now')").first(),
    env.DB.prepare("SELECT category_id,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY category_id").all()
@@ -105,7 +105,7 @@ async function homepage(env){
  }
  const publishedCountries=countryRows.filter(row=>row.country && Number(row.total)>0);
  const feature=latest.slice(0,3);
- const additional=latest.slice(3,9);
+ const additional=latest.slice(3,12);
  const readyHints=publishedCountries.filter(row=>isSoutheastAsia(row.country)).slice(0,3);
  const topicCounts=new Map(categoryRows.map(row=>[row.category_id,Number(row.total)||0]));
  const body=`<main>
