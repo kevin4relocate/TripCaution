@@ -22,7 +22,7 @@ API_KEY = os.getenv("GEMINI_API_KEY", "")
 MODEL = os.getenv("GEMINI_MODEL") or "gemini-3.5-flash-lite"
 RESEARCH_MODE = os.getenv("TRIPCAUTION_RESEARCH_MODE") or "curated"
 CONTENT_PHASE = int(os.getenv("TRIPCAUTION_CONTENT_PHASE") or "1")
-MAX_REVIEW_BACKLOG = 12 # Bound sensitive-claim review backlog
+MAX_REVIEW_BACKLOG = 40 # Allow a prelaunch research library while owner reviews risky topics
 MAX_UNREVIEWED_BACKLOG = 36 # Pause ahead of the 33-guide prelaunch milestone
 AUTO_PUBLISH = os.getenv('TRIPCAUTION_AUTO_PUBLISH_ENABLED') == 'true'
 DAILY_TARGET = max(1,min(3,int(os.getenv('TRIPCAUTION_DAILY_TARGET') or ('3' if AUTO_PUBLISH else '1'))))
