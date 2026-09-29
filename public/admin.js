@@ -73,7 +73,7 @@ async function refresh(){
     '<ul>'+details+'</ul><small>Targets are editorial opportunities, never fabricated incidents or automatic country safety ratings.</small></details>';
  }).join('');
  const counts=Object.fromEntries(overview.status.map(s=>[s.status,s.count]));
- $('stats').innerHTML=[['Published',counts.published||0],['Needs review',counts.review||0],['Scheduled',counts.scheduled||0],['Drafts',counts.draft||0]]
+ $('stats').innerHTML=[['Published',counts.published||0],['Not reviewed',overview.unreviewedPublished||0],['Needs review',counts.review||0],['Scheduled',counts.scheduled||0],['Drafts',counts.draft||0]]
   .map(([name,count])=>'<div class="stat"><small>'+escapeHTML(name.toUpperCase())+'</small><b>'+count+'</b><span>Article records</span></div>').join('');
  const reviewNeeded=(overview.reviewDue||[]).filter(row=>!row.next_review_due_at || Date.parse(row.next_review_due_at)<=Date.now());
  $('review-due').innerHTML=reviewNeeded.length?reviewNeeded.map(row=>{
@@ -125,6 +125,7 @@ function quickOptions(a){
  if(['review','draft','hidden','scheduled'].includes(a.status)){
   ops.push('<option value="publish">Publish now</option><option value="schedule">Schedule…</option>');
  }
+ if(a.status==='published'&&Number(a.review_approved)===0)ops.push('<option value="mark-reviewed">Mark as reviewed</option>');
  if(!['hidden','deleted','archived'].includes(a.status))ops.push('<option value="hide">Hide · private</option>');
  if(['hidden','archived','deleted'].includes(a.status))ops.push('<option value="restore">Restore draft</option>');
  if(['published','scheduled','draft','hidden'].includes(a.status))ops.push('<option value="review">Move to Review</option>');
@@ -140,7 +141,7 @@ function renderArticles(){
   // Published guides get a small View live text link beside the destination.
   const liveLink=published?
    ' <a class="preview-row-link" href="/guides/'+encodeURIComponent(a.slug)+'" target="_blank" rel="noopener noreferrer">View live ↗</a>':'';
-  const statusLabel=a.status==='review'?'AWAITING REVIEW':a.status.toUpperCase();
+  const statusLabel=a.status==='review'?'AWAITING REVIEW':a.status==='published'&&Number(a.review_approved)===0?'PUBLISHED · NOT REVIEWED':a.status==='published'?'PUBLISHED · REVIEWED':a.status.toUpperCase();
   return '<tr><td class="select-col"><input type="checkbox" class="row-select" data-id="'+escapeHTML(a.id)+'" aria-label="Select '+escapeHTML(a.title)+'"'+(selectedIds.has(a.id)?' checked':'')+'></td>'+
    '<td class="article-info"><strong>'+escapeHTML(a.title)+'</strong><small>'+escapeHTML([a.city,a.country].filter(Boolean).join(', '))+liveLink+'</small></td>'+
    '<td>'+escapeHTML(a.category_id)+'</td><td><span class="status '+escapeHTML(a.status)+'">'+escapeHTML(statusLabel)+'</span></td>'+
@@ -176,6 +177,10 @@ let searchTimer;
 $('article-search').addEventListener('input',()=>{
  clearTimeout(searchTimer);selectedIds.clear();
  searchTimer=setTimeout(()=>loadArticlePage(1).catch(e=>toast(e.message,true)),250);
+});
+$('show-unreviewed').addEventListener('click',()=>{
+ $('article-filter').value='published-unreviewed';$('article-search').value='';selectedIds.clear();show('articles');
+ loadArticlePage(1).catch(e=>toast(e.message,true));
 });
 $('article-filter').addEventListener('change',()=>{
  clearTimeout(searchTimer);selectedIds.clear();loadArticlePage(1).catch(e=>toast(e.message,true));
@@ -401,15 +406,16 @@ async function quickRowAction(id,name){
   await loadArticle(id);return;
  }
  if(name==='schedule'){openSchedule('row',[id]);return;}
+ if(name==='mark-reviewed'&&!confirm('Confirm that you personally checked this published article and its linked source evidence. Mark it as reviewed without unpublishing?'))return;
  if(name==='publish'&&!confirm('Publish "'+a.title+'"? Confirm you have already reviewed it and its source links.'))return;
  if(name==='hide'&&a.status==='published'&&!confirm('Hide "'+a.title+'" from the public website? This does not delete it.'))return;
  if(name==='delete'&&!confirm('Move "'+a.title+'" to Deleted? It can be restored.'))return;
  try{
   quickBusy=true;updateBulkToolbar();
   const result=await api('/api/admin/article/'+id,{
-   method:'PATCH',body:JSON.stringify({action:name,review_confirmed:name==='publish',review_method:'single'})
+   method:'PATCH',body:JSON.stringify({action:name,review_confirmed:name==='publish'||name==='mark-reviewed',review_method:'single'})
   });
-  toast('"' + a.title + '" is now '+result.status+'.');
+  toast(name==='mark-reviewed'?'Marked as reviewed. Article remains published.':'"' + a.title + '" is now '+result.status+'.');
   selectedIds.delete(id);
   await refresh();
  }catch(e){toast(e.message,true);}

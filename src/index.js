@@ -610,17 +610,18 @@ async function api(request,env,url,admin=false){
  if(method==='GET' && pathname==='/api/admin/articles'){
   const q=String(url.searchParams.get('q')||'').trim().slice(0,80);
   const status=url.searchParams.get('status')||'';
-  if(status&&!STATUSES.includes(status))return json({error:'Invalid status'},400);
+  if(status&&!STATUSES.includes(status)&&status!=='published-unreviewed')return json({error:'Invalid status'},400);
   const page=Number(url.searchParams.get('page')||'1');
   if(!Number.isSafeInteger(page)||page<1||page>10000)return json({error:'Invalid page'},400);
   const args=[],conditions=[];
-  if(status){conditions.push('status=?');args.push(status);}
+  if(status==='published-unreviewed'){conditions.push("status='published' AND review_approved=0");}
+  else if(status){conditions.push('status=?');args.push(status);}
   if(q){conditions.push("instr(lower(title||' '||country||' '||coalesce(city,'')),lower(?))>0");args.push(q);}
   const where=conditions.length?' WHERE '+conditions.join(' AND '):'';
   const count=await env.DB.prepare('SELECT COUNT(*) count FROM articles'+where).bind(...args).first();
   const total=Number(count?.count||0),pageSize=30,pages=Math.max(1,Math.ceil(total/pageSize));
   const current=Math.min(page,pages);
-  const rows=await env.DB.prepare('SELECT id,title,slug,country,city,category_id,caution_level,status,source_mode,verified_at,scheduled_at,published_at,updated_at FROM articles'+where+' ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?').bind(...args,pageSize,(current-1)*pageSize).all();
+  const rows=await env.DB.prepare('SELECT id,title,slug,country,city,category_id,caution_level,status,source_mode,review_approved,verified_at,scheduled_at,published_at,updated_at FROM articles'+where+' ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?').bind(...args,pageSize,(current-1)*pageSize).all();
   return json({articles:rows.results||[],page:current,pages,pageSize,total});
  }
  if(method==='GET' && pathname==='/api/admin/queue'){
@@ -741,18 +742,19 @@ async function api(request,env,url,admin=false){
   return json({error:'Bulk scheduling disabled. Review and schedule each article individually.'},403);
  }
  if(method==='GET' && pathname==='/api/admin/overview'){
+  const unreviewedPublished=await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published' AND review_approved=0").first();
   const status=(await env.DB.prepare("SELECT status,COUNT(*) count FROM articles GROUP BY status").all()).results;
   const auditLogs=(await env.DB.prepare("SELECT action,created_at FROM audit_logs ORDER BY created_at DESC LIMIT 8").all()).results;
   const reviewDue=(await env.DB.prepare(`SELECT a.id,a.title,
    (SELECT json_extract(l.details,'$.next_review_due_at') FROM audit_logs l
       WHERE l.article_id=a.id AND ((l.action IN ('reviewed-and-published','reviewed-and-scheduled')
         AND json_valid(l.details) AND length(json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.evidence_note'))>=30)
-       OR (l.action IN ('owner-reviewed-and-published','owner-reviewed-and-scheduled')
+       OR (l.action IN ('owner-reviewed-and-published','owner-reviewed-and-scheduled','owner-reviewed-published')
         AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1))
       ORDER BY l.created_at DESC LIMIT 1) next_review_due_at
    FROM articles a WHERE a.status='published' ORDER BY CASE a.caution_level WHEN 'critical' THEN 0 WHEN 'high' THEN 1 ELSE 2 END, a.created_at DESC LIMIT 100`).all()).results;
   const publishedRow=await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published'").first();
-  return json({status,auditLogs,reviewDue,reviewScanLimited:Number(publishedRow?.count||0)>100});
+  return json({status,auditLogs,reviewDue,unreviewedPublished:Number(unreviewedPublished?.count||0),reviewScanLimited:Number(publishedRow?.count||0)>100});
  }
  if(method==='POST' && pathname==='/api/admin/research-audit'){
   if(actor==='github-automation')return json({error:'Private editor required'},403);
@@ -786,6 +788,20 @@ async function api(request,env,url,admin=false){
   const action=body.action;
   if(action){
    if(actor==='github-automation')return json({error:'Admin session required'},403);
+   if(action==='mark-reviewed'){
+    if(old.status!=='published')return json({error:'Only published articles can be marked reviewed'},409);
+    if(old.review_approved===1)return json({ok:true,id:old.id,status:'published',review_approved:1,alreadyReviewed:true});
+    const sources=safeParse(old.sources_json);
+    if(body.review_confirmed!==true || !Array.isArray(sources) || !sources.some(src=>safe(src?.url)))
+     return json({error:'Confirm that you checked the article and its HTTPS source links'},422);
+    const days=old.caution_level==='critical'?2:old.caution_level==='high'?7:30;
+    const details=JSON.stringify({review_confirmed:true,editor_reviewed_at:new Date().toISOString(),next_review_due_at:new Date(Date.now()+days*86400000).toISOString(),review_window_days:days,method:'single'});
+    await env.DB.batch([
+     env.DB.prepare("UPDATE articles SET review_approved=1,updated_at=datetime('now') WHERE id=? AND status='published' AND review_approved=0").bind(old.id),
+     env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),actor,'owner-reviewed-published',old.id,details)
+    ]);
+    return json({ok:true,id:old.id,status:'published',review_approved:1});
+   }
    try{return json({ok:true,...await applyEditorialAction(env,old,action,body,actor)});}
    catch(e){return json({error:e.message},e.status||500);}
   }
