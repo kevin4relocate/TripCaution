@@ -245,13 +245,13 @@ $('import-btn').onclick=async()=>{
   quickBusy=true;
   $('import-btn').disabled=true;
   let successes=0,processed=0;
-  const failures=[],planRejects=[],statuses={};
+  const failures=[],planRejects=[],statuses={},thumbnails={};
   for(let start=0;start<entries.length;start+=10){
    const batch=entries.slice(start,start+10);
    try{
     const result=await api('/api/admin/import',{method:'POST',body:JSON.stringify({
       ...data,articles:batch,update_matching:revision,confirm_unpublish:revision,
-      apply_publishing_plan:applyPlan,confirm_publishing_plan:applyPlan
+      apply_publishing_plan:applyPlan,confirm_publishing_plan:applyPlan,auto_generate_thumbnails:$('import-thumbnails').checked
     })});
     if(!Array.isArray(result.results)||result.results.length!==batch.length)
       throw Error('Unexpected import response');
@@ -259,6 +259,7 @@ $('import-btn').onclick=async()=>{
     failures.push(...result.results.filter(row=>!row.ok));
     planRejects.push(...result.results.filter(row=>row.plan_rejected));
     result.results.filter(row=>row.ok).forEach(row=>{statuses[row.status]=(statuses[row.status]||0)+1;});
+    result.results.filter(row=>row.ok).forEach(row=>{const state=row.thumbnail?.state||'not_requested';thumbnails[state]=(thumbnails[state]||0)+1;});
     processed+=batch.length;
     $('import-result').textContent=processed+'/'+entries.length+' processed; '+successes+' imported.';
    }catch(error){
@@ -268,12 +269,27 @@ $('import-btn').onclick=async()=>{
    }
   }
   $('import-result').textContent=successes+' imported ('+Object.entries(statuses).map(([name,count])=>name+': '+count).join(', ')+'), '+failures.length+' errors'+(planRejects.length?', '+planRejects.length+' plan(s) left in Review':'');
+  $('thumbnail-import-status').textContent='Thumbnail processing: '+Object.entries(thumbnails).map(([k,n])=>k+': '+n).join(', ')+(thumbnails.queued?' · Open Check thumbnail queue later for progress.':'');
   if(failures.length)toast(failures.slice(0,4).map(e=>(e.title||'Article')+': '+e.error).join(' | ').slice(0,600),true);
   else if(planRejects.length)toast(planRejects.slice(0,3).map(row=>row.title+': '+row.reason).join(' | ').slice(0,650),true);
   else toast(successes+(revision?' corrected/new articles placed in Review. Re-approve individually.':applyPlan?' articles imported following their JSON statuses.':' articles imported into private Review.'));
   await refresh();
  }catch(e){toast(e.message,true);}
  finally{quickBusy=false;$('import-btn').disabled=false;}
+};
+$('thumb-status-btn').onclick=async()=>{
+ try{
+  const result=await api('/api/admin/thumbnails');
+  $('thumbnail-import-status').textContent='Image generation: '+(result.enabled?'ENABLED':'NOT CONFIGURED')+
+   ' · '+Object.entries(result.counts||{}).map(([k,v])=>k+': '+v).join(', ');
+ }catch(e){toast(e.message,true);}
+};
+$('thumb-backfill-btn').onclick=async()=>{
+ if(!confirm('Queue up to 30 existing articles without thumbnails using their saved hero_prompt? Existing thumbnails are never overwritten.'))return;
+ try{
+  const result=await api('/api/admin/thumbnails/backfill',{method:'POST',body:'{}'});
+  $('thumbnail-import-status').textContent=result.queued+' thumbnail jobs queued from '+result.considered+' eligible articles.';
+ }catch(e){toast(e.message,true);}
 };
 const editorForm=$('article-form');
 function safeSourceUrl(raw){
