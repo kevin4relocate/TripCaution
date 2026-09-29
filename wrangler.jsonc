@@ -26,6 +26,8 @@
   "vars": {
     "SITE_NAME": "TripCaution",
     "AUTO_PUBLISH_ENABLED": "true",
+    "THUMBNAIL_AUTOGEN_ENABLED": "false",
+    "THUMBNAIL_MODEL": "gpt-image-2",
     "SITE_URL": "https://tripcaution.nghiep4tube.workers.dev"
   }
 }
