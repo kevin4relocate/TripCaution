@@ -33,7 +33,7 @@ await run('D1 database responds to health probe',async()=>{
 });
 await run('Homepage uses expected canonical, content and safe response type',async()=>{
  const {response,body}=await get('/');
- ensure(response.status===200&&body.includes('Field notes for'),'Homepage missing or old build');
+ ensure(response.status===200&&body.includes('Travel smart.') && body.includes('Stay safe.') && body.includes('/safety-theme.css'),'Homepage missing or old build');
  ensure(body.includes('rel="canonical" href="'+origin+'/"'),'Homepage canonical host mismatch');
  ensure((response.headers.get('x-content-type-options')||'').toLowerCase()==='nosniff','Missing nosniff on HTML');
  ensure(response.headers.get('x-frame-options')==='DENY','Public HTML missing anti-frame header');
@@ -44,10 +44,12 @@ await run('Homepage uses expected canonical, content and safe response type',asy
 await run('Critical first-party assets are deployed',async()=>{
  const css=await get('/styles.css');
  ensure(css.response.status===200&&css.body.includes('.shell'),'Public stylesheet missing or stale');
+ const theme=await get('/safety-theme.css');
+ ensure(theme.response.status===200&&theme.body.includes('--tc-navy:#101d2e')&&theme.body.includes('--tc-amber:#ffb020'),'New safety theme is missing or old');
  const site=await get('/site.js');
  ensure(site.response.status===200&&site.body.includes('data-copy-guide'),'CSP-compatible first-party script missing');
  const dashboard=await get('/admin.js');
- ensure(dashboard.response.status===200&&dashboard.body.includes('function renderArticles'),'Admin script missing or stale');
+ ensure(dashboard.response.status===200&&dashboard.body.includes('PUBLISHED · NOT REVIEWED')&&dashboard.body.includes('function renderArticles'),'Updated Admin script missing or stale');
 });
 await run('Destination directory is published without a dead-end index',async()=>{
  const {response,body}=await get('/destinations');
