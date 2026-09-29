@@ -361,6 +361,24 @@ async function loadArticle(id){
   state.dirty=false;
   refreshSEOPreview();
   populateReviewEvidence(a);updateReviewGate();show('editor');
+  const box=$('review-claim-evidence');
+  box.replaceChildren();
+  if(a.source_mode==='github-automation'){
+   try{
+    const proof=await api('/api/admin/article/'+encodeURIComponent(a.id)+'/evidence');
+    if(state.selected?.id!==a.id)return;
+    if(proof.claimEvidence?.length){
+     const items=proof.claimEvidence.slice(0,12).map(item=>{
+      const href=safeSourceUrl(item.source_url);
+      return '<li><strong>'+escapeHTML(item.claim||'Evidence record')+'</strong><p>'+escapeHTML(item.scope||'')+'</p>'+
+       '<blockquote>'+escapeHTML(item.evidence_excerpt||'')+'</blockquote>'+
+       (href?'<a href="'+escapeHTML(href)+'" target="_blank" rel="noopener noreferrer nofollow">Open original source ↗</a>':'')+'</li>';
+     }).join('');
+     box.innerHTML='<details><summary>Automated claim-to-source records ('+proof.claimEvidence.length+')</summary>'+
+      '<p>Quoted text was checked automatically when marked as such. The editor must assess whether the quoted source actually supports the claim.</p><ol>'+items+'</ol></details>';
+    }else box.textContent='No detailed claim-to-source evidence was retained; check linked sources manually.';
+   }catch{if(state.selected?.id===a.id)box.textContent='Evidence records could not be loaded; verify original sources manually.';}
+  }
  }catch(e){toast(e.message,true);}
 }
 $('article-form').onsubmit=async event=>{
