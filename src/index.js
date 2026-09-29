@@ -11,6 +11,7 @@ import { CAUTION_TOPICS, cautionTopic, cautionTopicForCategory } from './caution
 import {CAUTION_LEVELS,cautionLevel,isRatedCaution,severeCaution} from './severity.js';
 import {auditCautionPackage} from './research-audit.js';
 import {assessAutoPublication} from './auto-publish.js';
+import {queueThumbnailOnImport,enqueueThumbnail,processThumbnailQueue,thumbnailSummary} from './thumbnails.js';
 import {assessImportPublishingPlan} from './import-publishing.js';
 import {summarizeCountryTopicCounts,FIRST_PASS_TARGET,COUNTRY_ARTICLE_TARGET} from './coverage.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
@@ -823,10 +824,31 @@ async function api(request,env,url,admin=false){
     const plan=applyPlan?assessImportPublishingPlan(entry):null;
     if(plan&&!plan.allowed)throw Object.assign(new Error(plan.reason),{status:422});
     const created=await (revisionMode?replaceArticleWithReviewDraft(env,entry,actor):insertArticle(env,entry,actor,plan));
-    results.push({ok:true,...created,scheduled_at:plan?.scheduled_at||null});
+    const thumbnail=body.auto_generate_thumbnails===true && pathname==='/api/admin/import'
+      ? await queueThumbnailOnImport(env,created.id):{state:'not_requested'};
+    results.push({ok:true,...created,scheduled_at:plan?.scheduled_at||null,thumbnail});
    }catch(e){results.push({ok:false,error:e.message,title:entry?.title||''});}
   }
   return json({results},207);
+ }
+ // Owner-only image queue management. The ingestion token cannot call these.
+ if(pathname==='/api/admin/thumbnails'&&method==='GET'){
+  try{return json(await thumbnailSummary(env));}
+  catch{return json({enabled:false,counts:{},setup_required:true});}
+ }
+ if(pathname==='/api/admin/thumbnails/backfill'&&method==='POST'){
+  if(!thumbnailSummary)return json({error:'Thumbnail worker is not available'},503);
+  const eligible=(await env.DB.prepare("SELECT id FROM articles WHERE (hero_image_url IS NULL OR hero_image_url='') AND length(trim(coalesce(hero_prompt,'')))>=20 AND status!='deleted' ORDER BY created_at DESC LIMIT 30").all()).results||[];
+  const outcome=[];
+  for(const row of eligible)outcome.push(await queueThumbnailOnImport(env,row.id));
+  return json({considered:eligible.length,queued:outcome.filter(v=>v.state==='queued').length,results:outcome});
+ }
+ if(pathname==='/api/admin/thumbnails/retry'&&method==='POST'){
+  const input=await request.json();
+  if(typeof input.id!=='string'||!/^[a-f0-9-]{36}$/i.test(input.id))
+   return json({error:'Valid article UUID required'},422);
+  try{return json(await enqueueThumbnail(env,input.id,{force:true}));}
+  catch{return json({error:'Thumbnail queue is not ready. Apply the migration first.'},503);}
  }
  if(method==='POST' && pathname==='/api/admin/article'){
   const body=await request.json();return json(await insertArticle(env,body,actor),201);
@@ -1027,5 +1049,10 @@ export default {
    return html(layout(env,'Something went wrong','<main class="shell simple"><h1>Temporary detour</h1><p>We could not load this page. Try again shortly.</p><a href="/">Back home ↗</a></main>',{noindex:true}),500,{'cache-control':'no-store','x-robots-tag':'noindex'});
   }
  },
- async scheduled(_event,env,ctx){ctx.waitUntil(publishDue(env));}
+ async scheduled(_event,env,ctx){
+  ctx.waitUntil((async()=>{
+   await publishDue(env);
+   await processThumbnailQueue(env);
+  })());
+ }
 };
