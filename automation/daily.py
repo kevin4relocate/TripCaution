@@ -167,7 +167,7 @@ def verify_claim_evidence(obj):
     import socket
     from urllib.parse import urlparse
     def normalize(text):
-        return re.sub(r"\\s+"," ",html.unescape(str(text))).strip().casefold()
+        return re.sub(r"\s+"," ",html.unescape(str(text))).strip().casefold()
     refs={s.get('url') for s in obj.get('research',{}).get('sources',[])
           if isinstance(s,dict) and isinstance(s.get('url'),str)}
     claims=obj.get('research',{}).get('claim_evidence')
