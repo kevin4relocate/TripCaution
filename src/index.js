@@ -816,6 +816,16 @@ async function api(request,env,url,admin=false){
  if(method==='POST' && pathname==='/api/admin/article'){
   const body=await request.json();return json(await insertArticle(env,body,actor),201);
  }
+ const evidenceMatch=pathname.match(/^\/api\/admin\/article\/([a-f0-9-]{36})\/evidence$/);
+ if(evidenceMatch && method==='GET'){
+  if(actor==='github-automation')return json({error:'Admin login required'},403);
+  const row=await env.DB.prepare("SELECT details FROM audit_logs WHERE article_id=? AND action='auto-published-unreviewed' ORDER BY created_at DESC LIMIT 1")
+   .bind(evidenceMatch[1]).first();
+  const metadata=safeParse(row?.details||'{}',{});
+  return json({automated:!!row,claimEvidence:Array.isArray(metadata.claim_evidence)?metadata.claim_evidence:[],
+   sourceCheckPassed:metadata.source_check_passed===true,
+   note:'Automated quote matching is not equivalent to owner review.'});
+ }
  const match=pathname.match(/^\/api\/admin\/article\/([a-f0-9-]{36})$/);
  if(match && method==='PATCH'){
   const id=match[1],body=await request.json();
