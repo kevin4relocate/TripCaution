@@ -10,6 +10,7 @@ import { renderArticleMarkdown, editorialQuickTakes } from './article-content.js
 import { CAUTION_TOPICS, cautionTopic, cautionTopicForCategory } from './cautions.js';
 import {CAUTION_LEVELS,cautionLevel,isRatedCaution,severeCaution} from './severity.js';
 import {auditCautionPackage} from './research-audit.js';
+import {assessAutoPublication} from './auto-publish.js';
 import {summarizeCountryTopicCounts,FIRST_PASS_TARGET,COUNTRY_ARTICLE_TARGET} from './coverage.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
 
@@ -68,11 +69,12 @@ function articleCard(a,variant='standard') {
  const country=esc(a.country), category=esc(cautionTopicForCategory(a.category_id)?.title||a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
  const cls=variant==='lead'?' guide-card-lead':variant==='side'?' guide-card-side':'';
  const level=isRatedCaution(a.caution_level)?cautionLevel(a.caution_level):null;
+ const autoDisclosure=a.source_mode==='github-automation'&&Number(a.review_approved)===0?'<span class="auto-research-label">Automated research · Pending editor review</span>':'';
  const badge=level&&a.severity_scope?.length>=12&&a.severity_rationale?.length>=40?'<span class="impact-pill impact-'+level.id+'">'+esc(level.label)+'</span>':'';
  return `<article class="guide-card${cls}"><a class="card-visual" href="${path}" aria-label="Read ${esc(a.title)}">
  ${safe(a.hero_image_url)?'<img loading="lazy" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
  <span class="visual-tag">${category}</span></a><div class="card-body"><div class="eyebrow">${country}${a.city?' <span>·</span> '+esc(a.city):''}</div>
- ${badge}<h3><a href="${path}">${esc(a.title)}</a></h3><p>${esc(a.excerpt||'A practical guide to help you plan more confidently.')}</p>
+ ${autoDisclosure}${badge}<h3><a href="${path}">${esc(a.title)}</a></h3><p>${esc(a.excerpt||'A practical guide to help you plan more confidently.')}</p>
  <div class="card-bottom"><a class="card-read" href="${path}" aria-label="Read ${esc(a.title)}">Read guide <span aria-hidden="true">↗</span></a></div></div></article>`;
 }
 // An overview is helpful before all eleven countries have live guides.
@@ -331,6 +333,7 @@ function renderGuideArticle(env,a,preview=false,related=[]){
   '<div class="impact-panel-head"><strong>Potential impact · '+esc(rating.label)+'</strong><span>For this situation only</span></div>'+
   '<p><strong>When this applies:</strong> '+esc(a.severity_scope)+'</p><p><strong>Why this level:</strong> '+esc(a.severity_rationale)+'</p>'+
   '<small>Impact if this problem occurs—not its likelihood, a live alert, or a safety rating for the country. Consult linked sources for changes.</small></section>':'';
+ const autoDisclosure=a.source_mode==='github-automation'&&Number(a.review_approved)===0?'<p class="auto-research-notice"><strong>Automated research · Not yet editor-reviewed.</strong> Linked pages were checked for supporting excerpts at publication, but our editor has not personally verified every claim. Check original sources for changes, especially before important travel decisions.</p>':'';
  const takes=editorialQuickTakes(a.content_markdown);
  const tocHTML=rendered.headings.length>=2?'<details class="article-toc" data-article-toc open><summary>In this guide <span aria-hidden="true">⌄</span></summary><nav aria-label="On this page"><ol>'+
   rendered.headings.map(h=>'<li class="toc-level-'+h.level+'"><a href="#'+esc(h.id)+'">'+esc(h.label)+'</a></li>').join('')+
@@ -344,7 +347,7 @@ function renderGuideArticle(env,a,preview=false,related=[]){
  // Article JSON-LD and the original source records; no visible top metadata bar.
  const body=`<main><div class="article-top"><div class="shell article-head"><a href="/destinations/${slugify(a.country)}" class="backlink">← ${esc(a.country)} guides</a><div class="eyebrow">${esc(a.country.toUpperCase())}${a.city?' / '+esc(a.city.toUpperCase()):''} / ${esc((a.category_name||'GUIDE').toUpperCase())}</div><h1>${esc(a.title)}</h1><p class="article-deck">${esc(a.excerpt)}</p></div></div>
  <div class="shell article-wrap"><article class="article-content">${safe(a.hero_image_url)?'<figure class="hero-image"><img src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial illustration')+'"><figcaption>AI-generated editorial illustration; not a photograph or evidence of an incident.</figcaption></figure>':''}
- ${severityPanel}<div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
+ ${severityPanel}${autoDisclosure}<div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
  ${tocHTML}<div class="prose">${rendered.html}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
  </section></article>
  <aside class="article-aside">${asideTakeaways}<div class="aside-share">SHARE THIS GUIDE <button type="button" data-copy-guide>Copy link ↗</button></div></aside></div>${relatedHTML}</main>`;
@@ -399,7 +402,7 @@ function staticPage(env,type){
    '<strong class="contact-not-ready">Our editorial contact inbox is being set up. Please check back later to submit a correction. For urgent travel concerns, contact the relevant authority directly.</strong>';
  const blocks={
    about:['About & editorial policy',`<p>TripCaution is an independent, research-led travel guide. Our articles describe practical travel questions and point readers to original sources. We do not claim personal visits, personal interviews or firsthand incident reports. We are not an emergency-alert service.</p>
-     <h2>Our research process</h2><p>We prioritize official operators, local tourism authorities, government guidance and dated primary evidence. AI tools may assist with research and initial drafts; source lists and AI-generated timestamps are not proof that an editor has checked a claim. Every new article must be checked and approved by an editor before publishing.</p>
+     <h2>Our research process</h2><p>We prioritize official operators, local tourism authorities, government guidance and dated primary evidence. AI tools may assist with research and drafting. Low-stakes, narrowly scoped travel guides can be published after automated live-source and excerpt checks; these articles are explicitly marked as pending editor review. Sensitive or weakly supported claims still require individual owner review. Automated checks and timestamps do not replace human verification.</p>
      <h2>What our impact levels mean</h2><p>Low, Moderate, High and Critical describe the potential consequence of one carefully described situation <strong>if it happens</strong>. They are not predictions of how likely it is, a ranking of countries or a live government travel alert. Guides without an explicit editor-reviewed assessment remain Not assessed. Our editors must document the exact scope, potential consequence and supporting original sources. High and Critical cases receive individual approval and earlier review reminders. A warning about one venue, payment instrument or route must not be generalized to a whole country. Check the original linked sources and your government's current advisories before relying on time-sensitive information.</p>
      <h2>Corrections and limitations</h2><p>Conditions, fees, routes and rules can change. Readers should confirm time-sensitive details with the responsible operator or authority. If we receive a well-supported correction, we may clarify, update or withdraw the affected content. Share the article URL, exact statement, supporting source and relevant dates with the editorial desk.</p><p><strong>Editorial contact:</strong> ${contact}</p>`],
    privacy:['Privacy notice',`<p>This notice describes the services currently enabled. TripCaution publishes travel information using Cloudflare Workers and D1, without public accounts. At present we do not run third-party advertising, sell user data or deliberately deploy marketing-analytics trackers. We will revise this notice before enabling new tracking or advertising.</p>
@@ -463,14 +466,45 @@ async function insertArticle(env,raw,actor){
  // accidentally repeated exact title within one country under a new slug.
  const duplicate=await env.DB.prepare("SELECT id,title FROM articles WHERE lower(country)=lower(?) AND lower(title)=lower(?) AND status!='deleted' LIMIT 1").bind(a.country,a.title).first();
  if(duplicate)throw Object.assign(new Error('Possible duplicate title for '+a.country+': review existing article '+duplicate.id+' before creating another'),{status:409});
- // Sprint 0: source URLs and an AI research timestamp are NEVER approval.
- // Ingesting any article always creates a human-review draft, including low-risk categories.
- // AI research, imported drafts and revisions cannot assign a public severity.
- const status='review',published=null;
+ // Unattended publication is separately opt-in at BOTH the GitHub writer
+ // and Cloudflare API. Passing preflight is not a human source verification.
+ const requested=actor==='github-automation' && raw?.auto_publish===true;
+ const preflight=requested?assessAutoPublication(a,raw):null;
+ const eligible=requested && env.AUTO_PUBLISH_ENABLED==='true' && preflight.eligible;
+ const status=eligible?'published':'review',published=eligible?new Date().toISOString():null;
+ // If a package did not meet the preflight gate, retain it privately with the
+ // specific reasons; do not silently reinterpret it as approved.
+ if(requested&&!eligible && preflight?.problems?.length) {
+  raw.research=raw.research||{};
+  raw.research.uncertainties=[...(Array.isArray(raw.research.uncertainties)?raw.research.uncertainties:[]),
+   ...preflight.problems].slice(0,20);
+  a.uncertainties_json=JSON.stringify(raw.research.uncertainties);
+ }
+ if(eligible){
+  // Fixed three slots in the existing automation_runs table, unique per UTC
+  // day. A concurrent request contending for the same slot cannot publish.
+  const used=await env.DB.prepare("SELECT source FROM automation_runs WHERE run_date=date('now') AND source LIKE 'auto-publish-%'").all();
+  const taken=new Set((used.results||[]).map(row=>row.source));
+  const slot=[1,2,3].find(n=>!taken.has('auto-publish-'+n));
+  if(!slot)return {id:a.id,title:a.title,slug:a.slug,status:'review',deferred:true,
+   reason:'Three unattended publications already reserved today'};
+  const reservationId=crypto.randomUUID();
+  const reserve=env.DB.prepare("INSERT OR IGNORE INTO automation_runs(id,run_date,source,state,details) SELECT ?,date('now'),?,'published',? WHERE (SELECT COUNT(*) FROM automation_runs WHERE run_date=date('now') AND source LIKE 'auto-publish-%')<3")
+   .bind(reservationId,'auto-publish-'+slot,JSON.stringify({article_id:a.id,unreviewed:true}));
+  const conditionalInsert=env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at,caution_level,severity_scope,severity_rationale)
+   SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM automation_runs WHERE id=?)`)
+   .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,'published',a.source_mode,0,a.verified_at,published,null,'unassessed','','',reservationId);
+  const conditionalAudit=env.DB.prepare("INSERT INTO audit_logs(id,actor,action,article_id,details) SELECT ?,?,'auto-published-unreviewed',?,? WHERE EXISTS(SELECT 1 FROM automation_runs WHERE id=?)")
+   .bind(crypto.randomUUID(),actor,a.id,JSON.stringify({source_count:JSON.parse(a.sources_json).length,human_reviewed:false,claim_evidence:raw.research.claim_evidence,source_check_passed:true}),reservationId);
+  const results=await env.DB.batch([reserve,conditionalInsert,conditionalAudit]);
+  if(Number(results?.[0]?.meta?.changes||0)!==1 || Number(results?.[1]?.meta?.changes||0)!==1)
+   return {id:a.id,title:a.title,slug:a.slug,status:'review',deferred:true,reason:'Daily publication slot was unavailable'};
+  return {id:a.id,title:a.title,slug:a.slug,status:'published',review_approved:0};
+ }
  const insert = env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at,caution_level,severity_scope,severity_rationale) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
  .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at,'unassessed','','');
  const auditInsert=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
-  .bind(crypto.randomUUID(),actor,'created:'+status,a.id,'');
+  .bind(crypto.randomUUID(),actor,'created:'+status,a.id,actor==='github-automation'?JSON.stringify({claim_evidence:raw.research?.claim_evidence||[],source_check_passed:false}):'');
  await env.DB.batch([insert,auditInsert]);
  return {id:a.id,title:a.title,slug:a.slug,status};
 }
@@ -605,7 +639,9 @@ async function api(request,env,url,admin=false){
   if(actor!=='github-automation')return json({error:'Bot token required'},403);
   const titles=(await env.DB.prepare("SELECT title,slug,country,city,category_id,tags_json,status FROM articles WHERE status!='deleted' ORDER BY created_at DESC LIMIT 400").all()).results;
   const upcoming=(await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='scheduled' AND julianday(scheduled_at) BETWEEN julianday('now') AND julianday('now','+2 days')").first()).count;
-  return json({titles,upcoming});
+  const autoToday=(await env.DB.prepare("SELECT COUNT(*) count FROM automation_runs WHERE run_date=date('now') AND source LIKE 'auto-publish-%'").first()).count;
+  const unreviewedPublished=(await env.DB.prepare("SELECT COUNT(*) count FROM articles WHERE status='published' AND review_approved=0").first()).count;
+  return json({titles,upcoming,autoToday,autoPublishEnabled:env.AUTO_PUBLISH_ENABLED==='true',unreviewedPublished});
  }
  if(method==='GET' && pathname==='/api/admin/articles'){
   const q=String(url.searchParams.get('q')||'').trim().slice(0,80);
@@ -779,6 +815,16 @@ async function api(request,env,url,admin=false){
  }
  if(method==='POST' && pathname==='/api/admin/article'){
   const body=await request.json();return json(await insertArticle(env,body,actor),201);
+ }
+ const evidenceMatch=pathname.match(/^\/api\/admin\/article\/([a-f0-9-]{36})\/evidence$/);
+ if(evidenceMatch && method==='GET'){
+  if(actor==='github-automation')return json({error:'Admin login required'},403);
+  const row=await env.DB.prepare("SELECT details FROM audit_logs WHERE article_id=? AND actor='github-automation' AND action IN ('auto-published-unreviewed','created:review') ORDER BY created_at DESC LIMIT 1")
+   .bind(evidenceMatch[1]).first();
+  const metadata=safeParse(row?.details||'{}',{});
+  return json({automated:!!row,claimEvidence:Array.isArray(metadata.claim_evidence)?metadata.claim_evidence:[],
+   sourceCheckPassed:metadata.source_check_passed===true,
+   note:'Automated quote matching is not equivalent to owner review.'});
  }
  const match=pathname.match(/^\/api\/admin\/article\/([a-f0-9-]{36})$/);
  if(match && method==='PATCH'){

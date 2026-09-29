@@ -136,3 +136,19 @@ a.caution-topic:hover,a.caution-topic:focus-visible{border-color:#c78c21;box-sha
 @media(max-width:780px){.home-hero .hero-inner{display:block}.home-hero .hero-content{padding:30px 0 28px}.home-hero .hero-visual{display:none}.home-hero h1{font-size:clamp(37px,7vw,51px)}}
 @media(max-width:600px){.home-hero .hero-content{padding:25px 0 27px}.home-hero h1{font-size:clamp(35px,9vw,45px);letter-spacing:-1.6px}.home-hero .hero-description{font-size:13px;line-height:1.6}.home-hero .destination-search{margin-top:18px}.header-cta{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.guide-card .card-visual img,.caution-topic{transition:none}}
+
+/* Automated travel research is explicitly distinguishable from owner review. */
+.auto-research-label{display:inline-block;margin:1px 0 10px;padding:5px 9px;border:1px solid #d1ac57;border-radius:4px;background:#fff4d9;color:#70510b;font:700 10px/1.4 'DM Sans',system-ui,sans-serif;letter-spacing:.02em}
+.auto-research-notice{margin:0 0 20px;padding:14px 17px;border-left:4px solid #c88d17;background:#fff7e7;color:#3e3a30;font-size:13px;line-height:1.65}
+.auto-research-notice strong{color:#644508}
+.admin-body .stats{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media(max-width:1150px){.admin-body .stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.admin-body .stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.review-claim-evidence{margin:12px 0;font-size:12px;color:#334961}
+.review-claim-evidence details{padding:10px;border:1px solid #d0dce8;background:#f6f9fc;border-radius:5px}
+.review-claim-evidence summary{font-weight:800;cursor:pointer}
+.review-claim-evidence ol{padding-left:18px;max-height:320px;overflow-y:auto}
+.review-claim-evidence li{margin:14px 0;line-height:1.55}
+.review-claim-evidence blockquote{margin:7px 0;padding:9px 12px;border-left:3px solid #b38426;background:#fff8e6;white-space:pre-wrap;overflow-wrap:anywhere}
+.review-claim-evidence a{color:#24577a;text-decoration:underline}
