@@ -25,7 +25,7 @@ CONTENT_PHASE = int(os.getenv("TRIPCAUTION_CONTENT_PHASE") or "1")
 MAX_REVIEW_BACKLOG = 40 # Allow a prelaunch research library while owner reviews risky topics
 MAX_UNREVIEWED_BACKLOG = 36 # Pause ahead of the 33-guide prelaunch milestone
 AUTO_PUBLISH = os.getenv('TRIPCAUTION_AUTO_PUBLISH_ENABLED') == 'true'
-DAILY_TARGET = max(1,min(3,int(os.getenv('TRIPCAUTION_DAILY_TARGET') or ('3' if AUTO_PUBLISH else '1'))))
+DAILY_TARGET = max(1,min(3,int(os.getenv('TRIPCAUTION_DAILY_TARGET') or '3')))
 COMMUNITY_RESEARCH = os.getenv('TRIPCAUTION_COMMUNITY_RESEARCH') == 'true'
 SITE = os.getenv("TRIPCAUTION_API_URL", "").rstrip("/")
 TOKEN = os.getenv("TRIPCAUTION_INGEST_TOKEN", "")
@@ -244,9 +244,8 @@ def run_one(rotation=0):
     if not SITE.startswith("https://"):
         raise ValueError("TRIPCAUTION_API_URL must use HTTPS")
     existing=request_json(SITE+"/api/ingest/topics",None,{"Authorization":"Bearer "+TOKEN},timeout=25)
-    if not AUTO_PUBLISH and existing.get("upcoming",0)>=2:
-        print("Upcoming owner-scheduled articles fill the near-term queue; skip.")
-        return
+    if existing.get("upcoming",0)>=2:
+        print("Owner-scheduled posts exist; research will create distinct evidence-backed articles without overwriting their dates.")
     if AUTO_PUBLISH and existing.get('unreviewedPublished',0)>=MAX_UNREVIEWED_BACKLOG:
         print('Unreviewed public backlog is at the configured limit; owner review required.')
         return False
@@ -401,7 +400,7 @@ SOURCE LIST:
 
 def main():
     count=0
-    for attempt in range(DAILY_TARGET if AUTO_PUBLISH else 1):
+    for attempt in range(DAILY_TARGET):
         if not run_one(attempt):
             break
         count+=1
