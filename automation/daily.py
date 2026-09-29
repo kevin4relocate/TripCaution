@@ -26,6 +26,7 @@ MAX_REVIEW_BACKLOG = 40 # Allow a prelaunch research library while owner reviews
 MAX_UNREVIEWED_BACKLOG = 36 # Pause ahead of the 33-guide prelaunch milestone
 AUTO_PUBLISH = os.getenv('TRIPCAUTION_AUTO_PUBLISH_ENABLED') == 'true'
 DAILY_TARGET = max(1,min(3,int(os.getenv('TRIPCAUTION_DAILY_TARGET') or '3')))
+MAX_DAILY_ATTEMPTS = max(DAILY_TARGET,min(9,int(os.getenv('TRIPCAUTION_MAX_DAILY_ATTEMPTS') or str(DAILY_TARGET*2))))
 COMMUNITY_RESEARCH = os.getenv('TRIPCAUTION_COMMUNITY_RESEARCH') == 'true'
 SITE = os.getenv("TRIPCAUTION_API_URL", "").rstrip("/")
 TOKEN = os.getenv("TRIPCAUTION_INGEST_TOKEN", "")
@@ -400,11 +401,17 @@ SOURCE LIST:
 
 def main():
     count=0
-    for attempt in range(DAILY_TARGET):
-        if not run_one(attempt):
+    attempts=0
+    # A weak or inaccessible source package should not waste the whole day.
+    # Rotate through additional distinct country/topic slots until the daily
+    # target is filled or the bounded research-attempt budget is exhausted.
+    for attempt in range(MAX_DAILY_ATTEMPTS):
+        if count>=DAILY_TARGET:
             break
-        count+=1
-    print('Research records created this run:',count)
+        attempts+=1
+        if run_one(attempt):
+            count+=1
+    print('Research records created this run:',count,'after',attempts,'bounded attempts')
 
 
 if __name__=="__main__":
