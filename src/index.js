@@ -11,6 +11,7 @@ import { CAUTION_TOPICS, cautionTopic, cautionTopicForCategory } from './caution
 import {CAUTION_LEVELS,cautionLevel,isRatedCaution,severeCaution} from './severity.js';
 import {auditCautionPackage} from './research-audit.js';
 import {assessAutoPublication} from './auto-publish.js';
+import {assessImportPublishingPlan} from './import-publishing.js';
 import {summarizeCountryTopicCounts,FIRST_PASS_TARGET,COUNTRY_ARTICLE_TARGET} from './coverage.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
 
@@ -809,12 +810,37 @@ async function api(request,env,url,admin=false){
   if(!researchCheck.ok)return json({error:'Research package contains duplicate or invalid entries',problems:researchCheck.problems},422);
   if(list.length<1||list.length>10)return json({error:'Import requires 1–10 articles per request; the editor safely splits larger imports'},400);
   const revisionMode=pathname==='/api/admin/import' && body.update_matching===true;
+  const applyPlan=pathname==='/api/admin/import' && body.apply_publishing_plan===true;
+  if(body.apply_publishing_plan===true&&!applyPlan)return json({error:'Only a signed-in editor can apply a publication plan'},403);
+  if(applyPlan&&body.confirm_publishing_plan!==true)return json({error:'Explicit owner confirmation required for importing directly to Publish or Schedule'},422);
+  if(applyPlan&&revisionMode)return json({error:'Revision imports must return existing articles to Review. Re-approve revised articles individually.'},422);
   if(body.update_matching===true&&!revisionMode)return json({error:'Only signed-in editor can revise existing articles'},403);
   if(revisionMode&&body.confirm_unpublish!==true)return json({error:'Explicit acknowledgment required: matching live articles return to Review'},422);
   const results=[];
   for(const entry of list){
-   try{results.push({ok:true,...await (revisionMode?replaceArticleWithReviewDraft(env,entry,actor):insertArticle(env,entry,actor))});}
-   catch(e){results.push({ok:false,error:e.message,title:entry?.title||''});}
+   try{
+    const plan=applyPlan?assessImportPublishingPlan(entry):{requested:false};
+    const created=await (revisionMode?replaceArticleWithReviewDraft(env,entry,actor):insertArticle(env,entry,actor));
+    if(plan.requested&&!plan.allowed){
+     results.push({ok:true,...created,plan_rejected:true,reason:plan.reason});
+     continue;
+    }
+    if(plan.requested&&plan.allowed){
+     // The owner has explicitly attested to checking every source in this
+     // package. This is never set by the AI-generated JSON alone.
+     const old={...normalizeArticle(entry),id:created.id,status:'review',review_approved:0};
+     try{
+      const changed=await applyEditorialAction(env,old,plan.action,{
+       review_confirmed:true,review_method:'bulk',scheduled_at:plan.scheduled_at
+      },actor);
+      results.push({ok:true,...created,...changed,scheduled_at:plan.scheduled_at});
+     }catch(planError){
+      // On a failed publication transaction, the newly inserted private draft
+      // remains in Review. Never report it as successfully published.
+      results.push({ok:true,...created,plan_rejected:true,reason:planError.message});
+     }
+    }else results.push({ok:true,...created});
+   }catch(e){results.push({ok:false,error:e.message,title:entry?.title||''});}
   }
   return json({results},207);
  }
