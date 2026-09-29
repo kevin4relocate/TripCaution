@@ -70,7 +70,7 @@ function articleCard(a,variant='standard') {
  const country=esc(a.country), category=esc(cautionTopicForCategory(a.category_id)?.title||a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
  const cls=variant==='lead'?' guide-card-lead':variant==='side'?' guide-card-side':'';
  const level=isRatedCaution(a.caution_level)?cautionLevel(a.caution_level):null;
- const autoDisclosure=a.source_mode==='github-automation'&&Number(a.review_approved)===0?'<span class="auto-research-label">Automated research · Pending editor review</span>':'';
+ const autoDisclosure=a.status==='published'&&['github-automation','owner-import'].includes(a.source_mode)&&Number(a.review_approved)===0?'<span class="auto-research-label">Imported content · Not reviewed in Dashboard</span>':'';
  const badge=level&&a.severity_scope?.length>=12&&a.severity_rationale?.length>=40?'<span class="impact-pill impact-'+level.id+'">'+esc(level.label)+'</span>':'';
  return `<article class="guide-card${cls}"><a class="card-visual" href="${path}" aria-label="Read ${esc(a.title)}">
  ${safe(a.hero_image_url)?'<img loading="lazy" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
@@ -334,7 +334,7 @@ function renderGuideArticle(env,a,preview=false,related=[]){
   '<div class="impact-panel-head"><strong>Potential impact · '+esc(rating.label)+'</strong><span>For this situation only</span></div>'+
   '<p><strong>When this applies:</strong> '+esc(a.severity_scope)+'</p><p><strong>Why this level:</strong> '+esc(a.severity_rationale)+'</p>'+
   '<small>Impact if this problem occurs—not its likelihood, a live alert, or a safety rating for the country. Consult linked sources for changes.</small></section>':'';
- const autoDisclosure=a.source_mode==='github-automation'&&Number(a.review_approved)===0?'<p class="auto-research-notice"><strong>Automated research · Not yet editor-reviewed.</strong> Linked pages were checked for supporting excerpts at publication, but our editor has not personally verified every claim. Check original sources for changes, especially before important travel decisions.</p>':'';
+ const autoDisclosure=a.status==='published'&&['github-automation','owner-import'].includes(a.source_mode)&&Number(a.review_approved)===0?'<p class="auto-research-notice"><strong>Imported content · Not yet reviewed in Dashboard.</strong> This article was published from a research package and has not been marked reviewed in the Dashboard. Automated research links may have been excerpt-checked, while owner-imported packages may have been checked locally. Verify original sources, especially before important travel decisions.</p>':'';
  const takes=editorialQuickTakes(a.content_markdown);
  const tocHTML=rendered.headings.length>=2?'<details class="article-toc" data-article-toc open><summary>In this guide <span aria-hidden="true">⌄</span></summary><nav aria-label="On this page"><ol>'+
   rendered.headings.map(h=>'<li class="toc-level-'+h.level+'"><a href="#'+esc(h.id)+'">'+esc(h.label)+'</a></li>').join('')+
