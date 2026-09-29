@@ -459,7 +459,7 @@ async function requireIngest(request,env){
 async function audit(env,actor,action,id,details=''){
  await env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),actor,action,id,details).run();
 }
-async function insertArticle(env,raw,actor){
+async function insertArticle(env,raw,actor,ownerPlan=null){
  const a=normalizeArticle(raw);
  const found=await env.DB.prepare("SELECT id,title FROM articles WHERE slug=?").bind(a.slug).first();
  if(found)throw Object.assign(new Error('Duplicate slug: '+a.slug),{status:409});
@@ -472,7 +472,8 @@ async function insertArticle(env,raw,actor){
  const requested=actor==='github-automation' && raw?.auto_publish===true;
  const preflight=requested?assessAutoPublication(a,raw):null;
  const eligible=requested && env.AUTO_PUBLISH_ENABLED==='true' && preflight.eligible;
- const status=eligible?'published':'review',published=eligible?new Date().toISOString():null;
+ const status=eligible?'published':ownerPlan?.status||'review',published=(eligible||ownerPlan?.status==='published')?new Date().toISOString():null;
+ const scheduledAt=ownerPlan?.status==='scheduled'?ownerPlan.scheduled_at:null;
  // If a package did not meet the preflight gate, retain it privately with the
  // specific reasons; do not silently reinterpret it as approved.
  if(requested&&!eligible && preflight?.problems?.length) {
@@ -503,9 +504,9 @@ async function insertArticle(env,raw,actor){
   return {id:a.id,title:a.title,slug:a.slug,status:'published',review_approved:0};
  }
  const insert = env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at,caution_level,severity_scope,severity_rationale) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
- .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at,'unassessed','','');
+ .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,ownerPlan?'owner-import':a.source_mode,0,a.verified_at,published,scheduledAt,'unassessed','','');
  const auditInsert=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
-  .bind(crypto.randomUUID(),actor,'created:'+status,a.id,actor==='github-automation'?JSON.stringify({claim_evidence:raw.research?.claim_evidence||[],source_check_passed:false}):'');
+  .bind(crypto.randomUUID(),actor,ownerPlan?'owner-import-'+status:'created:'+status,a.id,ownerPlan?JSON.stringify({owner_selected_status:status,publish_date:scheduledAt,human_review_in_dashboard:false}):actor==='github-automation'?JSON.stringify({claim_evidence:raw.research?.claim_evidence||[],source_check_passed:false}):'');
  await env.DB.batch([insert,auditInsert]);
  return {id:a.id,title:a.title,slug:a.slug,status};
 }
@@ -819,27 +820,10 @@ async function api(request,env,url,admin=false){
   const results=[];
   for(const entry of list){
    try{
-    const plan=applyPlan?assessImportPublishingPlan(entry):{requested:false};
-    const created=await (revisionMode?replaceArticleWithReviewDraft(env,entry,actor):insertArticle(env,entry,actor));
-    if(plan.requested&&!plan.allowed){
-     results.push({ok:true,...created,plan_rejected:true,reason:plan.reason});
-     continue;
-    }
-    if(plan.requested&&plan.allowed){
-     // The owner has explicitly attested to checking every source in this
-     // package. This is never set by the AI-generated JSON alone.
-     const old={...normalizeArticle(entry),id:created.id,status:'review',review_approved:0};
-     try{
-      const changed=await applyEditorialAction(env,old,plan.action,{
-       review_confirmed:true,review_method:'bulk',scheduled_at:plan.scheduled_at
-      },actor);
-      results.push({ok:true,...created,...changed,scheduled_at:plan.scheduled_at});
-     }catch(planError){
-      // On a failed publication transaction, the newly inserted private draft
-      // remains in Review. Never report it as successfully published.
-      results.push({ok:true,...created,plan_rejected:true,reason:planError.message});
-     }
-    }else results.push({ok:true,...created});
+    const plan=applyPlan?assessImportPublishingPlan(entry):null;
+    if(plan&&!plan.allowed)throw Object.assign(new Error(plan.reason),{status:422});
+    const created=await (revisionMode?replaceArticleWithReviewDraft(env,entry,actor):insertArticle(env,entry,actor,plan));
+    results.push({ok:true,...created,scheduled_at:plan?.scheduled_at||null});
    }catch(e){results.push({ok:false,error:e.message,title:entry?.title||''});}
   }
   return json({results},207);
@@ -925,8 +909,10 @@ async function media(env,key){
 }
 async function publishDue(env){
  if(!env.DB)return;
- // Publish only records manually approved and explicitly scheduled. Idempotent conditional update.
- await env.DB.prepare("UPDATE articles SET status='published',published_at=COALESCE(published_at,datetime('now')),updated_at=datetime('now') WHERE status='scheduled' AND review_approved=1 AND julianday(scheduled_at)<=julianday('now') AND json_array_length(sources_json)>0 AND EXISTS (SELECT 1 FROM audit_logs l WHERE l.article_id=articles.id AND ((l.action='reviewed-and-scheduled' AND json_valid(l.details) AND length(json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.evidence_note'))>=30) OR (l.action='owner-reviewed-and-scheduled' AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1)))").run();
+ // Signed-in owner imports can explicitly authorize a future schedule without
+ // the separate dashboard Review step. All other scheduled articles still need
+ // existing human-review approval and its audit trail.
+ await env.DB.prepare("UPDATE articles SET status='published',published_at=COALESCE(published_at,datetime('now')),updated_at=datetime('now') WHERE status='scheduled' AND julianday(scheduled_at)<=julianday('now') AND json_array_length(sources_json)>0 AND ((review_approved=1 AND EXISTS (SELECT 1 FROM audit_logs l WHERE l.article_id=articles.id AND ((l.action='reviewed-and-scheduled' AND json_valid(l.details) AND length(json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.evidence_note'))>=30) OR (l.action='owner-reviewed-and-scheduled' AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1)))) OR (review_approved=0 AND source_mode='owner-import' AND EXISTS (SELECT 1 FROM audit_logs ai WHERE ai.article_id=articles.id AND ai.action='owner-import-scheduled')))").run();
 }
 export default {
  async fetch(request,env){
