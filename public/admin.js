@@ -178,6 +178,10 @@ $('article-search').addEventListener('input',()=>{
  clearTimeout(searchTimer);selectedIds.clear();
  searchTimer=setTimeout(()=>loadArticlePage(1).catch(e=>toast(e.message,true)),250);
 });
+$('show-unreviewed').addEventListener('click',()=>{
+ $('article-filter').value='published-unreviewed';$('article-search').value='';selectedIds.clear();show('articles');
+ loadArticlePage(1).catch(e=>toast(e.message,true));
+});
 $('article-filter').addEventListener('change',()=>{
  clearTimeout(searchTimer);selectedIds.clear();loadArticlePage(1).catch(e=>toast(e.message,true));
 });
@@ -402,15 +406,16 @@ async function quickRowAction(id,name){
   await loadArticle(id);return;
  }
  if(name==='schedule'){openSchedule('row',[id]);return;}
+ if(name==='mark-reviewed'&&!confirm('Confirm that you personally checked this published article and its linked source evidence. Mark it as reviewed without unpublishing?'))return;
  if(name==='publish'&&!confirm('Publish "'+a.title+'"? Confirm you have already reviewed it and its source links.'))return;
  if(name==='hide'&&a.status==='published'&&!confirm('Hide "'+a.title+'" from the public website? This does not delete it.'))return;
  if(name==='delete'&&!confirm('Move "'+a.title+'" to Deleted? It can be restored.'))return;
  try{
   quickBusy=true;updateBulkToolbar();
   const result=await api('/api/admin/article/'+id,{
-   method:'PATCH',body:JSON.stringify({action:name,review_confirmed:name==='publish',review_method:'single'})
+   method:'PATCH',body:JSON.stringify({action:name,review_confirmed:name==='publish'||name==='mark-reviewed',review_method:'single'})
   });
-  toast('"' + a.title + '" is now '+result.status+'.');
+  toast(name==='mark-reviewed'?'Marked as reviewed. Article remains published.':'"' + a.title + '" is now '+result.status+'.');
   selectedIds.delete(id);
   await refresh();
  }catch(e){toast(e.message,true);}
