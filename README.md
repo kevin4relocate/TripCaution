@@ -90,7 +90,7 @@ The public website remains open. The editor lives at `/admin` and **will not ope
 
 The key is stored encrypted on Cloudflare; it is never returned to the browser or built into source code. A stolen signed session remains usable until its 12-hour expiry even after browser sign-out; **changing `ADMIN_LOGIN_KEY` on the Worker revokes all previously issued sessions**. Use a unique, random key and protect your password manager. The rate limiter is additional protection against guesses, not a substitute for high-entropy credentials.
 
-The bot's `/api/ingest` continues to use a separate `INGEST_TOKEN` Bearer secret. Never reuse your admin key as the bot token. **All bot articles always enter Review**, including `before-you-go` and `etiquette`. Bot tokens cannot approve or publish.
+The bot's `/api/ingest` continues to use a separate `INGEST_TOKEN` Bearer secret. Never reuse your admin key as the bot token. Normal imports enter Review. The scheduled research bot may request unattended publication only for narrowly scoped, lower-stakes articles that pass the independent-source/excerpt gate and the server's three-per-day quota; those articles stay `review_approved=0` and are visibly marked **Published · Not Reviewed**. High-stakes, conflicting, community-only, Myanmar, or weakly supported material still enters private Review. Bot tokens cannot mark content as human-reviewed.
 
 ### Review and preview an imported guide
 
@@ -152,13 +152,13 @@ Create **Repository variables**:
 
 Put the **same** ingestion secret on the Worker, **not in Git**. Use **Workers & Pages > tripcaution > Settings > Variables and Secrets > Add** `INGEST_TOKEN` as an encrypted **secret**, then deploy or save settings as Cloudflare requests.
 
-The workflow in `.github/workflows/daily-content.yml` runs at **18:17 UTC**, approximately **02:17 Singapore time the following day**. Scheduled GitHub Actions are best-effort and can be delayed or skipped; you can also start it manually from **Actions > TripCaution daily research > Run workflow**.
+The workflow in `.github/workflows/daily-content.yml` runs once daily at **18:17 UTC**, approximately **01:17 Vietnam time / 02:17 Singapore time the following day**. Scheduled GitHub Actions are best-effort and can be delayed or skipped; you can also start it manually from **Actions > TripCaution daily research > Run workflow**. During prelaunch, the job may inspect several distinct topic slots in one run so that one weak source package does not consume the entire day's publication capacity.
 
 A run:
 - Checks recently published/scheduled titles so it can avoid obvious duplicates.
 - Keeps owner-scheduled publication dates intact while researching distinct slots, even when scheduled posts already exist. Unattended publication has a separate maximum-three-per-UTC-day server quota.
 - Fetches current HTML from two configured official government advice pages and asks Gemini to analyze the retrieved content, unless you explicitly opt into Gemini Search grounding.
-- Researches up to three distinct candidate articles per run when auto mode is enabled; each must meet citation, independent-domain and exact fetched-source excerpt checks before requesting unattended publication.
+- Targets up to three successful article records per run and can make up to six bounded slot attempts by default; weak or inaccessible evidence is skipped rather than ending the whole day. Each unattended publication must still meet citation, independent-domain and exact fetched-source excerpt checks.
 - Imports it via authenticated `/api/ingest`.
 - Before unattended publishing is enabled, up to three newly researched articles per daily run enter private Review. When you explicitly opt in at both GitHub and Cloudflare, only narrowly scoped, independently excerpt-checked, lower-stakes articles can publish automatically. They are openly marked **Automated research · Not yet editor-reviewed** and remain in the post-publication owner queue.
 - Logs an error instead of publishing fabricated or unsupported material when research is insufficient.
