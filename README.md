@@ -11,14 +11,14 @@ TripCaution is a Cloudflare Workers application with a GitHub Actions/Gemini res
 | Content management | Private single-key admin login, signed session cookie, article editor, source editing, status changes, search and filters |
 | Import | Upload/paste research JSON; owner can explicitly replace matching articles, which immediately return to private Review |
 | Editorial calendar | Human-controlled publishing and individually approved scheduling; hourly Cron publishes only approved records |
-| Automatic publishing | Hourly Cloudflare Cron publishes previously approved scheduled records |
-| AI research | Scheduled GitHub Actions reads curated official-source pages then uses Gemini text generation; optionally supports Google Search grounding. **At most one new research article per run** |
+| Automatic publishing | Hourly Cron publishes individually approved scheduled records; separately opt-in, evidence-gated daily research can publish up to three lower-stakes articles with public unreviewed disclosure |
+| AI research | Scheduled GitHub Actions reads curated official-source pages then uses Gemini text generation; optionally supports Google Search grounding. **Up to three distinct researched articles per run when enabled** |
 | Database | Cloudflare D1 migrations |
 | Illustration workflow | Gemini-generated watercolor *prompts*, manual illustration URLs, optional R2 image upload |
 | Safety | 12-hour HMAC-signed HttpOnly/Secure admin cookie, D1 login throttling, same-origin mutation checks, separate bot token, source gate, manual review and audit log |
 | SEO | Per-article titles, meta descriptions, canonical, social metadata, dynamic sitemap, source lists |
 
-**Sprint 2 editorial geography:** All eleven Southeast Asian countries are the first research and on-site discovery focus. The daily topic rotation and curated source list cover those eleven; other regions can still display guides already published. See [Southeast Asia-first roadmap](docs/SPRINT2_EDITORIAL_ROADMAP.md). Research remains in private Review until the owner approves it.\n\n**Important current limitations:** Gemini-generated artwork is *not automatically rendered* by the free daily job. It creates a ready-to-use hand-painted watercolor prompt. Image generation APIs may cost money or require separate quotas. Import finished illustrations yourself with R2, when configured. Source URLs still need human verification: grounding and link matching are safeguards, not proof that every assertion is true.
+**Sprint 2 editorial geography:** All eleven Southeast Asian countries are the first research and on-site discovery focus. The daily topic rotation and curated source list cover those eleven; other regions can still display guides already published. See [Southeast Asia-first roadmap](docs/SPRINT2_EDITORIAL_ROADMAP.md). High-stakes or weakly supported automated material remains in private Review; qualifying, opt-in low-stakes automated material is publicly disclosed as not yet editor-reviewed.\n\n**Important current limitations:** Gemini-generated artwork is *not automatically rendered* by the free daily job. It creates a ready-to-use hand-painted watercolor prompt. Image generation APIs may cost money or require separate quotas. Import finished illustrations yourself with R2, when configured. Source URLs still need human verification: grounding and link matching are safeguards, not proof that every assertion is true.
 
 ## Prelaunch content expansion and transparent auto-publication
 
@@ -156,11 +156,11 @@ The workflow in `.github/workflows/daily-content.yml` runs at **18:17 UTC**, app
 
 A run:
 - Checks recently published/scheduled titles so it can avoid obvious duplicates.
-- Skips writing when there are already at least 2 articles scheduled for the next 2 days.
+- Skips writing when two articles are already scheduled for the next two days in draft-only mode; auto mode has a separate maximum-three-per-UTC-day server quota.
 - Fetches current HTML from two configured official government advice pages and asks Gemini to analyze the retrieved content, unless you explicitly opt into Gemini Search grounding.
-- Writes one candidate article, checks cited links against the fetched/grounded source list and applies basic quality rules.
+- Researches up to three distinct candidate articles per run when auto mode is enabled; each must meet citation, independent-domain and exact fetched-source excerpt checks before requesting unattended publication.
 - Imports it via authenticated `/api/ingest`.
-- **Every** article enters the private Review queue. No topic category, source count or AI timestamp permits automatic public publication.
+- By default, all new articles enter private Review. When you explicitly opt in at both GitHub and Cloudflare, only narrowly scoped, independently excerpt-checked, lower-stakes articles can publish automatically. They are openly marked **Automated research · Not yet editor-reviewed** and remain in the post-publication owner queue.
 - Logs an error instead of publishing fabricated or unsupported material when research is insufficient.
 
 **No API cost guarantee:** default curated mode uses government public pages and free-tier Gemini *text* when available. Most current Gemini 3.x models do **not** include Search grounding in the free API tier; image-generation APIs generally are not free. Research skips publication if fewer than two official pages can be read. Model access, page availability, billing and quotas can change. Verify all service terms before enabling a paid feature.
