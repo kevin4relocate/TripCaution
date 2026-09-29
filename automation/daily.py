@@ -32,7 +32,8 @@ SITE = os.getenv("TRIPCAUTION_API_URL", "").rstrip("/")
 TOKEN = os.getenv("TRIPCAUTION_INGEST_TOKEN", "")
 
 # One distinct country/topic per rotation; all 11 Southeast Asian countries
-# are included before expansion. Ingestion never bypasses owner review.
+# are included before expansion. Unattended publication is separately gated,
+# capped, disclosed as unreviewed, and never marks owner approval.
 TOPICS = [
     ("Brunei", "before-you-go", "What a first-time visitor should verify about airport arrival, transport and official entry guidance for their own passport"),
     ("Cambodia", "transport", "Official arrival and onward ground-transport questions at Phnom Penh or Siem Reap, including current airport information"),
