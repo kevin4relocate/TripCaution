@@ -13,7 +13,7 @@ jobs:
   create-article:
     if: ${{ vars.TRIPCAUTION_AUTOMATION_ENABLED == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 55
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,12 +26,15 @@ jobs:
           TRIPCAUTION_API_URL: ${{ vars.TRIPCAUTION_API_URL }}
           TRIPCAUTION_INGEST_TOKEN: ${{ secrets.TRIPCAUTION_INGEST_TOKEN }}
         run: python scripts/diagnose-ingest.py
-      - name: Generate one researched article
+      - name: Generate up to three independently researched articles
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
           TRIPCAUTION_RESEARCH_MODE: ${{ vars.TRIPCAUTION_RESEARCH_MODE }}
           TRIPCAUTION_CONTENT_PHASE: ${{ vars.TRIPCAUTION_CONTENT_PHASE || '1' }}
+          TRIPCAUTION_AUTO_PUBLISH_ENABLED: ${{ vars.TRIPCAUTION_AUTO_PUBLISH_ENABLED || 'false' }}
+          TRIPCAUTION_DAILY_TARGET: ${{ vars.TRIPCAUTION_DAILY_TARGET || '3' }}
+          TRIPCAUTION_COMMUNITY_RESEARCH: ${{ vars.TRIPCAUTION_COMMUNITY_RESEARCH || 'false' }}
           TRIPCAUTION_API_URL: ${{ vars.TRIPCAUTION_API_URL }}
           TRIPCAUTION_INGEST_TOKEN: ${{ secrets.TRIPCAUTION_INGEST_TOKEN }}
         run: python automation/daily.py
