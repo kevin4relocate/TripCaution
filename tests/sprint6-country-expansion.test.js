@@ -65,6 +65,11 @@ test('new coverage matrix is private and tracks actual database rows rather than
  assert.equal(body.firstPassTarget,3);
  assert.equal(body.fullTarget,8);
  assert.equal(body.publishedCountries,1);
+ assert.equal(body.publishedGuides,2);
+ assert.equal(body.launchTarget,33);
+ assert.equal(body.launchRemaining,31);
+ assert.equal(body.countriesAtFirstPass,0);
+ assert.equal(body.launchTargetMet,false);
  assert.equal(body.topicCoverage.length,11);
  assert.equal(body.topicCoverage.find(c=>c.country==='Singapore').published,2);
  assert.equal(body.topicCoverage.find(c=>c.country==='Laos').pipeline,1);
@@ -77,11 +82,14 @@ test('editor includes truthful country/topic targets; daily worker remains opt-i
  const js=readFileSync(new URL('../public/admin.js',import.meta.url),'utf8');
  const workflow=readFileSync(new URL('../.github/workflows/daily-content.yml',import.meta.url),'utf8');
  const daily=readFileSync(new URL('../automation/daily.py',import.meta.url),'utf8');
- for(const id of ['sprint6-total','sprint6-matrix'])assert.match(editor,new RegExp('id="'+id+'"'));
+ for(const id of ['sprint6-total','sprint6-matrix','launch-readiness-label','launch-readiness-progress','launch-readiness-detail'])assert.match(editor,new RegExp('id="'+id+'"'));
  assert.match(js,/topicCoverage/);
  assert.match(workflow,/TRIPCAUTION_AUTOMATION_ENABLED == 'true'/);
  assert.match(workflow,/TRIPCAUTION_CONTENT_PHASE/);
  assert.match(daily,/MAX_REVIEW_BACKLOG/);
  assert.match(daily,/choose_slot/);
+ assert.match(daily,/MAX_DAILY_ATTEMPTS/);
+ assert.match(workflow,/TRIPCAUTION_AUTO_PUBLISH_ENABLED \|\| 'true'/);
+ assert.match(workflow,/TRIPCAUTION_COMMUNITY_RESEARCH \|\| 'true'/);
  assert.match(daily,/sprint6:/);
 });

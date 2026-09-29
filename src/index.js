@@ -679,9 +679,14 @@ async function api(request,env,url,admin=false){
     "AND (status!='published' OR published_at<=datetime('now')) GROUP BY country,category_id,status";
   const topicRows=(await env.DB.prepare(topicSql).bind(...countries).all()).results||[];
   const topicCoverage=summarizeCountryTopicCounts(topicRows,countries,cautionTopicForCategory);
+  const publishedGuides=coverage.reduce((sum,row)=>sum+row.published,0);
+  const launchTarget=FIRST_PASS_TARGET*countries.length;
+  const countriesAtFirstPass=coverage.filter(row=>row.published>=FIRST_PASS_TARGET).length;
   return json({coverage,publishedCountries:coverage.filter(row=>row.published>0).length,
    totalCountries:countries.length,firstPassTarget:FIRST_PASS_TARGET,
-   fullTarget:COUNTRY_ARTICLE_TARGET,topicCoverage});
+   fullTarget:COUNTRY_ARTICLE_TARGET,topicCoverage,publishedGuides,launchTarget,
+   launchRemaining:Math.max(0,launchTarget-publishedGuides),countriesAtFirstPass,
+   launchTargetMet:publishedGuides>=launchTarget&&countriesAtFirstPass===countries.length});
  }
  if(method==='GET' && pathname==='/api/admin/categories'){
   return json({categories:(await env.DB.prepare('SELECT * FROM categories ORDER BY name').all()).results});
