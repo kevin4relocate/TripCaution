@@ -234,6 +234,10 @@ $('import-btn').onclick=async()=>{
   const entries=Array.isArray(data?.articles)?data.articles:[data];
   if(!entries.length||entries.length>30)throw Error('Import a package of 1–30 articles.');
   const revision=$('revision-mode').checked;
+  const applyPlan=$('apply-import-publishing-plan').checked;
+  const planCount=entries.filter(a=>['publish','published','schedule','scheduled'].includes(a?.publishing?.requested_status||a?.status)).length;
+  if(applyPlan&&revision)throw Error('Revision import and immediate publication plans cannot be combined.');
+  if(applyPlan&&planCount&&!confirm('You selected '+planCount+' article(s) for immediate publication or automatic scheduling based on your JSON. Confirm you checked the JSON locally and intend to apply those statuses now.'))return;
   if(revision){
     if(!Array.isArray(data.articles)||!data.articles.length)throw Error('Revision mode requires a JSON package with articles.');
     if(!confirm('DID YOU BACK UP D1? Replacing matching articles will immediately remove them from the public website until reviewed again. Continue?'))return;
@@ -241,17 +245,20 @@ $('import-btn').onclick=async()=>{
   quickBusy=true;
   $('import-btn').disabled=true;
   let successes=0,processed=0;
-  const failures=[];
+  const failures=[],planRejects=[],statuses={};
   for(let start=0;start<entries.length;start+=10){
    const batch=entries.slice(start,start+10);
    try{
     const result=await api('/api/admin/import',{method:'POST',body:JSON.stringify({
-      ...data,articles:batch,update_matching:revision,confirm_unpublish:revision
+      ...data,articles:batch,update_matching:revision,confirm_unpublish:revision,
+      apply_publishing_plan:applyPlan,confirm_publishing_plan:applyPlan
     })});
     if(!Array.isArray(result.results)||result.results.length!==batch.length)
       throw Error('Unexpected import response');
     successes+=result.results.filter(row=>row.ok).length;
     failures.push(...result.results.filter(row=>!row.ok));
+    planRejects.push(...result.results.filter(row=>row.plan_rejected));
+    result.results.filter(row=>row.ok).forEach(row=>{statuses[row.status]=(statuses[row.status]||0)+1;});
     processed+=batch.length;
     $('import-result').textContent=processed+'/'+entries.length+' processed; '+successes+' imported.';
    }catch(error){
@@ -260,9 +267,10 @@ $('import-btn').onclick=async()=>{
     throw Error('Import interrupted after '+processed+' confirmed items. Refresh the library before retrying: '+error.message);
    }
   }
-  $('import-result').textContent=successes+' imported, '+failures.length+' errors';
+  $('import-result').textContent=successes+' imported ('+Object.entries(statuses).map(([name,count])=>name+': '+count).join(', ')+'), '+failures.length+' errors'+(planRejects.length?', '+planRejects.length+' plan(s) left in Review':'');
   if(failures.length)toast(failures.slice(0,4).map(e=>(e.title||'Article')+': '+e.error).join(' | ').slice(0,600),true);
-  else toast(successes+(revision?' corrected/new articles placed in Review. Re-approve individually.':' articles imported. Review before publication.'));
+  else if(planRejects.length)toast(planRejects.slice(0,3).map(row=>row.title+': '+row.reason).join(' | ').slice(0,650),true);
+  else toast(successes+(revision?' corrected/new articles placed in Review. Re-approve individually.':applyPlan?' articles imported following their JSON statuses.':' articles imported into private Review.'));
   await refresh();
  }catch(e){toast(e.message,true);}
  finally{quickBusy=false;$('import-btn').disabled=false;}

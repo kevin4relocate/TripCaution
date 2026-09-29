@@ -36,3 +36,14 @@ Check the public site on mobile; test article source links and dates, paid trave
 ## Stop / rollback
 
 Disable GitHub variable `TRIPCAUTION_AUTO_PUBLISH_ENABLED` to keep daily research as private drafts; disable `TRIPCAUTION_AUTOMATION_ENABLED` to stop the writer entirely. Set `AUTO_PUBLISH_ENABLED=false` and deploy to independently close the server auto-publication gate. Existing public articles remain visible until the owner hides them; the dashboard shows their owner-review status.
+
+
+## Owner-authored bulk import: publish, schedule, or review directly
+
+When you locally review a ChatGPT Pro export, assign each article one of these statuses in `publishing.requested_status`:
+
+- `"published"`: immediately publish when the signed-in owner imports the JSON.
+- `"scheduled"`: import into the scheduled queue using `publishing.preferred_publish_at` with a future ISO 8601 timestamp and timezone (example: `"2030-06-01T09:00:00+07:00"`). The existing hourly Cloudflare Cron will publish it when due.
+- `"review"`: keep private in the normal editorial review queue.
+
+In Admin > Import content, the **Respect JSON status** checkbox is enabled by default. After one batch confirmation, each new article follows its status. This is owner-directed ingestion, not a bot capability. At least one valid HTTPS source and a future date for scheduled posts remain mandatory. Incorrect dates or invalid source metadata cause item-level errors instead of silent publication. Articles imported as Published or Scheduled without a review action in the dashboard retain `review_approved=0` and are disclosed as **Not Reviewed in Dashboard** until the owner marks them there. This flag does not indicate whether the owner reviewed locally; it avoids creating a false in-app review audit. AI files cannot invoke this behavior through the bot token. Existing article revisions always return to private Review, and the revision-import checkbox cannot be combined with direct publication. These controls do not bypass the separate safety rules for unattended daily auto-publication.

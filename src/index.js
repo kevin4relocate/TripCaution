@@ -11,6 +11,7 @@ import { CAUTION_TOPICS, cautionTopic, cautionTopicForCategory } from './caution
 import {CAUTION_LEVELS,cautionLevel,isRatedCaution,severeCaution} from './severity.js';
 import {auditCautionPackage} from './research-audit.js';
 import {assessAutoPublication} from './auto-publish.js';
+import {assessImportPublishingPlan} from './import-publishing.js';
 import {summarizeCountryTopicCounts,FIRST_PASS_TARGET,COUNTRY_ARTICLE_TARGET} from './coverage.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
 
@@ -69,7 +70,7 @@ function articleCard(a,variant='standard') {
  const country=esc(a.country), category=esc(cautionTopicForCategory(a.category_id)?.title||a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
  const cls=variant==='lead'?' guide-card-lead':variant==='side'?' guide-card-side':'';
  const level=isRatedCaution(a.caution_level)?cautionLevel(a.caution_level):null;
- const autoDisclosure=a.source_mode==='github-automation'&&Number(a.review_approved)===0?'<span class="auto-research-label">Automated research · Pending editor review</span>':'';
+ const autoDisclosure=a.status==='published'&&['github-automation','owner-import'].includes(a.source_mode)&&Number(a.review_approved)===0?'<span class="auto-research-label">Imported content · Not reviewed in Dashboard</span>':'';
  const badge=level&&a.severity_scope?.length>=12&&a.severity_rationale?.length>=40?'<span class="impact-pill impact-'+level.id+'">'+esc(level.label)+'</span>':'';
  return `<article class="guide-card${cls}"><a class="card-visual" href="${path}" aria-label="Read ${esc(a.title)}">
  ${safe(a.hero_image_url)?'<img loading="lazy" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
@@ -333,7 +334,7 @@ function renderGuideArticle(env,a,preview=false,related=[]){
   '<div class="impact-panel-head"><strong>Potential impact · '+esc(rating.label)+'</strong><span>For this situation only</span></div>'+
   '<p><strong>When this applies:</strong> '+esc(a.severity_scope)+'</p><p><strong>Why this level:</strong> '+esc(a.severity_rationale)+'</p>'+
   '<small>Impact if this problem occurs—not its likelihood, a live alert, or a safety rating for the country. Consult linked sources for changes.</small></section>':'';
- const autoDisclosure=a.source_mode==='github-automation'&&Number(a.review_approved)===0?'<p class="auto-research-notice"><strong>Automated research · Not yet editor-reviewed.</strong> Linked pages were checked for supporting excerpts at publication, but our editor has not personally verified every claim. Check original sources for changes, especially before important travel decisions.</p>':'';
+ const autoDisclosure=a.status==='published'&&['github-automation','owner-import'].includes(a.source_mode)&&Number(a.review_approved)===0?'<p class="auto-research-notice"><strong>Imported content · Not yet reviewed in Dashboard.</strong> This article was published from a research package and has not been marked reviewed in the Dashboard. Automated research links may have been excerpt-checked, while owner-imported packages may have been checked locally. Verify original sources, especially before important travel decisions.</p>':'';
  const takes=editorialQuickTakes(a.content_markdown);
  const tocHTML=rendered.headings.length>=2?'<details class="article-toc" data-article-toc open><summary>In this guide <span aria-hidden="true">⌄</span></summary><nav aria-label="On this page"><ol>'+
   rendered.headings.map(h=>'<li class="toc-level-'+h.level+'"><a href="#'+esc(h.id)+'">'+esc(h.label)+'</a></li>').join('')+
@@ -458,7 +459,7 @@ async function requireIngest(request,env){
 async function audit(env,actor,action,id,details=''){
  await env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),actor,action,id,details).run();
 }
-async function insertArticle(env,raw,actor){
+async function insertArticle(env,raw,actor,ownerPlan=null){
  const a=normalizeArticle(raw);
  const found=await env.DB.prepare("SELECT id,title FROM articles WHERE slug=?").bind(a.slug).first();
  if(found)throw Object.assign(new Error('Duplicate slug: '+a.slug),{status:409});
@@ -471,7 +472,8 @@ async function insertArticle(env,raw,actor){
  const requested=actor==='github-automation' && raw?.auto_publish===true;
  const preflight=requested?assessAutoPublication(a,raw):null;
  const eligible=requested && env.AUTO_PUBLISH_ENABLED==='true' && preflight.eligible;
- const status=eligible?'published':'review',published=eligible?new Date().toISOString():null;
+ const status=eligible?'published':ownerPlan?.status||'review',published=(eligible||ownerPlan?.status==='published')?new Date().toISOString():null;
+ const scheduledAt=ownerPlan?.status==='scheduled'?ownerPlan.scheduled_at:null;
  // If a package did not meet the preflight gate, retain it privately with the
  // specific reasons; do not silently reinterpret it as approved.
  if(requested&&!eligible && preflight?.problems?.length) {
@@ -502,9 +504,9 @@ async function insertArticle(env,raw,actor){
   return {id:a.id,title:a.title,slug:a.slug,status:'published',review_approved:0};
  }
  const insert = env.DB.prepare(`INSERT INTO articles(id,title,slug,excerpt,content_markdown,country,city,category_id,tags_json,sources_json,uncertainties_json,seo_title,seo_description,hero_image_url,hero_prompt,hero_alt,status,source_mode,review_approved,verified_at,published_at,scheduled_at,caution_level,severity_scope,severity_rationale) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
- .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,a.source_mode,0,a.verified_at,published,a.scheduled_at,'unassessed','','');
+ .bind(a.id,a.title,a.slug,a.excerpt,a.content_markdown,a.country,a.city,a.category_id,a.tags_json,a.sources_json,a.uncertainties_json,a.seo_title,a.seo_description,a.hero_image_url,a.hero_prompt,a.hero_alt,status,ownerPlan?'owner-import':a.source_mode,0,a.verified_at,published,scheduledAt,'unassessed','','');
  const auditInsert=env.DB.prepare('INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)')
-  .bind(crypto.randomUUID(),actor,'created:'+status,a.id,actor==='github-automation'?JSON.stringify({claim_evidence:raw.research?.claim_evidence||[],source_check_passed:false}):'');
+  .bind(crypto.randomUUID(),actor,ownerPlan?'owner-import-'+status:'created:'+status,a.id,ownerPlan?JSON.stringify({owner_selected_status:status,publish_date:scheduledAt,human_review_in_dashboard:false}):actor==='github-automation'?JSON.stringify({claim_evidence:raw.research?.claim_evidence||[],source_check_passed:false}):'');
  await env.DB.batch([insert,auditInsert]);
  return {id:a.id,title:a.title,slug:a.slug,status};
 }
@@ -809,12 +811,20 @@ async function api(request,env,url,admin=false){
   if(!researchCheck.ok)return json({error:'Research package contains duplicate or invalid entries',problems:researchCheck.problems},422);
   if(list.length<1||list.length>10)return json({error:'Import requires 1–10 articles per request; the editor safely splits larger imports'},400);
   const revisionMode=pathname==='/api/admin/import' && body.update_matching===true;
+  const applyPlan=pathname==='/api/admin/import' && body.apply_publishing_plan===true;
+  if(body.apply_publishing_plan===true&&!applyPlan)return json({error:'Only a signed-in editor can apply a publication plan'},403);
+  if(applyPlan&&body.confirm_publishing_plan!==true)return json({error:'Explicit owner confirmation required for importing directly to Publish or Schedule'},422);
+  if(applyPlan&&revisionMode)return json({error:'Revision imports must return existing articles to Review. Re-approve revised articles individually.'},422);
   if(body.update_matching===true&&!revisionMode)return json({error:'Only signed-in editor can revise existing articles'},403);
   if(revisionMode&&body.confirm_unpublish!==true)return json({error:'Explicit acknowledgment required: matching live articles return to Review'},422);
   const results=[];
   for(const entry of list){
-   try{results.push({ok:true,...await (revisionMode?replaceArticleWithReviewDraft(env,entry,actor):insertArticle(env,entry,actor))});}
-   catch(e){results.push({ok:false,error:e.message,title:entry?.title||''});}
+   try{
+    const plan=applyPlan?assessImportPublishingPlan(entry):null;
+    if(plan&&!plan.allowed)throw Object.assign(new Error(plan.reason),{status:422});
+    const created=await (revisionMode?replaceArticleWithReviewDraft(env,entry,actor):insertArticle(env,entry,actor,plan));
+    results.push({ok:true,...created,scheduled_at:plan?.scheduled_at||null});
+   }catch(e){results.push({ok:false,error:e.message,title:entry?.title||''});}
   }
   return json({results},207);
  }
@@ -899,8 +909,10 @@ async function media(env,key){
 }
 async function publishDue(env){
  if(!env.DB)return;
- // Publish only records manually approved and explicitly scheduled. Idempotent conditional update.
- await env.DB.prepare("UPDATE articles SET status='published',published_at=COALESCE(published_at,datetime('now')),updated_at=datetime('now') WHERE status='scheduled' AND review_approved=1 AND julianday(scheduled_at)<=julianday('now') AND json_array_length(sources_json)>0 AND EXISTS (SELECT 1 FROM audit_logs l WHERE l.article_id=articles.id AND ((l.action='reviewed-and-scheduled' AND json_valid(l.details) AND length(json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.evidence_note'))>=30) OR (l.action='owner-reviewed-and-scheduled' AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1)))").run();
+ // Signed-in owner imports can explicitly authorize a future schedule without
+ // the separate dashboard Review step. All other scheduled articles still need
+ // existing human-review approval and its audit trail.
+ await env.DB.prepare("UPDATE articles SET status='published',published_at=COALESCE(published_at,datetime('now')),updated_at=datetime('now') WHERE status='scheduled' AND julianday(scheduled_at)<=julianday('now') AND json_array_length(sources_json)>0 AND ((review_approved=1 AND EXISTS (SELECT 1 FROM audit_logs l WHERE l.article_id=articles.id AND ((l.action='reviewed-and-scheduled' AND json_valid(l.details) AND length(json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.evidence_note'))>=30) OR (l.action='owner-reviewed-and-scheduled' AND json_valid(l.details) AND json_extract(CASE WHEN json_valid(l.details) THEN l.details ELSE '{}' END,'$.review_confirmed')=1)))) OR (review_approved=0 AND source_mode='owner-import' AND EXISTS (SELECT 1 FROM audit_logs ai WHERE ai.article_id=articles.id AND ai.action='owner-import-scheduled')))").run();
 }
 export default {
  async fetch(request,env){
