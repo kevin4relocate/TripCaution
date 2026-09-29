@@ -156,11 +156,11 @@ The workflow in `.github/workflows/daily-content.yml` runs at **18:17 UTC**, app
 
 A run:
 - Checks recently published/scheduled titles so it can avoid obvious duplicates.
-- Skips writing when two articles are already scheduled for the next two days in draft-only mode; auto mode has a separate maximum-three-per-UTC-day server quota.
+- Keeps owner-scheduled publication dates intact while researching distinct slots, even when scheduled posts already exist. Unattended publication has a separate maximum-three-per-UTC-day server quota.
 - Fetches current HTML from two configured official government advice pages and asks Gemini to analyze the retrieved content, unless you explicitly opt into Gemini Search grounding.
 - Researches up to three distinct candidate articles per run when auto mode is enabled; each must meet citation, independent-domain and exact fetched-source excerpt checks before requesting unattended publication.
 - Imports it via authenticated `/api/ingest`.
-- By default, all new articles enter private Review. When you explicitly opt in at both GitHub and Cloudflare, only narrowly scoped, independently excerpt-checked, lower-stakes articles can publish automatically. They are openly marked **Automated research · Not yet editor-reviewed** and remain in the post-publication owner queue.
+- Before unattended publishing is enabled, up to three newly researched articles per daily run enter private Review. When you explicitly opt in at both GitHub and Cloudflare, only narrowly scoped, independently excerpt-checked, lower-stakes articles can publish automatically. They are openly marked **Automated research · Not yet editor-reviewed** and remain in the post-publication owner queue.
 - Logs an error instead of publishing fabricated or unsupported material when research is insufficient.
 
 **No API cost guarantee:** default curated mode uses government public pages and free-tier Gemini *text* when available. Most current Gemini 3.x models do **not** include Search grounding in the free API tier; image-generation APIs generally are not free. Research skips publication if fewer than two official pages can be read. Model access, page availability, billing and quotas can change. Verify all service terms before enabling a paid feature.
