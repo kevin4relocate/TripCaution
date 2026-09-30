@@ -417,7 +417,7 @@ body:not(.admin-body){background:var(--tc2-paper);color:var(--tc2-ink)}
 }
 .home-destination-actions .destination-inline-search button:hover,
 .inline-search button:hover,.destination-inline-search button:hover{background:#3d5260}
-.home-editorial-strip{background:#e4e0d6;border-block:1px solid #b9bbb7}
+.home-editorial-strip{background:#e4e0d6;border-block:1px solid #b9bbb7;color:#405148}
 .site-signoff{background:#d6d0c1;color:#26343b}
 .site-signoff a{color:#26343b}
 footer{background:#101922;border-top:4px solid var(--tc2-amber)}
@@ -578,6 +578,6 @@ body:not(.admin-body) :is(
  border-left-color:var(--category-accent);
 }
 .caution-directory .caution-topic:not(.caution-pending)[class*="topic-"] small{
- color:var(--category-accent);
+ color:#405249;
  font-weight:800;
 }

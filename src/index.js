@@ -41,8 +41,10 @@ function layout(env, title, body, meta={}) {
  ${ogType==='article'&&meta.publishedAt?'<meta property="article:published_time" content="'+esc(meta.publishedAt)+'">':''}
  ${ogType==='article'&&meta.modifiedAt?'<meta property="article:modified_time" content="'+esc(meta.modifiedAt)+'">':''}
  ${ogType==='article'&&Number.isInteger(meta.sourceCount)&&meta.sourceCount>=0?'<meta name="tripcaution:source-count" content="'+meta.sourceCount+'">':''}
- ${image?'<meta property="og:image" content="'+esc(image)+'">':''}
+ ${image?'<meta property="og:image" content="'+esc(image)+'"><link rel="preload" as="image" href="'+esc(image)+'" fetchpriority="high">':''}
  ${!meta.preview&&meta.schema?jsonLdTag(meta.schema):''}
+ <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ <link rel="stylesheet" media="(min-width: 801px)" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap">
  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/safety-theme.css"><link rel="icon" type="image/svg+xml" href="/favicon.svg">
  </head><body${meta.preview?' class="private-preview"':''}><a class="skip-link" href="#main-content">Skip to main content</a><header class="header"><div class="shell nav-wrap"><a class="brand" href="/" aria-label="TripCaution homepage"><span class="brand-mark">!</span>TRIP<span>CAUTION</span></a>
  <nav aria-label="Main navigation">${nav}</nav><a href="/#destinations" class="header-cta">Browse cautions <span>↗</span></a></div></header>
@@ -75,11 +77,11 @@ function articleCard(a,variant='standard') {
  const level=isRatedCaution(a.caution_level)?cautionLevel(a.caution_level):null;
  const autoDisclosure=a.status==='published'&&['github-automation','owner-import'].includes(a.source_mode)&&Number(a.review_approved)===0?'<span class="auto-research-label">Imported content · Not reviewed in Dashboard</span>':'';
  const badge=level&&a.severity_scope?.length>=12&&a.severity_rationale?.length>=40?'<span class="impact-pill impact-'+level.id+'">'+esc(level.label)+'</span>':'';
- return `<article class="guide-card${cls}"><a class="card-visual" href="${path}" aria-label="Read ${esc(a.title)}">
- ${safeMedia(a.hero_image_url)?'<img loading="lazy" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
+ return `<article class="guide-card${cls}"><a class="card-visual" href="${path}" aria-label="Read ${esc(a.title)} — ${category}">
+ ${safeMedia(a.hero_image_url)?'<img loading="lazy" decoding="async" fetchpriority="low" width="640" height="360" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
  <span class="visual-tag${categoryClass}">${category}</span></a><div class="card-body"><div class="eyebrow">${country}${a.city?' <span>·</span> '+esc(a.city):''}</div>
  ${autoDisclosure}${badge}<h3><a href="${path}">${esc(a.title)}</a></h3><p>${esc(a.excerpt||'A practical guide to help you plan more confidently.')}</p>
- <div class="card-bottom"><a class="card-read" href="${path}" aria-label="Read ${esc(a.title)}">Read guide <span aria-hidden="true">↗</span></a></div></div></article>`;
+ <div class="card-bottom"><a class="card-read" href="${path}" aria-label="Read guide: ${esc(a.title)}">Read guide <span aria-hidden="true">↗</span></a></div></div></article>`;
 }
 // An overview is helpful before all eleven countries have live guides.
 // Pending countries are intentionally plain text cards, never dead-end links.
@@ -350,7 +352,7 @@ function renderGuideArticle(env,a,preview=false,related=[]){
  // Publication timestamp and number of sources are retained in HTML metadata,
  // Article JSON-LD and the original source records; no visible top metadata bar.
  const body=`<main><div class="article-top"><div class="shell article-head"><a href="/destinations/${slugify(a.country)}" class="backlink">← ${esc(a.country)} guides</a><div class="eyebrow">${esc(a.country.toUpperCase())}${a.city?' / '+esc(a.city.toUpperCase()):''} / ${esc((a.category_name||'GUIDE').toUpperCase())}</div><h1>${esc(a.title)}</h1><p class="article-deck">${esc(a.excerpt)}</p></div></div>
- <div class="shell article-wrap"><article class="article-content">${safeMedia(a.hero_image_url)?'<figure class="hero-image"><img src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial illustration')+'"><figcaption>AI-generated editorial illustration; not a photograph or evidence of an incident.</figcaption></figure>':''}
+ <div class="shell article-wrap"><article class="article-content">${safeMedia(a.hero_image_url)?'<figure class="hero-image"><img loading="eager" fetchpriority="high" width="1600" height="900" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial illustration')+'"><figcaption>AI-generated editorial illustration; not a photograph or evidence of an incident.</figcaption></figure>':''}
  ${severityPanel}${autoDisclosure}<div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
  ${tocHTML}<div class="prose">${rendered.html}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
  </section></article>
