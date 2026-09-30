@@ -415,6 +415,10 @@ if(bulkImageButton)bulkImageButton.onclick=async()=>{
    toast(summary.exists.length+' existing filename conflict(s) found. Choose Skip, Overwrite, or Cancel.',true);
    return;
   }
+  // Preflight owns quickBusy while checking. Release it before entering the
+  // actual uploader; otherwise uploadBulkImagePlan exits immediately.
+  quickBusy=false;
+  bulkImageButton.disabled=false;
   await uploadBulkImagePlan('skip');
  }catch(e){
   bulkImageResult.hidden=false;bulkImageResult.textContent=e.message;toast(e.message,true);
