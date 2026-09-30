@@ -6,6 +6,9 @@ on:
     paths:
       - '.github/workflows/full-launch-audit.yml'
       - 'scripts/full-launch-audit.mjs'
+      - 'src/**'
+      - 'public/**'
+      - 'wrangler.jsonc'
 permissions:
   contents: read
 jobs:

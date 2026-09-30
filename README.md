@@ -18,7 +18,7 @@ TripCaution is a Cloudflare Workers application with a GitHub Actions/Gemini res
 | Safety | 12-hour HMAC-signed HttpOnly/Secure admin cookie, D1 login throttling, same-origin mutation checks, separate bot token, source gate, manual review and audit log |
 | SEO | Per-article titles, meta descriptions, canonical, social metadata, dynamic sitemap, source lists |
 
-**Sprint 2 editorial geography:** All eleven Southeast Asian countries are the first research and on-site discovery focus. The daily topic rotation and curated source list cover those eleven; other regions can still display guides already published. See [Southeast Asia-first roadmap](docs/SPRINT2_EDITORIAL_ROADMAP.md). High-stakes or weakly supported automated material remains in private Review; qualifying, opt-in low-stakes automated material is publicly disclosed as not yet editor-reviewed.\n\n**Important current limitations:** Automatic thumbnails are a separate, opt-in Gemini image-generation pipeline and may incur Google AI API usage charges or quotas. It runs asynchronously through the Worker thumbnail queue and stores JPEG output in R2; article publication does not wait for image generation. Source URLs still need human verification: grounding and link matching are safeguards, not proof that every assertion is true.
+**Launch geography:** The initial public inventory is focused on all eleven Southeast Asian countries. The launch baseline is **110 published guides — 10 per country**. Category coverage is diagnostic only; it is not a safety score or a quota that justifies weak content. Source URLs still need human verification: linked-source checks are safeguards, not proof that every assertion is true.\n\n**Images:** In-app AI image generation is disabled. Article hero and inline illustrations are created externally and uploaded as deterministic WebP files to R2. The launch audit checks all public article image objects.
 
 ## Prelaunch content expansion and transparent auto-publication
 
@@ -152,7 +152,7 @@ Create **Repository variables**:
 
 Put the **same** ingestion secret on the Worker, **not in Git**. Use **Workers & Pages > tripcaution > Settings > Variables and Secrets > Add** `INGEST_TOKEN` as an encrypted **secret**, then deploy or save settings as Cloudflare requests.
 
-The workflow in `.github/workflows/daily-content.yml` runs once daily at **18:17 UTC**, approximately **01:17 Vietnam time / 02:17 Singapore time the following day**. Scheduled GitHub Actions are best-effort and can be delayed or skipped; you can also start it manually from **Actions > TripCaution daily research > Run workflow**. During prelaunch, the job may inspect several distinct topic slots in one run so that one weak source package does not consume the entire day's publication capacity.
+The workflow in `.github/workflows/daily-content.yml` retains its schedule definition, but **scheduled runs are intentionally skipped during launch freeze**. A deliberate manual `workflow_dispatch` can still be used when the repository automation variable is enabled; manual research remains fail-closed to Review because unattended auto-publishing is disabled.
 
 A run:
 - Checks recently published/scheduled titles so it can avoid obvious duplicates.
@@ -160,7 +160,7 @@ A run:
 - Fetches current HTML from two configured official government advice pages and asks Gemini to analyze the retrieved content, unless you explicitly opt into Gemini Search grounding.
 - Targets up to three successful article records per run and can make up to six bounded slot attempts by default; weak or inaccessible evidence is skipped rather than ending the whole day. Each unattended publication must still meet citation, independent-domain and exact fetched-source excerpt checks.
 - Imports it via authenticated `/api/ingest`.
-- Before unattended publishing is enabled, up to three newly researched articles per daily run enter private Review. When you explicitly opt in at both GitHub and Cloudflare, only narrowly scoped, independently excerpt-checked, lower-stakes articles can publish automatically. They are openly marked **Automated research · Not yet editor-reviewed** and remain in the post-publication owner queue.
+- During launch freeze, newly researched articles enter private Review. Re-enable unattended publication only as a separate post-launch decision.
 - Logs an error instead of publishing fabricated or unsupported material when research is insufficient.
 
 **No API cost guarantee:** default curated mode uses government public pages and free-tier Gemini *text* when available. Most current Gemini 3.x models do **not** include Search grounding in the free API tier; image-generation APIs generally are not free. Research skips publication if fewer than two official pages can be read. Model access, page availability, billing and quotas can change. Verify all service terms before enabling a paid feature.
@@ -203,7 +203,7 @@ npx wrangler dev
 
 Go to `/admin`: without a signed key session, the editor should redirect to `/sign-in`. An admin key shorter than 32 characters will not work. Public pages can load on an empty local DB.
 
-For reversible removal, use **Hide**, **Move to Deleted**, then **Restore draft** as needed. **Permanent deletion** is a distinct, owner-confirmed action under the Deleted filter; create a private D1 export first. R2 images are not deleted by the D1 purge. The admin's batch JSON import reports accepted and rejected articles individually.
+For reversible removal, use **Hide**, **Move to Deleted**, then **Restore draft** as needed. **Permanent deletion** is a distinct, owner-confirmed action under the Deleted filter; create a private D1 export first. Permanent purge removes the article records, article-linked audit history, and the article-owned hero/inline R2 images. If R2 cleanup fails, the D1 purge is refused.
 
 ### Production readiness checklist
 
@@ -215,9 +215,11 @@ For reversible removal, use **Hide**, **Move to Deleted**, then **Restore draft*
 - [ ] Valid article imported, reviewed, published, and visible
 - [ ] Scheduled article actually published by hourly Cron
 - [ ] Sitemap and search operate on live DB
-- [ ] At least one Gemini workflow tested manually and its actual usage checked
+- [ ] Full 110-guide / 220-image launch audit passes
+- [ ] Mobile Lighthouse launch audit has no hard failures
 - [ ] Actual editorial contact and updated legal/privacy information published
-- [ ] Optional R2 uploads verified with a real test image
+- [ ] All four known source-count/distinct-source blockers are corrected and the full launch audit is rerun
+- [ ] R2 article-image uploads and permanent-delete cleanup verified
 
 ## Sprint 2 — Content, SEO & reader experience
 
