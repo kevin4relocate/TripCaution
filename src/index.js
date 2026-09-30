@@ -31,7 +31,7 @@ const nav = '<a href="/cautions">Travel cautions</a><a href="/destinations">Dest
 function layout(env, title, body, meta={}) {
  const description=meta.description||'Evidence-led travel precautions and practical guides. Know before you go.';
  const url=siteURL(env)+(meta.path||'/');
- const image=rasterImage(meta.image);
+ const image=rasterImage(meta.image,siteURL(env));
  const ogType=meta.ogType==='article'?'article':'website';
  const main=String(body).replace(/<main\b/,'<main id="main-content"');
  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
