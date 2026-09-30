@@ -11,7 +11,6 @@ import { CAUTION_TOPICS, cautionTopic, cautionTopicForCategory } from './caution
 import {CAUTION_LEVELS,cautionLevel,isRatedCaution,severeCaution} from './severity.js';
 import {auditCautionPackage} from './research-audit.js';
 import {assessAutoPublication} from './auto-publish.js';
-import {queueThumbnailOnImport,enqueueThumbnail,processThumbnailQueue,thumbnailSummary} from './thumbnails.js';
 import {assessImportPublishingPlan} from './import-publishing.js';
 import {summarizeCountryTopicCounts,FIRST_PASS_TARGET,COUNTRY_ARTICLE_TARGET} from './coverage.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
@@ -512,11 +511,11 @@ async function insertArticle(env,raw,actor,ownerPlan=null){
  await env.DB.batch([insert,auditInsert]);
  return {id:a.id,title:a.title,slug:a.slug,status};
 }
-async function replaceArticleWithReviewDraft(env,raw,actor){
+async function replaceArticleWithReviewDraft(env,raw,actor,ownerPlan=null){
  if(actor==='github-automation')throw Object.assign(new Error('Admin login required'),{status:403});
  const a=normalizeArticle(raw);
  const old=await env.DB.prepare('SELECT id,status FROM articles WHERE slug=?').bind(a.slug).first();
- if(!old)return insertArticle(env,raw,actor);
+ if(!old)return insertArticle(env,raw,actor,ownerPlan);
  // Only the signed-in owner can explicitly revise an existing guide. The old
  // version is withdrawn while the new revision undergoes a fresh manual review.
  const revision=env.DB.prepare(`UPDATE articles SET title=?,excerpt=?,content_markdown=?,country=?,city=?,category_id=?,
@@ -832,52 +831,30 @@ async function api(request,env,url,admin=false){
   const researchCheck=auditCautionPackage(body);
   if(!researchCheck.ok)return json({error:'Research package contains duplicate or invalid entries',problems:researchCheck.problems},422);
   if(list.length<1||list.length>10)return json({error:'Import requires 1–10 articles per request; the editor safely splits larger imports'},400);
-  const revisionMode=pathname==='/api/admin/import' && body.update_matching===true;
-  const applyPlan=pathname==='/api/admin/import' && body.apply_publishing_plan===true;
+  const isAdminImport=pathname==='/api/admin/import';
+  const applyPlan=isAdminImport && body.apply_publishing_plan===true;
   if(body.apply_publishing_plan===true&&!applyPlan)return json({error:'Only a signed-in editor can apply a publication plan'},403);
   if(applyPlan&&body.confirm_publishing_plan!==true)return json({error:'Explicit owner confirmation required for importing directly to Publish or Schedule'},422);
-  if(applyPlan&&revisionMode)return json({error:'Revision imports must return existing articles to Review. Re-approve revised articles individually.'},422);
-  if(body.update_matching===true&&!revisionMode)return json({error:'Only signed-in editor can revise existing articles'},403);
-  if(revisionMode&&body.confirm_unpublish!==true)return json({error:'Explicit acknowledgment required: matching live articles return to Review'},422);
   const results=[];
   for(const entry of list){
    try{
     const plan=applyPlan?assessImportPublishingPlan(entry):null;
     if(plan&&!plan.allowed)throw Object.assign(new Error(plan.reason),{status:422});
-    const created=await (revisionMode?replaceArticleWithReviewDraft(env,entry,actor):insertArticle(env,entry,actor,plan));
-    const thumbnail=body.auto_generate_thumbnails===true && pathname==='/api/admin/import'
-      ? await queueThumbnailOnImport(env,created.id):{state:'not_requested'};
-    results.push({ok:true,...created,scheduled_at:plan?.scheduled_at||null,thumbnail});
+    // Signed-in Admin imports always behave as a safe upsert:
+    // new slug -> follow the optional JSON publishing plan;
+    // existing slug -> replace content and force the article back to private Review.
+    const created=await (isAdminImport
+      ? replaceArticleWithReviewDraft(env,entry,actor,plan)
+      : insertArticle(env,entry,actor,plan));
+    results.push({ok:true,...created,scheduled_at:created.updated?null:plan?.scheduled_at||null});
    }catch(e){results.push({ok:false,error:e.message,title:entry?.title||''});}
   }
   return json({results},207);
  }
- // Owner-only image queue management. The ingestion token cannot call these.
- if(pathname==='/api/admin/thumbnails'&&method==='GET'){
-  try{return json(await thumbnailSummary(env));}
-  catch{return json({enabled:false,counts:{},setup_required:true});}
- }
- if(pathname==='/api/admin/thumbnails/backfill'&&method==='POST'){
-  if(!thumbnailSummary)return json({error:'Thumbnail worker is not available'},503);
-  const eligible=(await env.DB.prepare("SELECT id FROM articles WHERE (hero_image_url IS NULL OR hero_image_url='') AND length(trim(coalesce(hero_prompt,'')))>=20 AND status!='deleted' ORDER BY created_at DESC LIMIT 30").all()).results||[];
-  const outcome=[];
-  for(const row of eligible)outcome.push(await queueThumbnailOnImport(env,row.id));
-  return json({considered:eligible.length,queued:outcome.filter(v=>v.state==='queued').length,results:outcome});
- }
- if(pathname==='/api/admin/thumbnails/queue'&&method==='POST'){
-  const input=await request.json();
-  if(typeof input.id!=='string'||!/^[a-f0-9-]{36}$/i.test(input.id))
-   return json({error:'Valid article UUID required'},422);
-  try{return json(await enqueueThumbnail(env,input.id));}
-  catch{return json({error:'Thumbnail queue is not ready. Check D1, Gemini and R2 configuration.'},503);}
- }
- if(pathname==='/api/admin/thumbnails/retry'&&method==='POST'){
-  const input=await request.json();
-  if(typeof input.id!=='string'||!/^[a-f0-9-]{36}$/i.test(input.id))
-   return json({error:'Valid article UUID required'},422);
-  try{return json(await enqueueThumbnail(env,input.id,{force:true}));}
-  catch{return json({error:'Thumbnail queue is not ready. Apply the migration first.'},503);}
- }
+ // In-app AI image generation is intentionally disabled. Images are created
+ // externally and uploaded through the deterministic bulk WebP workflow.
+ if(pathname.startsWith('/api/admin/thumbnails'))
+  return json({error:'In-app AI image generation is disabled. Use Bulk article images instead.'},410);
  if(method==='POST' && pathname==='/api/admin/article'){
   const body=await request.json();return json(await insertArticle(env,body,actor),201);
  }
@@ -1113,9 +1090,6 @@ export default {
   }
  },
  async scheduled(_event,env,ctx){
-  ctx.waitUntil((async()=>{
-   await publishDue(env);
-   await processThumbnailQueue(env);
-  })());
+  ctx.waitUntil(publishDue(env));
  }
 };

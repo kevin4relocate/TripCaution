@@ -62,14 +62,16 @@ test('provider failure retries without exposing API credentials',async()=>{
 });
 
 
-test('single article thumbnail control is wired',()=>{
+test('in-app thumbnail generation is disabled while external image workflow remains',()=>{
  const worker=readFileSync(new URL('../src/index.js',import.meta.url),'utf8');
  const admin=readFileSync(new URL('../public/admin.js',import.meta.url),'utf8');
  const html=readFileSync(new URL('../public/admin.html',import.meta.url),'utf8');
- assert.ok(worker.includes("/api/admin/thumbnails/queue"));
- assert.ok(html.includes('id="generate-thumbnail-btn"'));
- assert.ok(html.includes('Generate thumbnail for this article'));
- assert.ok(admin.includes("/api/admin/thumbnails/queue"));
- assert.ok(admin.includes('Queued for this article only'));
- assert.ok(admin.includes('Save changes before generating'));
+ assert.ok(worker.includes("In-app AI image generation is disabled"));
+ assert.ok(worker.includes("pathname.startsWith('/api/admin/thumbnails')"));
+ assert.ok(!html.includes('id="generate-thumbnail-btn"'));
+ assert.ok(!html.includes('id="import-thumbnails"'));
+ assert.ok(!html.includes('Check thumbnail queue'));
+ assert.ok(!admin.includes('/api/admin/thumbnails'));
+ assert.ok(html.includes('External illustration prompt'));
+ assert.ok(html.includes('Bulk article images'));
 });

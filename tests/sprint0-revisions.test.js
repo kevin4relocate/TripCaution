@@ -20,6 +20,7 @@ function fakeDB(){
    bind(...values){args=values;return q;},
    async first(){
     if(sql.startsWith('SELECT id,status FROM articles WHERE slug=?'))return {id:'a0000000-0000-4000-a000-000000000001',status:'published'};
+    if(sql.startsWith('SELECT id,title FROM articles WHERE slug=?'))return {id:'a0000000-0000-4000-a000-000000000001',title:'Existing live guide'};
     return null;
    },
    async run(){changes.push({sql,args});return {success:true};},
@@ -29,20 +30,11 @@ function fakeDB(){
  },async batch(statements){for(const statement of statements)await statement.run();return statements.map(()=>({success:true}));}};
 }
 async function ownerEnv(){const e={ADMIN_LOGIN_KEY:key,INGEST_TOKEN:token,DB:fakeDB()};return [e,(await createAdminSession(e)).split(';')[0]];}
-test('manual revision refuses to overwrite live records without explicit acknowledgment',async()=>{
+test('matching owner import automatically pulls the existing article back into private Review',async()=>{
  const [e,cookie]=await ownerEnv();
  const response=await app.fetch(new Request(origin+'/api/admin/import',{
    method:'POST',headers:{Cookie:cookie,Origin:origin,'Content-Type':'application/json'},
-   body:JSON.stringify({articles:[raw],update_matching:true})
- }),e);
- assert.equal(response.status,422);
- assert.equal(e.DB.changes.length,0);
-});
-test('approved revision pulls existing article back into private Review and keeps its original ID',async()=>{
- const [e,cookie]=await ownerEnv();
- const response=await app.fetch(new Request(origin+'/api/admin/import',{
-   method:'POST',headers:{Cookie:cookie,Origin:origin,'Content-Type':'application/json'},
-   body:JSON.stringify({articles:[raw],update_matching:true,confirm_unpublish:true})
+   body:JSON.stringify({articles:[raw]})
  }),e);
  assert.equal(response.status,207);
  const out=await response.json();
@@ -60,13 +52,16 @@ test('ingest bot cannot use editorial revision or access admin import',async()=>
  const [e]=await ownerEnv();
  const bot=await app.fetch(new Request(origin+'/api/ingest',{
    method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
-   body:JSON.stringify({articles:[raw],update_matching:true,confirm_unpublish:true})
+   body:JSON.stringify({articles:[raw]})
  }),e);
- assert.equal(bot.status,403);
+ assert.equal(bot.status,207);
+ const botBody=await bot.json();
+ assert.equal(botBody.results[0].ok,false);
+ assert.match(botBody.results[0].error,/Duplicate slug/);
  assert.equal(e.DB.changes.length,0);
  const forbidden=await app.fetch(new Request(origin+'/api/admin/import',{
    method:'POST',headers:{Authorization:'Bearer '+token,Origin:origin,'Content-Type':'application/json'},
-   body:JSON.stringify({articles:[raw],update_matching:true,confirm_unpublish:true})
+   body:JSON.stringify({articles:[raw]})
  }),e);
  assert.equal(forbidden.status,401);
  assert.equal(e.DB.changes.length,0);

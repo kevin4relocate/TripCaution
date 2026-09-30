@@ -233,63 +233,40 @@ $('import-btn').onclick=async()=>{
   const data=JSON.parse($('json-input').value);
   const entries=Array.isArray(data?.articles)?data.articles:[data];
   if(!entries.length||entries.length>30)throw Error('Import a package of 1–30 articles.');
-  const revision=$('revision-mode').checked;
   const applyPlan=$('apply-import-publishing-plan').checked;
   const planCount=entries.filter(a=>['publish','published','schedule','scheduled'].includes(a?.publishing?.requested_status||a?.status)).length;
-  if(applyPlan&&revision)throw Error('Revision import and immediate publication plans cannot be combined.');
-  if(applyPlan&&planCount&&!confirm('You selected '+planCount+' article(s) for immediate publication or automatic scheduling based on your JSON. Confirm you checked the JSON locally and intend to apply those statuses now.'))return;
-  if(revision){
-    if(!Array.isArray(data.articles)||!data.articles.length)throw Error('Revision mode requires a JSON package with articles.');
-    if(!confirm('DID YOU BACK UP D1? Replacing matching articles will immediately remove them from the public website until reviewed again. Continue?'))return;
-  }
+  if(applyPlan&&planCount&&!confirm('You selected '+planCount+' new article(s) for immediate publication or automatic scheduling based on your JSON. Matching existing slugs will still be moved to private Review. Continue?'))return;
   quickBusy=true;
   $('import-btn').disabled=true;
-  let successes=0,processed=0;
-  const failures=[],planRejects=[],statuses={},thumbnails={};
+  let successes=0,processed=0,revised=0;
+  const failures=[],planRejects=[],statuses={};
   for(let start=0;start<entries.length;start+=10){
    const batch=entries.slice(start,start+10);
    try{
     const result=await api('/api/admin/import',{method:'POST',body:JSON.stringify({
-      ...data,articles:batch,update_matching:revision,confirm_unpublish:revision,
-      apply_publishing_plan:applyPlan,confirm_publishing_plan:applyPlan,auto_generate_thumbnails:$('import-thumbnails').checked
+      ...data,articles:batch,
+      apply_publishing_plan:applyPlan,confirm_publishing_plan:applyPlan
     })});
     if(!Array.isArray(result.results)||result.results.length!==batch.length)
       throw Error('Unexpected import response');
     successes+=result.results.filter(row=>row.ok).length;
+    revised+=result.results.filter(row=>row.ok&&row.updated).length;
     failures.push(...result.results.filter(row=>!row.ok));
     planRejects.push(...result.results.filter(row=>row.plan_rejected));
     result.results.filter(row=>row.ok).forEach(row=>{statuses[row.status]=(statuses[row.status]||0)+1;});
-    result.results.filter(row=>row.ok).forEach(row=>{const state=row.thumbnail?.state||'not_requested';thumbnails[state]=(thumbnails[state]||0)+1;});
     processed+=batch.length;
-    $('import-result').textContent=processed+'/'+entries.length+' processed; '+successes+' imported.';
+    $('import-result').textContent=processed+'/'+entries.length+' processed; '+successes+' imported'+(revised?' · '+revised+' correction(s) moved to Review':'')+'.';
    }catch(error){
-    // If the response was lost, the server may have accepted the last chunk.
-    // Never blindly retry revisions. Refresh the library and reconcile slugs.
     throw Error('Import interrupted after '+processed+' confirmed items. Refresh the library before retrying: '+error.message);
    }
   }
-  $('import-result').textContent=successes+' imported ('+Object.entries(statuses).map(([name,count])=>name+': '+count).join(', ')+'), '+failures.length+' errors'+(planRejects.length?', '+planRejects.length+' plan(s) left in Review':'');
-  $('thumbnail-import-status').textContent='Thumbnail processing: '+Object.entries(thumbnails).map(([k,n])=>k+': '+n).join(', ')+(thumbnails.queued?' · Open Check thumbnail queue later for progress.':'');
+  $('import-result').textContent=successes+' imported ('+Object.entries(statuses).map(([name,count])=>name+': '+count).join(', ')+'), '+revised+' matching slug correction(s), '+failures.length+' errors'+(planRejects.length?', '+planRejects.length+' plan(s) left in Review':'');
   if(failures.length)toast(failures.slice(0,4).map(e=>(e.title||'Article')+': '+e.error).join(' | ').slice(0,600),true);
   else if(planRejects.length)toast(planRejects.slice(0,3).map(row=>row.title+': '+row.reason).join(' | ').slice(0,650),true);
-  else toast(successes+(revision?' corrected/new articles placed in Review. Re-approve individually.':applyPlan?' articles imported following their JSON statuses.':' articles imported into private Review.'));
+  else toast(successes+' article(s) imported. '+(revised?revised+' matching slug correction(s) were moved to private Review. ':'')+(applyPlan?'New articles followed their JSON statuses.':'New articles were imported into private Review.'));
   await refresh();
  }catch(e){toast(e.message,true);}
  finally{quickBusy=false;$('import-btn').disabled=false;}
-};
-$('thumb-status-btn').onclick=async()=>{
- try{
-  const result=await api('/api/admin/thumbnails');
-  $('thumbnail-import-status').textContent='Image generation: '+(result.enabled?'ENABLED':'NOT CONFIGURED')+
-   ' · '+Object.entries(result.counts||{}).map(([k,v])=>k+': '+v).join(', ');
- }catch(e){toast(e.message,true);}
-};
-$('thumb-backfill-btn').onclick=async()=>{
- if(!confirm('Queue up to 30 existing articles without thumbnails using their saved hero_prompt? Existing thumbnails are never overwritten.'))return;
- try{
-  const result=await api('/api/admin/thumbnails/backfill',{method:'POST',body:'{}'});
-  $('thumbnail-import-status').textContent=result.queued+' thumbnail jobs queued from '+result.considered+' eligible articles.';
- }catch(e){toast(e.message,true);}
 };
 const bulkImageInput=$('bulk-image-files');
 const bulkImageButton=$('bulk-image-upload-btn');
@@ -464,19 +441,6 @@ function safeSourceUrl(raw){
 function hasSources(a){
  try{return JSON.parse(a?.sources_json||'[]').some(s=>safeSourceUrl(s?.url));}catch{return false;}
 }
-function updateThumbnailAction(){
- const btn=$('generate-thumbnail-btn'),status=$('single-thumbnail-status'),a=state.selected;
- if(!btn||!status)return;
- const prompt=String(a?.hero_prompt||'').trim();
- const hasImage=Boolean(String(a?.hero_image_url||'').trim());
- btn.disabled=!a||quickBusy||state.dirty||hasImage||prompt.length<20||a?.status==='deleted';
- if(!a)status.textContent='';
- else if(hasImage)status.textContent='Hero image already attached.';
- else if(prompt.length<20)status.textContent='Save an AI illustration prompt of at least 20 characters first.';
- else if(state.dirty)status.textContent='Save changes first so the saved prompt is used.';
- else if(a.status==='deleted')status.textContent='Restore this article before generating an image.';
- else if(!status.dataset.queued)status.textContent='';
-}
 function updateReviewGate(){
  const a=state.selected;
  const eligible=a&&['review','draft','hidden','scheduled'].includes(a.status);
@@ -498,7 +462,6 @@ function updateReviewGate(){
   severe&&!$('severity-confirm').checked?'Individually verify the scope and potential impact, then tick the confirmation above.':
   !eligible?'This article is already published or needs to be restored. You can still edit or hide it.':
   'Review the article and its source links. Publish only when you are satisfied, or leave it private.';
- updateThumbnailAction();
 }
 function populateReviewEvidence(a){
  let sources=[];
@@ -799,29 +762,6 @@ $('schedule-btn').onclick=()=>openSchedule('editor',[state.selected?.id].filter(
 $('hide-btn').onclick=()=>action('hide');
 $('delete-btn').onclick=()=>action('delete');
 $('restore-btn').onclick=()=>action('restore');
-$('generate-thumbnail-btn').onclick=async()=>{
- const status=$('single-thumbnail-status');
- if(!state.selected||quickBusy)return;
- if(state.dirty){toast('Save changes before generating so Gemini uses the saved prompt.',true);return;}
- if(String(state.selected.hero_image_url||'').trim()){toast('This article already has a hero image. Existing images are never overwritten.',true);return;}
- if(String(state.selected.hero_prompt||'').trim().length<20){toast('Add and save an AI illustration prompt first.',true);return;}
- if(!confirm('Queue one Gemini thumbnail for "'+state.selected.title+'"? This may use billable Gemini API quota.'))return;
- try{
-  quickBusy=true;delete status.dataset.queued;updateReviewGate();
-  const result=await api('/api/admin/thumbnails/queue',{method:'POST',body:JSON.stringify({id:state.selected.id})});
-  if(result.state==='queued'){
-   status.dataset.queued='1';
-   status.textContent='Queued for this article only. The Worker will process it on the next 15-minute run.';
-   toast('Thumbnail queued for this article only.');
-  }else if(result.state==='not_needed'){
-   status.textContent='No thumbnail needed; this article already has an image.';
-  }else{
-   status.textContent='Thumbnail was not queued: '+(result.reason||result.state||'unknown state')+'.';
-   toast(status.textContent,true);
-  }
- }catch(e){status.textContent='Thumbnail queue error: '+e.message;toast(e.message,true);}
- finally{quickBusy=false;updateReviewGate();}
-};
 $('upload-btn').onclick=async()=>{
  const file=$('image-file').files[0];if(!file){toast('Choose an image first.',true);return;}
  try{

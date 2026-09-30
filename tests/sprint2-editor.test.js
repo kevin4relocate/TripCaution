@@ -41,3 +41,13 @@ test('bulk image conflicts require an explicit owner decision',()=>{
  assert.match(js,/uploadBulkImagePlan\('overwrite'\)/);
  assert.doesNotMatch(html,/Existing images are skipped by default/);
 });
+
+test('image generation controls are removed and matching slug corrections are automatic',()=>{
+ for(const id of ['import-thumbnails','thumb-status-btn','thumb-backfill-btn','thumbnail-import-status','revision-mode','generate-thumbnail-btn','single-thumbnail-status'])
+  assert.ok(!html.includes('id="'+id+'"'),id+' should be absent');
+ assert.doesNotMatch(js,/\/api\/admin\/thumbnails/);
+ assert.doesNotMatch(js,/revision-mode|import-thumbnails/);
+ assert.match(html,/Matching slugs are always treated as corrections/);
+ assert.match(html,/automatically applies the imported correction/);
+ assert.match(html,/External illustration prompt/);
+});
