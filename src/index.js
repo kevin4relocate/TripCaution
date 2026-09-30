@@ -68,14 +68,16 @@ function html(content,status=200,headers={}) {
 }
 function articleCard(a,variant='standard') {
  const path='/guides/'+encodeURIComponent(a.slug);
- const country=esc(a.country), category=esc(cautionTopicForCategory(a.category_id)?.title||a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
- const cls=variant==='lead'?' guide-card-lead':variant==='side'?' guide-card-side':'';
+ const topic=cautionTopicForCategory(a.category_id);
+ const country=esc(a.country), category=esc(topic?.title||a.category_name||a.category_id?.replaceAll('-',' ')||'Guide');
+ const categoryClass=topic?' category-'+topic.slug:' category-general';
+ const cls=(variant==='lead'?' guide-card-lead':variant==='side'?' guide-card-side':'')+categoryClass;
  const level=isRatedCaution(a.caution_level)?cautionLevel(a.caution_level):null;
  const autoDisclosure=a.status==='published'&&['github-automation','owner-import'].includes(a.source_mode)&&Number(a.review_approved)===0?'<span class="auto-research-label">Imported content · Not reviewed in Dashboard</span>':'';
  const badge=level&&a.severity_scope?.length>=12&&a.severity_rationale?.length>=40?'<span class="impact-pill impact-'+level.id+'">'+esc(level.label)+'</span>':'';
  return `<article class="guide-card${cls}"><a class="card-visual" href="${path}" aria-label="Read ${esc(a.title)}">
  ${safeMedia(a.hero_image_url)?'<img loading="lazy" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
- <span class="visual-tag">${category}</span></a><div class="card-body"><div class="eyebrow">${country}${a.city?' <span>·</span> '+esc(a.city):''}</div>
+ <span class="visual-tag${categoryClass}">${category}</span></a><div class="card-body"><div class="eyebrow">${country}${a.city?' <span>·</span> '+esc(a.city):''}</div>
  ${autoDisclosure}${badge}<h3><a href="${path}">${esc(a.title)}</a></h3><p>${esc(a.excerpt||'A practical guide to help you plan more confidently.')}</p>
  <div class="card-bottom"><a class="card-read" href="${path}" aria-label="Read ${esc(a.title)}">Read guide <span aria-hidden="true">↗</span></a></div></div></article>`;
 }
@@ -135,7 +137,7 @@ async function homepage(env){
        <div class="safety-brief-foot"><span>INDEPENDENT · SOURCE-LINKED GUIDES</span><span>✳</span></div>
      </div>
    </div></div></section>
- <section class="section shell caution-topics-home" aria-label="Browse travel problems"><div class="section-heading"><div><div class="eyebrow">REAL TRAVEL PROBLEMS</div><h2>What could <em>go wrong?</em></h2><p>Choose the issue first, then check advice for your specific destination. No country is assumed to have the same payment options or risks.</p></div><a class="section-action" href="/cautions">All travel cautions ↗</a></div><div class="caution-topic-grid">${CAUTION_TOPICS.map(topic=>{const total=topic.ids.reduce((sum,id)=>sum+(topicCounts.get(id)||0),0);const inner='<strong>'+esc(topic.title)+'</strong><span>'+esc(topic.description)+'</span><small>'+(total?total+' published '+(total===1?'guide':'guides'):'Research planned')+'</small>';return total?'<a class="caution-topic" href="/cautions/'+topic.slug+'">'+inner+'</a>':'<div class="caution-topic caution-pending">'+inner+'</div>';}).join('')}</div></section>
+ <section class="section shell caution-topics-home" aria-label="Browse travel problems"><div class="section-heading"><div><div class="eyebrow">REAL TRAVEL PROBLEMS</div><h2>What could <em>go wrong?</em></h2><p>Choose the issue first, then check advice for your specific destination. No country is assumed to have the same payment options or risks.</p></div><a class="section-action" href="/cautions">All travel cautions ↗</a></div><div class="caution-topic-grid">${CAUTION_TOPICS.map(topic=>{const total=topic.ids.reduce((sum,id)=>sum+(topicCounts.get(id)||0),0);const inner='<strong>'+esc(topic.title)+'</strong><span>'+esc(topic.description)+'</span><small>'+(total?total+' published '+(total===1?'guide':'guides'):'Research planned')+'</small>';return total?'<a class="caution-topic topic-'+topic.slug+'" href="/cautions/'+topic.slug+'">'+inner+'</a>':'<div class="caution-topic caution-pending topic-'+topic.slug+'">'+inner+'</div>';}).join('')}</div></section>
  <section class="section featured-section" id="latest"><div class="shell">
    <div class="section-heading"><div><div class="eyebrow">01 — START READING</div>
      <h2>Latest <em>travel cautions.</em></h2>
@@ -196,8 +198,8 @@ async function cautionIndexPage(env){
   const total=topic.ids.reduce((sum,id)=>sum+(counts.get(id)||0),0);
   const inner='<strong>'+esc(topic.title)+'</strong><span>'+esc(topic.description)+'</span><small>'+
    (total?total+' published '+(total===1?'guide':'guides'):'Research planned')+'</small>';
-  return total?'<a class="caution-topic" href="/cautions/'+esc(topic.slug)+'">'+inner+'</a>':
-    '<div class="caution-topic caution-pending">'+inner+'</div>';
+  return total?'<a class="caution-topic topic-'+esc(topic.slug)+'" href="/cautions/'+esc(topic.slug)+'">'+inner+'</a>':
+    '<div class="caution-topic caution-pending topic-'+esc(topic.slug)+'">'+inner+'</div>';
  }).join('');
  const hasPublished=[...counts.values()].some(n=>n>0);
  const body='<main class="shell simple caution-directory"><div class="eyebrow">GLOBAL TRAVEL CAUTIONS</div><h1>Travel problems worth checking before you go.</h1>'+

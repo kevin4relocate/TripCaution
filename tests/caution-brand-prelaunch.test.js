@@ -22,3 +22,25 @@ test('mobile caution components stay compact and dark without hiding content',()
  assert.match(css,/@media\(max-width:620px\)\{\s*\.caution-topics-home/);
  assert.match(css,/\.caution-topics-home \.caution-topic strong\{color:#fff\}/);
 });
+
+test('published caution categories use stable semantic accent colors',()=>{
+ const expected=[
+  ['scams-theft','#b44d3a'],
+  ['payments-money','#c5962b'],
+  ['transport','#d47c24'],
+  ['laws-customs','#74617f'],
+  ['safety-health','#a64040'],
+  ['travel-essentials','#3e7772']
+ ];
+ for(const [slug,color] of expected){
+  assert.match(css,new RegExp('\\.category-'+slug+',\\.topic-'+slug+'\\{--category-accent:'+color));
+ }
+ assert.match(css,/\.guide-card \.visual-tag\[class\*="category-"\]/);
+ assert.match(css,/\.caution-topics-home \.caution-topic:not\(\.caution-pending\)\[class\*="topic-"\]/);
+ assert.match(css,/\.caution-directory \.caution-topic:not\(\.caution-pending\)\[class\*="topic-"\]/);
+});
+test('reader-facing cards receive semantic category classes',()=>{
+ assert.match(worker,/categoryClass=topic\?' category-'\+topic\.slug:' category-general'/);
+ assert.match(worker,/visual-tag\$\{categoryClass\}/);
+ assert.match(worker,/caution-topic topic-'\+topic\.slug/);
+});
