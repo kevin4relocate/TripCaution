@@ -15,19 +15,23 @@ function entry(status='review'){
   publishing:{mode:'manual_import',requested_status:status,
    preferred_publish_at:status==='scheduled'||status==='schedule'?time:null}};
 }
-function mockDB(){
+function mockDB(existing=null){
  const saved=[];
  const DB={prepare(sql){
   let args=[];const statement={bind(...v){args=v;return statement;},
-   async first(){return null;},
+   async first(){
+    if(existing&&sql.includes('SELECT id,status FROM articles WHERE slug=?')&&args[0]===existing.slug)
+     return {id:existing.id,status:existing.status};
+    return null;
+   },
    async run(){saved.push({sql,args});return {success:true,meta:{changes:1}};},
    async all(){return {results:[]}}};
   return statement;
  },async batch(actions){return Promise.all(actions.map(a=>a.run()))}};
  return {DB,saved};
 }
-async function importAsOwner(e,apply=true){
- const {DB,saved}=mockDB(),env={DB,ADMIN_LOGIN_KEY:secret};
+async function importAsOwner(e,apply=true,existing=null){
+ const {DB,saved}=mockDB(existing),env={DB,ADMIN_LOGIN_KEY:secret};
  const cookie=(await createAdminSession(env)).split(';')[0];
  const result=await worker.fetch(new Request(url+'/api/admin/import',{
   method:'POST',headers:{Cookie:cookie,Origin:url,'Content-Type':'application/json'},
@@ -86,4 +90,19 @@ test('unsigned, bot-token-only import cannot apply a publishing plan',async()=>{
   body:JSON.stringify({articles:[entry('published')],apply_publishing_plan:true,confirm_publishing_plan:true})
  }),env);
  assert.equal(result.status,403);
+});
+
+test('matching existing slug is always replaced and forced back to private Review',async()=>{
+ const existing={id:'a0000000-0000-4000-a000-000000000099',slug:entry('published').slug,status:'published'};
+ const r=await importAsOwner(entry('published'),true,existing);
+ assert.equal(r.response.status,207);
+ assert.equal(r.data.results[0].ok,true);
+ assert.equal(r.data.results[0].updated,true);
+ assert.equal(r.data.results[0].status,'review');
+ assert.equal(r.data.results[0].scheduled_at,null);
+ assert.ok(!r.saved.some(row=>row.sql.startsWith('INSERT INTO articles')));
+ const revision=r.saved.find(row=>row.sql.startsWith('UPDATE articles SET title='));
+ assert.ok(revision);
+ assert.match(revision.sql,/status='review'/);
+ assert.ok(r.saved.some(row=>row.args.includes('revision-imported-to-review')));
 });
