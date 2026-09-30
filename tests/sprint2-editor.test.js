@@ -28,7 +28,7 @@ test('import center supports up to 100 deterministic WebP article images',()=>{
  assert.match(js,/files\.length>100/);
  assert.match(js,/X-TripCaution-Filename/);
  assert.match(js,/\/api\/admin\/media\/article-image/);
- assert.match(js,/Math\.min\(3,files\.length\)/);
+ assert.match(js,/Math\\.min\\(3,uploadRows\\.length\\)/);
 });
 
 test('bulk image conflicts require an explicit owner decision',()=>{
