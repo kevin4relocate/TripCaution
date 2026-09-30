@@ -30,3 +30,14 @@ test('import center supports up to 100 deterministic WebP article images',()=>{
  assert.match(js,/\/api\/admin\/media\/article-image/);
  assert.match(js,/Math\.min\(3,files\.length\)/);
 });
+
+test('bulk image conflicts require an explicit owner decision',()=>{
+ for(const id of ['bulk-image-conflict-actions','bulk-image-skip-btn','bulk-image-overwrite-btn','bulk-image-cancel-btn'])
+  assert.ok(html.includes('id="'+id+'"'),id);
+ assert.match(html,/Nothing is skipped or overwritten until you choose what to do/);
+ assert.match(js,/article-image\/preflight/);
+ assert.match(js,/Existing filename conflicts/);
+ assert.match(js,/uploadBulkImagePlan\('skip'\)/);
+ assert.match(js,/uploadBulkImagePlan\('overwrite'\)/);
+ assert.doesNotMatch(html,/Existing images are skipped by default/);
+});
