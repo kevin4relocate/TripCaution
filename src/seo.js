@@ -9,9 +9,12 @@ export const isoDate=value=>{
  const stamp=Date.parse(normalized);
  return Number.isFinite(stamp)?new Date(stamp).toISOString():null;
 };
-export const rasterImage=value=>{
+export const rasterImage=(value,origin='')=>{
+ const raw=String(value||'').trim();
+ if (/^\/media\/editorial\/[a-z0-9][a-z0-9-]{0,140}\.(?:webp|png|jpe?g)$/i.test(raw) && origin)
+  return String(origin).replace(/\/$/,'')+raw;
  try{
-  const link=new URL(value);
+  const link=new URL(raw);
   return link.protocol==='https:'&&/\.(png|jpe?g|webp|gif)$/i.test(link.pathname)?link.href:null;
  }catch{return null;}
 };
@@ -30,7 +33,7 @@ export function articleStructuredData(site,a){
  const published=isoDate(a.published_at),modified=isoDate(a.updated_at)||published;
  if(published)doc.datePublished=published;
  if(modified)doc.dateModified=modified;
- const image=rasterImage(a.hero_image_url);
+ const image=rasterImage(a.hero_image_url,origin);
  if(image)doc.image=[image];
  const refs=Array.isArray(a.sources)?a.sources:[];
  const citations=refs.map(s=>{try{const u=new URL(s?.url);return u.protocol==='https:'?u.href:null;}catch{return null;}}).filter(Boolean);
