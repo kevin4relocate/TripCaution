@@ -247,3 +247,10 @@
 
 /* Prelaunch inventory is an editorial capacity target, not a destination risk score. */
 .launch-readiness-head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}.launch-readiness-head p{max-width:720px}.launch-readiness-head>strong{font-size:10px;letter-spacing:1.4px;color:#8a5b08;white-space:nowrap;padding-top:5px}.launch-readiness-panel progress{width:100%;height:13px;accent-color:#ffb020;margin:8px 0 12px}.launch-readiness-panel .bulk-notice{margin:0;color:#526579}@media(max-width:680px){.launch-readiness-head{display:block}.launch-readiness-head>strong{display:inline-block;margin:3px 0 8px}}
+
+/* Bulk deterministic article-image upload */
+.bulk-image-panel code{font-size:11px;background:#eef3eb;padding:2px 5px;border-radius:3px}
+.bulk-image-panel input[type=file]{margin-top:8px}
+.bulk-image-progress{display:block;width:100%;height:12px;margin:18px 0 10px;accent-color:#2f6949}
+.bulk-image-progress[hidden]{display:none}
+.bulk-image-result{max-height:320px;overflow:auto;white-space:pre-wrap}
