@@ -3,6 +3,10 @@
 const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 const sectionSlug=text=>String(text).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
  .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,64)||'section';
+const safeEditorialImagePath=value=>{
+ const raw=String(value||'').trim();
+ return /^\/media\/editorial\/[a-z0-9][a-z0-9-]{0,140}\.(?:webp|png|jpe?g)$/i.test(raw)?raw:null;
+};
 function inline(text){
  const escaped=escapeHTML(text).replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
  return escaped.replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g,(_all,label,url)=>{
@@ -18,6 +22,16 @@ export function renderArticleMarkdown(markdown){
  let list=false;
  const closeList=()=>{if(list){chunks.push('</ul>');list=false;}};
  for(const line of lines){
+  const image=line.match(/^!\[([^\]]*)\]\((\/media\/editorial\/[^\s)]+)\)\s*$/);
+  if(image){
+   closeList();
+   const src=safeEditorialImagePath(image[2]);
+   if(src){
+    const alt=escapeHTML(image[1].trim()||'Editorial travel illustration');
+    chunks.push('<figure class="article-inline-image"><img loading="lazy" src="'+escapeHTML(src)+'" alt="'+alt+'"></figure>');
+    continue;
+   }
+  }
   if(/^\s*[-*] /.test(line)){
    if(!list){list=true;chunks.push('<ul>');}
    chunks.push('<li>'+inline(line.replace(/^\s*[-*] /,''))+'</li>');
