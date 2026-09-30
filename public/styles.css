@@ -680,3 +680,8 @@ a.caution-topic:hover,a.caution-topic:focus-visible{border-color:#526d53;transfo
 .impact-legend-chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 3px}
 .impact-legend small{display:block;color:#53675a;font-size:12px;line-height:1.65}
 .caution-country-filter select[name="level"]{min-width:150px}
+
+/* Deterministic editorial inline media */
+.prose .article-inline-image{margin:30px 0 34px;}
+.prose .article-inline-image img{display:block;width:100%;height:auto;border-radius:4px;}
+@media(max-width:600px){.prose .article-inline-image{margin:24px 0 28px;}}
