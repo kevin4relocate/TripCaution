@@ -3,7 +3,12 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['.github/workflows/production-smoke.yml', 'scripts/smoke-production.mjs']
+    paths:
+      - '.github/workflows/production-smoke.yml'
+      - 'scripts/smoke-production.mjs'
+      - 'src/**'
+      - 'public/**'
+      - 'wrangler.jsonc'
 permissions:
   contents: read
 jobs:
