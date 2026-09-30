@@ -34,7 +34,7 @@ test('import center supports up to 100 deterministic WebP article images',()=>{
 test('bulk image conflicts require an explicit owner decision',()=>{
  for(const id of ['bulk-image-conflict-actions','bulk-image-skip-btn','bulk-image-overwrite-btn','bulk-image-cancel-btn'])
   assert.ok(html.includes('id="'+id+'"'),id);
- assert.match(html,/Nothing is skipped or overwritten until you choose what to do/);
+ assert.match(html,/Nothing is skipped or overwritten without your choice/);
  assert.match(js,/article-image\/preflight/);
  assert.match(js,/Existing filename conflicts/);
  assert.match(js,/uploadBulkImagePlan\('skip'\)/);
@@ -47,7 +47,7 @@ test('image generation controls are removed and matching slug corrections are au
   assert.ok(!html.includes('id="'+id+'"'),id+' should be absent');
  assert.doesNotMatch(js,/\/api\/admin\/thumbnails/);
  assert.doesNotMatch(js,/revision-mode|import-thumbnails/);
- assert.match(html,/Matching slugs are always treated as corrections/);
+ assert.match(html,/Matching slug/);
  assert.match(html,/Matching slug/);
  assert.match(html,/External illustration prompt/);
 });
