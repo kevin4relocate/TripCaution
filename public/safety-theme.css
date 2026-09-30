@@ -223,3 +223,256 @@ body{background:#edf2f7}
  .home-hero{border-bottom-width:4px}
  .caution-topics-home .caution-topic{min-height:126px}
 }
+
+
+/*
+ * CAUTION EDITORIAL V2 / 30 Sep 2026
+ * Site-wide information-desk design: ink, warm paper and legible caution amber.
+ * Amber means navigation and preparation, NEVER a live alert, national danger
+ * rating, risk probability, or severity. Red stays exclusively with existing
+ * individually supported high-impact editorial components.
+ * The missing-image art below is an abstract graphic, not event evidence.
+ */
+:root{
+ --tc2-ink:#101922;
+ --tc2-panel:#1d2934;
+ --tc2-panel-hover:#30414e;
+ --tc2-amber:#f3b43d;
+ --tc2-paper:#f4f0e7;
+ --tc2-card:#fffcf6;
+ --tc2-muted:#51606a;
+ --tc2-sepia:#7b5414;
+}
+body:not(.admin-body){background:var(--tc2-paper);color:var(--tc2-ink)}
+
+/* The old white nav disconnected the warning identity from the hero. */
+.header{
+ background:#101922;
+ border-bottom:1px solid #42515c;
+ box-shadow:none;
+}
+.header .brand,.header nav a{color:#f1f3f4}
+.header .brand>span:last-child{color:var(--tc2-amber)}
+.header .brand-mark{background:var(--tc2-amber);color:var(--tc2-ink);border-radius:3px}
+.header nav a:hover,.header nav a:focus-visible{color:var(--tc2-amber)}
+.header .header-cta{
+ background:transparent;border:1px solid var(--tc2-amber);
+ border-radius:3px;color:#f8f4e9;letter-spacing:.025em;
+}
+.header .header-cta span{color:var(--tc2-amber)}
+.header .header-cta:hover,.header .header-cta:focus-visible{
+ background:var(--tc2-amber);color:var(--tc2-ink);
+}
+.header .header-cta:hover span,.header .header-cta:focus-visible span{color:var(--tc2-ink)}
+
+/* Strong night-ink entry point; no emergency/live-alert claims. */
+.home-hero{
+ background:radial-gradient(circle at 78% 0%,#30424d 0,#192935 42%,#101922 83%);
+ border-bottom:5px solid var(--tc2-amber);
+}
+.home-hero h1{letter-spacing:-2.35px}
+.home-hero h1 em{color:var(--tc2-amber)}
+.home-hero .hero-description{color:#d4dce4;font-size:14px;line-height:1.65}
+.home-hero .hero-label{color:#e7edf1}
+.home-hero .hero-label .label-line{background:var(--tc2-amber);height:2px}
+.home-hero .hero-label-star{color:var(--tc2-amber)}
+.home-hero .destination-search{
+ border:2px solid var(--tc2-amber);border-radius:3px;
+ box-shadow:0 13px 29px #02080d6e;
+}
+.home-hero .destination-search:focus-within{
+ border-color:#ffe0a3;box-shadow:0 0 0 3px #f3b43d60;
+}
+.home-hero .destination-search input{background:#fff;color:var(--tc2-ink)}
+.home-hero .destination-search button{
+ background:var(--tc2-amber);color:var(--tc2-ink);border-radius:2px;
+ font-weight:800;
+}
+.home-hero .destination-search button:hover{background:#ffd071;color:#101922}
+.home-hero .search-icon{color:#2e4655}
+.home-hero .search-hints{color:#d8e2eb}
+.home-hero .search-hints>a{color:#ffdb9b;border-bottom-color:var(--tc2-amber)}
+.home-hero .safety-brief{
+ background:#15222c;border:1px solid #788994;border-radius:3px;
+ box-shadow:7px 9px 0 var(--tc2-amber),0 24px 43px #030a1273;
+ transform:none;
+}
+.safety-brief-top{border-bottom-color:#465a69}
+.safety-brief-mark{background:var(--tc2-amber);color:var(--tc2-ink);border-radius:2px}
+.safety-brief-row{border-top-color:#455664}
+.safety-brief-row>span:first-child{color:var(--tc2-amber)}
+.safety-brief-foot{background:#283844;border-top:1px solid #425768}
+.safety-brief-foot span:last-child{color:var(--tc2-amber)}
+
+/* A compact evidence-desk, not six friendly blue travel tiles. */
+.caution-topics-home{
+ background:#121d27;border:1px solid #465865;
+ border-top:5px solid var(--tc2-amber);border-radius:4px;
+ box-shadow:0 13px 27px #11192229;
+ margin-top:30px;margin-bottom:29px;
+}
+.caution-topics-home .section-heading h2{color:#fff}
+.caution-topics-home .section-heading h2 em{color:var(--tc2-amber)}
+.caution-topics-home .section-heading p{color:#d8e0e6}
+.caution-topics-home .eyebrow{color:#ffd488}
+.caution-topics-home .section-action{color:#ffdc97;border-bottom-color:var(--tc2-amber)}
+.caution-topics-home .caution-topic{
+ background:var(--tc2-panel);border:1px solid #657480;
+ border-left:4px solid var(--tc2-amber);border-radius:2px;
+ padding:20px 21px;box-shadow:none;
+}
+.caution-topics-home .caution-topic strong{color:#fff;font-size:25px}
+.caution-topics-home .caution-topic span{color:#d6dee4}
+.caution-topics-home .caution-topic small{color:#ffd58a}
+.caution-topics-home a.caution-topic:hover,
+.caution-topics-home a.caution-topic:focus-visible{
+ background:var(--tc2-panel-hover);border-color:#e6b451;
+ box-shadow:inset 0 0 0 1px #f3b43d40;transform:translateY(-1px);
+}
+.caution-topics-home .caution-pending{
+ background:#202a32;border:1px dashed #64717b;border-left:4px solid #7a8994;
+}
+.caution-topics-home .caution-pending small{color:#b7c4cc}
+/* Topic listing elsewhere should retain a legible, non-emergency light style. */
+.caution-directory .caution-topic{border-radius:3px;border-left:4px solid #b27c1f;background:var(--tc2-card)}
+.caution-directory .caution-pending{border-left-color:#9aa3a9;background:#eceae4}
+
+/* Replace the enormous cold-blue fields with a field-guide paper system. */
+.featured-section{background:#f9f6ef;border-block:1px solid #c6c6be}
+.home-destinations-section{background:var(--tc2-paper)}
+.alt-section,.more-notes-section{background:#e8e4db;border-block:1px solid #c2c4be}
+.related-guides{background:#eeeae1;border-top:1px solid #c2c4be}
+.section-heading h2,.home-destinations-section .section-heading h2{color:var(--tc2-ink)}
+.section h2 em{color:var(--tc2-sepia)}
+.section-heading p{color:#46525d}
+.eyebrow{color:var(--tc2-sepia);font-weight:800;letter-spacing:1.9px}
+.section-action,.all-destinations-link{
+ color:#273744;border-bottom:2px solid #b07e27;
+ text-underline-offset:3px;font-weight:800;
+}
+.section-action:hover,.all-destinations-link:hover{color:var(--tc2-sepia)}
+.guide-count{color:#27343d;border-bottom:2px solid var(--tc2-amber)}
+
+/* Card bodies are readable paper; the illustration fallback is dark,
+ * abstract cartographic art rather than a misleading travel photograph. */
+.guide-card,.featured-layout .guide-card{
+ background:var(--tc2-card);border:1px solid #c2c4c2;
+ border-top:4px solid #243440;border-radius:2px;
+ box-shadow:0 5px 0 #131f2a15;
+}
+.guide-card:hover{border-top-color:var(--tc2-amber)}
+.guide-card .card-body h3{color:var(--tc2-ink);font-weight:700}
+.guide-card .card-body>p{color:#46525d}
+.guide-card .card-body .eyebrow{color:var(--tc2-sepia)}
+.guide-card .card-bottom{border-top:1px solid #b7bab5}
+.guide-card .card-read{color:#253541}
+.guide-card .card-read:hover{color:#6c470e}
+.guide-card .card-read span{color:#7b5414}
+.guide-card .visual-tag{
+ background:var(--tc2-amber);color:var(--tc2-ink);
+ border-radius:2px;letter-spacing:1px;font-weight:800;
+}
+.abstract-map{
+ background:
+  repeating-linear-gradient(90deg,#9eb1ba10 0 1px,transparent 1px 46px),
+  repeating-linear-gradient(0deg,#9eb1ba0d 0 1px,transparent 1px 46px),
+  linear-gradient(125deg,#192a35,#33444e);
+}
+.abstract-map>span{color:#f3b43d;font-size:66px}
+.abstract-map i{
+ border-color:#a7bec17d;
+ box-shadow:0 0 0 21px #8aa8ac19,0 0 0 44px #f3b43d19;
+}
+.abstract-map:after{
+ content:"EDITORIAL ILLUSTRATION";position:absolute;right:15px;top:15px;
+ color:#e9ded0;border-top:2px solid var(--tc2-amber);
+ padding-top:6px;font:800 9px/1.3 'DM Sans',system-ui,sans-serif;
+ letter-spacing:1.3px;
+}
+.more-notes-section .guide-card .card-visual{height:152px}
+.featured-layout .guide-card-lead .card-visual{height:225px}
+
+/* Published destination != destination safety rating: all country cards
+ * receive the SAME neutral treatment with a navigational amber edge. */
+.sea-country-ready{
+ background:var(--tc2-card);border:1px solid #b7bebc;
+ border-left:4px solid var(--tc2-amber);border-radius:2px;
+}
+.sea-country-ready strong{color:var(--tc2-ink);font-weight:700}
+.sea-country-ready>span{color:#455761}
+.sea-country-ready>span>span{color:var(--tc2-sepia)}
+.sea-country-ready:hover{
+ background:#e5e2d8;border-color:#75848a;border-left-color:var(--tc2-amber);
+}
+.sea-country-pending{
+ background:#e7e6df;border:1px dashed #969e9e;border-radius:2px;
+}
+.sea-country-pending strong{color:#4b5960}
+.sea-country-pending>span{color:#53636b}
+.destination-tile:not(.destination-pending){border-left:4px solid var(--tc2-amber)}
+.home-destination-actions .destination-inline-search{border:1px solid #8a979b;border-radius:2px}
+.home-destination-actions .destination-inline-search button,
+.inline-search button,.destination-inline-search button{
+ background:#253541;color:#fff;border-radius:1px;
+}
+.home-destination-actions .destination-inline-search button:hover,
+.inline-search button:hover,.destination-inline-search button:hover{background:#3d5260}
+.home-editorial-strip{background:#e4e0d6;border-block:1px solid #b9bbb7}
+.site-signoff{background:#d6d0c1;color:#26343b}
+.site-signoff a{color:#26343b}
+footer{background:#101922;border-top:4px solid var(--tc2-amber)}
+.footer-brand>span:first-child{color:var(--tc2-amber)}
+.footer-grid p,.footer-grid a,.foot-bottom{color:#d0d8de}
+.footer-grid strong{color:#f7eee0}
+.foot-bottom{border-top-color:#49545e}
+
+/* Reading pages inherit the same editorial system, not the original pastel. */
+.article-top,.destination-hero{background:linear-gradient(115deg,#101922,#273944);border-bottom:4px solid var(--tc2-amber)}
+.article-top .article-head h1,.destination-hero h1{color:#fff}
+.article-top .article-deck,.destination-hero p{color:#d6dfe5}
+.article-top .backlink,.destination-hero .backlink{color:#ffd58a}
+.article-toc{background:#f4f1e9;border:1px solid #c9c8c0;border-radius:2px}
+.article-toc>summary,.article-toc li a{color:#253c4c}
+.prose{color:#27343a}
+.prose h2,.prose h3{color:var(--tc2-ink)}
+.prose a,.sources a{color:#654716;text-decoration-thickness:1.5px;text-underline-offset:2px}
+.article-notice,.auto-research-notice{background:#fff4df;border-left:4px solid #b27b18}
+.editorial-takeaways{background:#efece3;border-left:4px solid #98691b}
+.aside-card{background:#eee9df;border-top:4px solid var(--tc2-amber)}
+.editorial-policy h2{color:var(--tc2-ink)}
+.editorial-policy p{color:#46525d}
+
+/* Amber on charcoal and dark sepia on paper are used for textual contrast.
+ * Maintain a strong visible focus indicator across both surfaces. */
+body:not(.admin-body) :is(a,button,input,select,summary):focus-visible{
+ outline:3px solid #7b5414;outline-offset:3px;
+}
+.header :is(a,button):focus-visible,.home-hero :is(a,button,input):focus-visible,
+.caution-topics-home :is(a,button):focus-visible,footer a:focus-visible{
+ outline:3px solid var(--tc2-amber);outline-offset:3px;
+}
+@media(max-width:1000px){
+ .home-hero .safety-brief{box-shadow:6px 7px 0 var(--tc2-amber)}
+ .featured-layout .guide-card-lead .card-visual{height:215px}
+}
+@media(max-width:780px){
+ .caution-topics-home{border-radius:2px;margin-top:17px;margin-bottom:15px}
+ .caution-topics-home .caution-topic{padding:17px}
+ .caution-topics-home .caution-topic strong{font-size:23px}
+ .more-notes-section .guide-card .card-visual{height:160px}
+}
+@media(max-width:600px){
+ .header{border-bottom:1px solid #495c68}
+ .header .header-cta{font-size:10px;min-height:36px}
+ .home-hero{border-bottom-width:4px}
+ .home-hero .destination-search button{min-height:42px}
+ .caution-topics-home{padding:26px 17px 30px}
+ .caution-topics-home .caution-topic{min-height:126px}
+ .featured-layout .guide-card-lead .card-visual{height:190px}
+ .more-notes-section .guide-card .card-visual{height:142px}
+ .abstract-map:after{font-size:8px;right:9px;top:11px}
+ .sea-country-ready{border-left-width:3px}
+}
+@media(prefers-reduced-motion:reduce){
+ .sea-country,.guide-card .card-visual img,.caution-topic{transition:none}
+}
