@@ -32,7 +32,7 @@
   "vars": {
     "SITE_NAME": "TripCaution",
     "AUTO_PUBLISH_ENABLED": "true",
-    "THUMBNAIL_AUTOGEN_ENABLED": "true",
+    "THUMBNAIL_AUTOGEN_ENABLED": "false",
     "THUMBNAIL_MODEL": "gemini-3.1-flash-image",
     "SITE_URL": "https://tripcaution.nghiep4tube.workers.dev"
   }
