@@ -28,7 +28,7 @@ export function renderArticleMarkdown(markdown){
    const src=safeEditorialImagePath(image[2]);
    if(src){
     const alt=escapeHTML(image[1].trim()||'Editorial travel illustration');
-    chunks.push('<figure class="article-inline-image"><img loading="lazy" src="'+escapeHTML(src)+'" alt="'+alt+'"></figure>');
+    chunks.push('<figure class="article-inline-image"><img loading="lazy" decoding="async" fetchpriority="low" width="1600" height="900" src="'+escapeHTML(src)+'" alt="'+alt+'"></figure>');
     continue;
    }
   }
