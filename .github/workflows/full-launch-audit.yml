@@ -1,0 +1,37 @@
+name: TripCaution full launch audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/full-launch-audit.yml'
+      - 'scripts/full-launch-audit.mjs'
+permissions:
+  contents: read
+jobs:
+  full-launch-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SITE_URL: ${{ vars.TRIPCAUTION_API_URL || 'https://tripcaution.nghiep4tube.workers.dev' }}
+      EXPECTED_GUIDE_COUNT: '110'
+      EXPECTED_GUIDES_PER_COUNTRY: '10'
+      AUDIT_CONCURRENCY: '6'
+      AUDIT_TIMEOUT_MS: '20000'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Allow latest Worker deploy to settle
+        run: sleep 45
+      - name: Scan all 110 public guides and 220 article images
+        run: node scripts/full-launch-audit.mjs
+      - name: Upload full launch audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tripcaution-full-launch-audit
+          path: tripcaution-full-launch-audit.json
+          if-no-files-found: error
+          retention-days: 30
