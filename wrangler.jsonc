@@ -31,7 +31,7 @@
   },
   "vars": {
     "SITE_NAME": "TripCaution",
-    "AUTO_PUBLISH_ENABLED": "true",
+    "AUTO_PUBLISH_ENABLED": "false",
     "SITE_URL": "https://tripcaution.nghiep4tube.workers.dev"
   }
 }
