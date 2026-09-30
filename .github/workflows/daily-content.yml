@@ -11,7 +11,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   create-article:
-    if: ${{ vars.TRIPCAUTION_AUTOMATION_ENABLED == 'true' }}
+    # Launch freeze: scheduled runs intentionally do not create or publish content.
+    # A deliberate workflow_dispatch can still run research when the repository variable is enabled.
+    if: ${{ github.event_name == 'workflow_dispatch' && vars.TRIPCAUTION_AUTOMATION_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 55
     steps:
@@ -32,7 +34,8 @@ jobs:
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
           TRIPCAUTION_RESEARCH_MODE: ${{ vars.TRIPCAUTION_RESEARCH_MODE }}
           TRIPCAUTION_CONTENT_PHASE: ${{ vars.TRIPCAUTION_CONTENT_PHASE || '1' }}
-          TRIPCAUTION_AUTO_PUBLISH_ENABLED: ${{ vars.TRIPCAUTION_AUTO_PUBLISH_ENABLED || 'true' }}
+          # Keep manual research fail-closed during launch freeze; generated material enters Review.
+          TRIPCAUTION_AUTO_PUBLISH_ENABLED: 'false'
           TRIPCAUTION_DAILY_TARGET: ${{ vars.TRIPCAUTION_DAILY_TARGET || '3' }}
           TRIPCAUTION_MAX_DAILY_ATTEMPTS: ${{ vars.TRIPCAUTION_MAX_DAILY_ATTEMPTS || '6' }}
           TRIPCAUTION_COMMUNITY_RESEARCH: ${{ vars.TRIPCAUTION_COMMUNITY_RESEARCH || 'true' }}
