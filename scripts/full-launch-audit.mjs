@@ -161,7 +161,7 @@ for(const [country,slug] of countries){
 console.log('Scanning',uniqueGuideURLs.length,'guide pages with concurrency',concurrency,'...');
 const inspected=await mapLimit(uniqueGuideURLs,concurrency,async url=>{
  const path=new URL(url).pathname,slug=guideSlug(url);
- const row={url,slug,ok:false,country:null,hero:null,inline:[],sourceCount:0,checks:[]};
+ const row={url,slug,ok:false,country:null,hero:null,inline:[],sourceCount:0,sources:[],checks:[]};
  try{
   const {response,body}=await get(path);
   ensure(response.status===200,'HTTP '+response.status);
@@ -206,6 +206,7 @@ const inspected=await mapLimit(uniqueGuideURLs,concurrency,async url=>{
   ensure(Array.isArray(article.image)&&article.image.includes(absoluteHero),'Article schema image does not match hero');
 
   const sources=sourceLinks(body);
+  row.sources=sources;
   row.sourceCount=sources.length;
   ensure(sources.length>=2,'Expected at least 2 HTTPS sources, found '+sources.length);
   ensure(unique(sources).length>=2,'Sources are not distinct');
