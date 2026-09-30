@@ -476,3 +476,68 @@ body:not(.admin-body) :is(a,button,input,select,summary):focus-visible{
 @media(prefers-reduced-motion:reduce){
  .sea-country,.guide-card .card-visual img,.caution-topic{transition:none}
 }
+
+
+/*
+ * CAUTION EDITORIAL V2.1 / HARDENED TYPOGRAPHY / 30 Sep 2026
+ * Remove the remaining lifestyle-magazine softness from homepage hierarchy.
+ * This changes visual voice only; amber still signals preparation/navigation,
+ * not probability, destination danger, or a live emergency state.
+ */
+body:not(.admin-body) :is(
+ .caution-topics-home .section-heading h2,
+ .featured-section .section-heading h2,
+ .home-destinations-section .section-heading h2,
+ .more-notes-section .section-heading h2
+){
+ font-family:'DM Sans',system-ui,sans-serif;
+ font-weight:800;
+ letter-spacing:-1.45px;
+ line-height:1.08;
+}
+body:not(.admin-body) :is(
+ .caution-topics-home .section-heading h2,
+ .featured-section .section-heading h2,
+ .home-destinations-section .section-heading h2,
+ .more-notes-section .section-heading h2
+) em{
+ font-family:inherit;
+ font-style:normal;
+ font-weight:800;
+}
+.caution-topics-home .caution-topic strong{
+ font-family:'DM Sans',system-ui,sans-serif;
+ font-style:normal;
+ font-weight:800;
+ letter-spacing:-.45px;
+ line-height:1.14;
+}
+.guide-card .card-body h3{
+ font-family:'DM Sans',system-ui,sans-serif;
+ font-style:normal;
+ font-weight:800;
+ letter-spacing:-.55px;
+ line-height:1.18;
+}
+.sea-country strong,.ready-destination strong{
+ font-family:'DM Sans',system-ui,sans-serif;
+ font-style:normal;
+ font-weight:800;
+ letter-spacing:-.35px;
+}
+.featured-section .guide-card-lead .card-body h3{
+ font-size:clamp(21px,2.35vw,30px);
+}
+.guide-card-side .card-body h3{font-size:clamp(17px,1.65vw,22px)}
+.more-notes-section .guide-card .card-body h3{font-size:20px}
+@media(max-width:600px){
+ body:not(.admin-body) :is(
+  .caution-topics-home .section-heading h2,
+  .featured-section .section-heading h2,
+  .home-destinations-section .section-heading h2,
+  .more-notes-section .section-heading h2
+ ){letter-spacing:-1px}
+ .guide-card-lead .card-body h3{font-size:23px}
+ .guide-card-side .card-body h3{font-size:17px}
+ .more-notes-section .guide-card .card-body h3{font-size:19px}
+}

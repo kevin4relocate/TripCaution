@@ -46,7 +46,7 @@ await run('Critical first-party assets are deployed',async()=>{
  ensure(css.response.status===200&&css.body.includes('.shell'),'Public stylesheet missing or stale');
  const theme=await get('/safety-theme.css');
  ensure(theme.response.status===200&&theme.body.includes('--tc-navy:#101d2e')&&theme.body.includes('--tc-amber:#ffb020'),'New safety theme is missing or old');
- ensure(theme.body.includes('CAUTION EDITORIAL V2 / 30 Sep 2026')&&theme.body.includes('--tc2-ink:#101922')&&theme.body.includes('--tc2-amber:#f3b43d'),'Caution Editorial V2 fingerprint is missing from live CSS');
+ ensure(theme.body.includes('CAUTION EDITORIAL V2 / 30 Sep 2026')&&theme.body.includes('CAUTION EDITORIAL V2.1 / HARDENED TYPOGRAPHY / 30 Sep 2026')&&theme.body.includes('--tc2-ink:#101922')&&theme.body.includes('--tc2-amber:#f3b43d'),'Caution Editorial V2 fingerprint is missing from live CSS');
  ensure(theme.body.includes('.auto-research-notice'),'Auto-publication disclosure CSS missing or stale');
  ensure(theme.body.includes('.caution-topics-home .caution-topic')&&theme.body.includes('background:#15283c')&&theme.body.includes('background:radial-gradient('),'Dark caution identity is not deployed; old pale theme remains');
  const site=await get('/site.js');
