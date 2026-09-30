@@ -168,3 +168,33 @@ test('front-end exposes keyboard and phone-friendly article navigation',()=>{
  assert.match(css,/\.article-toc>summary:focus-visible|\.article-toc li a:focus-visible/);
  assert.match(client,/matchMedia\('\(max-width: 780px\)'\)/);
 });
+
+test('markdown renders only safe deterministic inline editorial images with alt text',()=>{
+ const good='## Risk zone\n\n![Traveler keeping back from a river mouth in Timor-Leste.](/media/editorial/timor-leste-crocodile-risk-inline-01.webp)';
+ const view=renderArticleMarkdown(good);
+ assert.match(view.html,/class="article-inline-image"/);
+ assert.match(view.html,/src="\/media\/editorial\/timor-leste-crocodile-risk-inline-01\.webp"/);
+ assert.match(view.html,/alt="Traveler keeping back from a river mouth in Timor-Leste\."/);
+ const bad=renderArticleMarkdown('![Bad](\/media\/editorial\/..\/escape.webp)');
+ assert.doesNotMatch(bad.html,/<img/);
+});
+test('relative editorial hero path becomes an absolute OG and Article image URL',async()=>{
+ const relative={...article,hero_image_url:'/media/editorial/metro-start.webp'};
+ const db=guideDB();
+ const original=db.prepare.bind(db);
+ db.prepare=sql=>{
+  const q=original(sql);
+  const first=q.first.bind(q);
+  q.first=async()=>{
+   const row=await first();
+   return row&&row.id===article.id?relative:row;
+  };
+  return q;
+ };
+ const response=await worker.fetch(new Request(origin+'/guides/metro-start'),{SITE_URL:origin,DB:db});
+ assert.equal(response.status,200);
+ const html=await response.text();
+ assert.match(html,/property="og:image" content="https:\/\/tripcaution\.test\/media\/editorial\/metro-start\.webp"/);
+ assert.match(html,/"image":\["https:\/\/tripcaution\.test\/media\/editorial\/metro-start\.webp"\]/);
+ assert.match(html,/src="\/media\/editorial\/metro-start\.webp"/);
+});
