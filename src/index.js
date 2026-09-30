@@ -609,6 +609,18 @@ function parseArticleImageFilename(value){
  if(!slug || slug.length>105 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))return null;
  return {filename,slug,kind:inline?'inline':'hero',path:'/media/editorial/'+filename,key:'editorial/'+filename};
 }
+async function inspectArticleImageTarget(env,filename){
+ const parsed=parseArticleImageFilename(filename);
+ if(!parsed)return {filename:String(filename||''),state:'invalid_filename',error:'Filename must be the exact lowercase article slug, optionally ending in -inline-01, with a .webp extension'};
+ const article=await env.DB.prepare("SELECT id,slug,hero_image_url,content_markdown FROM articles WHERE slug=? AND status!='deleted' LIMIT 1").bind(parsed.slug).first();
+ if(!article)return {...parsed,state:'unmatched',error:'No imported article matches filename slug: '+parsed.slug};
+ if(parsed.kind==='hero' && String(article.hero_image_url||'')!==parsed.path)
+  return {...parsed,article_id:article.id,state:'path_mismatch',error:'Article hero path does not match '+parsed.path};
+ if(parsed.kind==='inline' && !String(article.content_markdown||'').includes(']('+parsed.path+')'))
+  return {...parsed,article_id:article.id,state:'path_mismatch',error:'Article body does not reference '+parsed.path};
+ const existing=typeof env.MEDIA?.head==='function'?await env.MEDIA.head(parsed.key):null;
+ return {...parsed,article_id:article.id,state:existing?'exists':'ready'};
+}
 async function readImageWithinLimit(request,maxBytes){
  // Guard both advertised length and untrusted streaming/chunked bodies.
  const lengthHeader=request.headers.get('Content-Length');
@@ -920,27 +932,36 @@ async function api(request,env,url,admin=false){
   await env.DB.batch([update,editAudit]);
   return json({ok:true});
  }
+ if(pathname==='/api/admin/media/article-image/preflight' && method==='POST'){
+  if(!env.MEDIA)return json({error:'R2 not configured'},503);
+  let body;
+  try{body=await request.json();}catch{return json({error:'Invalid JSON body'},400);}
+  const filenames=Array.isArray(body?.filenames)?body.filenames:[];
+  if(!filenames.length||filenames.length>100)return json({error:'Choose between 1 and 100 WebP filenames'},422);
+  if(new Set(filenames).size!==filenames.length)return json({error:'Duplicate filenames are not allowed in one upload batch'},422);
+  const results=[];
+  for(const filename of filenames)results.push(await inspectArticleImageTarget(env,filename));
+  const counts=results.reduce((out,row)=>(out[row.state]=(out[row.state]||0)+1,out),{});
+  return json({ok:!results.some(row=>['invalid_filename','unmatched','path_mismatch'].includes(row.state)),results,counts});
+ }
  if(pathname==='/api/admin/media/article-image' && method==='POST'){
   if(!env.MEDIA)return json({error:'R2 not configured'},503);
-  const parsed=parseArticleImageFilename(request.headers.get('x-tripcaution-filename'));
-  if(!parsed)return json({error:'Filename must be the exact lowercase article slug, optionally ending in -inline-01, with a .webp extension',code:'invalid_filename'},422);
+  const inspected=await inspectArticleImageTarget(env,request.headers.get('x-tripcaution-filename'));
+  if(inspected.state==='invalid_filename')return json({error:inspected.error,code:'invalid_filename'},422);
+  if(inspected.state==='unmatched')return json({error:inspected.error,code:'unmatched',slug:inspected.slug},404);
+  if(inspected.state==='path_mismatch')return json({error:inspected.error,code:'path_mismatch',slug:inspected.slug},409);
+  const parsed=inspected;
   if((request.headers.get('content-type')||'').split(';')[0].trim().toLowerCase()!=='image/webp')
    return json({error:'Bulk article images must be WebP',code:'invalid_type'},415);
-  const article=await env.DB.prepare("SELECT id,slug,hero_image_url,content_markdown FROM articles WHERE slug=? AND status!='deleted' LIMIT 1").bind(parsed.slug).first();
-  if(!article)return json({error:'No imported article matches filename slug: '+parsed.slug,code:'unmatched',slug:parsed.slug},404);
-  if(parsed.kind==='hero' && String(article.hero_image_url||'')!==parsed.path)
-   return json({error:'Article hero path does not match '+parsed.path,code:'path_mismatch',slug:parsed.slug},409);
-  if(parsed.kind==='inline' && !String(article.content_markdown||'').includes(']('+parsed.path+')'))
-   return json({error:'Article body does not reference '+parsed.path,code:'path_mismatch',slug:parsed.slug},409);
   const bytes=await readImageWithinLimit(request,5*1024*1024);
   const signature=bytes.slice(0,12);
   const valid=String.fromCharCode(...signature.slice(0,4))==='RIFF'&&String.fromCharCode(...signature.slice(8,12))==='WEBP';
   if(!valid)return json({error:'Image bytes are not WebP',code:'invalid_bytes'},415);
   const overwrite=request.headers.get('x-tripcaution-overwrite')==='true';
-  const existing=typeof env.MEDIA.head==='function'?await env.MEDIA.head(parsed.key):null;
-  if(existing&&!overwrite)return json({ok:true,state:'skipped',slug:parsed.slug,kind:parsed.kind,path:parsed.path});
+  const existing=parsed.state==='exists'||(typeof env.MEDIA.head==='function'&&await env.MEDIA.head(parsed.key));
+  if(existing&&!overwrite)return json({error:'An R2 image already exists with this filename. Choose Skip or Overwrite in the bulk uploader.',code:'existing_image',slug:parsed.slug,kind:parsed.kind,path:parsed.path},409);
   await env.MEDIA.put(parsed.key,bytes.buffer,{httpMetadata:{contentType:'image/webp'}});
-  await audit(env,actor,'uploaded-article-image',article.id,JSON.stringify({key:parsed.key,kind:parsed.kind,overwrite:Boolean(existing&&overwrite)}));
+  await audit(env,actor,'uploaded-article-image',parsed.article_id,JSON.stringify({key:parsed.key,kind:parsed.kind,overwrite:Boolean(existing&&overwrite)}));
   return json({ok:true,state:'uploaded',slug:parsed.slug,kind:parsed.kind,path:parsed.path});
  }
  if(pathname==='/api/admin/media' && method==='POST'){

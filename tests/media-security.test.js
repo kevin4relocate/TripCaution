@@ -117,17 +117,20 @@ test('bulk uploader rejects unmatched and malformed filenames before writing R2'
  assert.equal(malformed.status,422);
  assert.equal(e.files.length,0);
 });
-test('existing deterministic image is skipped unless overwrite is explicit',async()=>{
+test('existing deterministic image is reported as a conflict unless overwrite is explicit',async()=>{
  const e=env(),headers=await authHeaders(e,'image/webp');
  headers['X-TripCaution-Filename']='timor-leste-crocodile-risk.webp';
  await e.MEDIA.put('editorial/timor-leste-crocodile-risk.webp',webp.buffer,{httpMetadata:{contentType:'image/webp'}});
  e.files.length=0;
- const skipped=await worker.fetch(upload(webp,headers,'/api/admin/media/article-image'),e);
- assert.equal(skipped.status,200);
- assert.equal((await skipped.json()).state,'skipped');
+ const conflict=await worker.fetch(upload(webp,headers,'/api/admin/media/article-image'),e);
+ assert.equal(conflict.status,409);
+ const conflictBody=await conflict.json();
+ assert.equal(conflictBody.code,'existing_image');
+ assert.match(conflictBody.error,/Choose Skip or Overwrite/);
  assert.equal(e.files.length,0);
  headers['X-TripCaution-Overwrite']='true';
  const replaced=await worker.fetch(upload(webp,headers,'/api/admin/media/article-image'),e);
+ assert.equal(replaced.status,200);
  assert.equal((await replaced.json()).state,'uploaded');
  assert.equal(e.files.length,1);
 });
@@ -138,4 +141,39 @@ test('public media route serves deterministic WebP filenames',async()=>{
  assert.equal(response.status,200);
  assert.equal(response.headers.get('content-type'),'image/webp');
  assert.match(response.headers.get('cache-control'),/max-age=3600/);
+});
+
+test('bulk image preflight reports existing filenames before any upload',async()=>{
+ const e=env();
+ await e.MEDIA.put('editorial/timor-leste-crocodile-risk.webp',webp.buffer,{httpMetadata:{contentType:'image/webp'}});
+ e.files.length=0;
+ const headers=await authHeaders(e,'application/json');
+ const request=new Request(origin+'/api/admin/media/article-image/preflight',{
+  method:'POST',headers,body:JSON.stringify({filenames:[
+   'timor-leste-crocodile-risk.webp',
+   'timor-leste-crocodile-risk-inline-01.webp'
+  ]})
+ });
+ const response=await worker.fetch(request,e);
+ assert.equal(response.status,200);
+ const body=await response.json();
+ assert.equal(body.results.length,2);
+ assert.equal(body.results[0].state,'exists');
+ assert.equal(body.results[1].state,'ready');
+ assert.equal(body.counts.exists,1);
+ assert.equal(body.counts.ready,1);
+ assert.equal(e.files.length,0);
+});
+test('bulk image preflight reports filename/article problems without uploading',async()=>{
+ const e=env();
+ const headers=await authHeaders(e,'application/json');
+ const request=new Request(origin+'/api/admin/media/article-image/preflight',{
+  method:'POST',headers,body:JSON.stringify({filenames:['unknown-country-topic.webp']})
+ });
+ const response=await worker.fetch(request,e);
+ assert.equal(response.status,200);
+ const body=await response.json();
+ assert.equal(body.ok,false);
+ assert.equal(body.results[0].state,'unmatched');
+ assert.equal(e.files.length,0);
 });

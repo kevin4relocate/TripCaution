@@ -254,3 +254,8 @@
 .bulk-image-progress{display:block;width:100%;height:12px;margin:18px 0 10px;accent-color:#2f6949}
 .bulk-image-progress[hidden]{display:none}
 .bulk-image-result{max-height:320px;overflow:auto;white-space:pre-wrap}
+
+.bulk-image-conflict-actions{margin:16px 0;padding:14px 16px;border:1px solid #d9b07e;border-left:4px solid #b96b3f;border-radius:5px;background:#fff8ee}
+.bulk-image-conflict-actions strong{display:block;color:#7c492f;font-size:12px}
+.bulk-image-conflict-actions[hidden]{display:none}
+.bulk-image-conflict-actions .row{margin-top:10px;flex-wrap:wrap}
