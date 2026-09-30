@@ -46,7 +46,7 @@ test('homepage puts fresh published guides before the condensed destination expl
  assert.ok(page.indexOf('id="latest"')<page.indexOf('id="destinations"'));
  assert.ok(page.indexOf('New airport transfer')<page.indexOf('Your first train ride'));
  assert.match(page,/class="featured-layout/);
- assert.match(page,/class="guide-card guide-card-lead"/);
+ assert.match(page,/class="guide-card guide-card-lead\b/);
  assert.match(page,/guide-card-side/);
  assert.doesNotMatch(page,/Verified Sep|Verified \+|Last reviewed:/);
  assert.match(page,/Research planned/);
