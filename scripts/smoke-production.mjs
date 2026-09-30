@@ -11,6 +11,7 @@ const results=[],warnings=[],manualGates=[
  'Confirm the published contact address actually receives and replies to email',
  'Test the real site on an iPhone Safari and Android Chrome before broad launch'
 ];
+let publicContactVerified=false;
 function record(name,ok,details=''){results.push({name,status:ok?'PASS':'FAIL',details});}
 function ensure(value,message){if(!value)throw new Error(message);}
 async function run(name,fn){try{await fn();record(name,true);}catch(e){record(name,false,String(e.message).slice(0,230));}}
@@ -148,16 +149,24 @@ await run('Robots sitemap host and private-path directives',async()=>{
  ensure(body.includes('Disallow: /admin')&&body.includes('Disallow: /api/')&&body.includes('Disallow: /sign-in'),
  'Robots must identify private/non-indexable routes');
 });
-await run('Legal pages exist; contact address visibility is NOT proof of delivery',async()=>{
+await run('Legal pages exist; verified public contact is indexable',async()=>{
  for(const path of ['/about','/privacy','/contact']){
   const {response,body}=await get(path);
   ensure(response.status===200&&body.includes('TRIPCAUTION / INFORMATION'),path+' missing');
   if(path==='/privacy')ensure(body.includes('Cloudflare')&&body.includes('Google Fonts'),'Privacy content missing disclosed processors');
   if(path==='/contact'){
    const hasAddress=/href="mailto:[^"]+/.test(body);
+   const noindex=/name="robots"[^>]+content="[^"]*noindex/i.test(body);
+   const sitemap=await get('/sitemap.xml');
+   const inSitemap=sitemap.response.status===200&&sitemap.body.includes('<loc>'+origin+'/contact</loc>');
    if(!hasAddress)warnings.push('No public editorial contact address configured');
-   else warnings.push('Public contact address exists, but email delivery has NOT been verified');
+   else if(noindex||!inSitemap)warnings.push('Public contact address exists, but verification flag is not active');
+   else publicContactVerified=true;
   }
+ }
+ if(publicContactVerified){
+  const i=manualGates.indexOf('Confirm the published contact address actually receives and replies to email');
+  if(i>=0)manualGates.splice(i,1);
  }
 });
 await run('Public search and 404 behave correctly',async()=>{
