@@ -4,7 +4,7 @@ import {
   createAdminSession, clearAdminSession, hasAdminSession,
   requireKeySession, checkLoginThrottle, recordLoginFailure
 } from './auth.js';
-import { normalizeArticle, STATUSES, CATEGORIES, isValidSchedule, slugify } from './content.js';
+import { normalizeArticle, normalizeMediaURL, STATUSES, CATEGORIES, isValidSchedule, slugify } from './content.js';
 import { STARTER_DESTINATIONS, SOUTHEAST_ASIA_COUNTRIES, CONTINENT_COUNTRIES, isSoutheastAsia, groupDestinationsByContinent } from './destinations.js';
 import { renderArticleMarkdown, editorialQuickTakes } from './article-content.js';
 import { CAUTION_TOPICS, cautionTopic, cautionTopicForCategory } from './cautions.js';
@@ -19,6 +19,7 @@ import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } fr
 const json = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const esc = value => String(value??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safe = (url) => { try {const u=new URL(url);return u.protocol==='https:'?u.href:null;} catch{return null;} };
+const safeMedia = (url) => normalizeMediaURL(url);
 const safeParse = (value, fallback=[]) => {try {return JSON.parse(value);}catch{return fallback;}};
 const link = (href,text,cls='') => '<a href="'+esc(href)+'" class="'+cls+'">'+esc(text)+'</a>';
 const privateRedirect = target=>new Response(null,{
@@ -74,7 +75,7 @@ function articleCard(a,variant='standard') {
  const autoDisclosure=a.status==='published'&&['github-automation','owner-import'].includes(a.source_mode)&&Number(a.review_approved)===0?'<span class="auto-research-label">Imported content · Not reviewed in Dashboard</span>':'';
  const badge=level&&a.severity_scope?.length>=12&&a.severity_rationale?.length>=40?'<span class="impact-pill impact-'+level.id+'">'+esc(level.label)+'</span>':'';
  return `<article class="guide-card${cls}"><a class="card-visual" href="${path}" aria-label="Read ${esc(a.title)}">
- ${safe(a.hero_image_url)?'<img loading="lazy" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
+ ${safeMedia(a.hero_image_url)?'<img loading="lazy" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
  <span class="visual-tag">${category}</span></a><div class="card-body"><div class="eyebrow">${country}${a.city?' <span>·</span> '+esc(a.city):''}</div>
  ${autoDisclosure}${badge}<h3><a href="${path}">${esc(a.title)}</a></h3><p>${esc(a.excerpt||'A practical guide to help you plan more confidently.')}</p>
  <div class="card-bottom"><a class="card-read" href="${path}" aria-label="Read ${esc(a.title)}">Read guide <span aria-hidden="true">↗</span></a></div></div></article>`;
@@ -348,7 +349,7 @@ function renderGuideArticle(env,a,preview=false,related=[]){
  // Publication timestamp and number of sources are retained in HTML metadata,
  // Article JSON-LD and the original source records; no visible top metadata bar.
  const body=`<main><div class="article-top"><div class="shell article-head"><a href="/destinations/${slugify(a.country)}" class="backlink">← ${esc(a.country)} guides</a><div class="eyebrow">${esc(a.country.toUpperCase())}${a.city?' / '+esc(a.city.toUpperCase()):''} / ${esc((a.category_name||'GUIDE').toUpperCase())}</div><h1>${esc(a.title)}</h1><p class="article-deck">${esc(a.excerpt)}</p></div></div>
- <div class="shell article-wrap"><article class="article-content">${safe(a.hero_image_url)?'<figure class="hero-image"><img src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial illustration')+'"><figcaption>AI-generated editorial illustration; not a photograph or evidence of an incident.</figcaption></figure>':''}
+ <div class="shell article-wrap"><article class="article-content">${safeMedia(a.hero_image_url)?'<figure class="hero-image"><img src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial illustration')+'"><figcaption>AI-generated editorial illustration; not a photograph or evidence of an incident.</figcaption></figure>':''}
  ${severityPanel}${autoDisclosure}<div class="article-notice"><strong>✳ A note on our approach</strong><p>TripCaution shares researched precautions, not personal eyewitness accounts. Conditions change; confirm important guidance with official authorities before traveling.</p></div>
  ${tocHTML}<div class="prose">${rendered.html}</div><section class="sources"><h2>Sources & verification</h2><p>Always consult the source directly for the latest information.</p>${sources.length?'<ol>'+sources.map(s=>'<li><a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(s.title)+'</a><small>'+esc(s.publisher||'Source')+(s.published_at?' · '+esc(s.published_at):'')+'</small></li>').join('')+'</ol>':'<p>Editorial sources are pending publication.</p>'}
  </section></article>
