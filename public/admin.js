@@ -295,6 +295,9 @@ const bulkImageInput=$('bulk-image-files');
 const bulkImageButton=$('bulk-image-upload-btn');
 const bulkImageResult=$('bulk-image-result');
 const bulkImageProgress=$('bulk-image-progress');
+const bulkConflictActions=$('bulk-image-conflict-actions');
+let pendingBulkImagePlan=null;
+
 function selectedBulkImages(){
  return bulkImageInput?[...bulkImageInput.files]:[];
 }
@@ -310,7 +313,102 @@ function validateBulkImageFiles(files){
   seen.add(file.name);
  }
 }
+function resetBulkImageConflictState(){
+ pendingBulkImagePlan=null;
+ if(bulkConflictActions)bulkConflictActions.hidden=true;
+}
+function summarizePreflight(result){
+ const rows=Array.isArray(result?.results)?result.results:[];
+ const ready=rows.filter(r=>r.state==='ready');
+ const exists=rows.filter(r=>r.state==='exists');
+ const blocking=rows.filter(r=>['invalid_filename','unmatched','path_mismatch'].includes(r.state));
+ const lines=[
+  'CHECK COMPLETE · '+rows.length+' selected',
+  'Ready to upload: '+ready.length,
+  'Existing filename conflicts: '+exists.length,
+  'Needs filename/article fix: '+blocking.length
+ ];
+ if(exists.length){
+  lines.push('','Existing R2 filenames:');
+  exists.slice(0,30).forEach(row=>lines.push('- '+row.filename+' → '+row.kind+' for '+row.slug));
+  if(exists.length>30)lines.push('- … '+(exists.length-30)+' more conflict(s)');
+ }
+ if(blocking.length){
+  lines.push('','Fix before upload:');
+  blocking.slice(0,30).forEach(row=>lines.push('- '+(row.filename||'Unknown file')+': '+row.error));
+  if(blocking.length>30)lines.push('- … '+(blocking.length-30)+' more issue(s)');
+ }
+ return {rows,ready,exists,blocking,lines};
+}
+async function uploadBulkImagePlan(mode){
+ const plan=pendingBulkImagePlan;
+ if(!plan||quickBusy)return;
+ const uploadRows=mode==='overwrite'?plan.rows.filter(r=>['ready','exists'].includes(r.state)):plan.ready;
+ const fileByName=new Map(selectedBulkImages().map(file=>[file.name,file]));
+ if(!uploadRows.length){
+  bulkImageResult.textContent+='\n\nNo new images were uploaded.';
+  resetBulkImageConflictState();
+  return;
+ }
+ try{
+  quickBusy=true;bulkImageButton.disabled=true;
+  if(bulkConflictActions)bulkConflictActions.hidden=true;
+  bulkImageProgress.hidden=false;bulkImageProgress.max=uploadRows.length;bulkImageProgress.value=0;
+  const results=new Array(uploadRows.length);
+  let cursor=0,completed=0;
+  async function worker(){
+   while(true){
+    const index=cursor++;
+    if(index>=uploadRows.length)return;
+    const row=uploadRows[index],file=fileByName.get(row.filename);
+    if(!file){
+     results[index]={file:row.filename,state:'failed',error:'Selected file is no longer available. Re-select the batch.'};
+     completed++;bulkImageProgress.value=completed;continue;
+    }
+    try{
+     const response=await fetch('/api/admin/media/article-image',{
+      method:'POST',credentials:'same-origin',body:file,
+      headers:{
+       'Content-Type':'image/webp',
+       'X-TripCaution-Filename':file.name,
+       'X-TripCaution-Overwrite':mode==='overwrite'?'true':'false'
+      }
+     });
+     if(response.status===401){window.location.replace('/sign-in');throw Error('Please sign in again');}
+     const data=await response.json().catch(()=>({error:'Invalid server response'}));
+     results[index]=response.ok?{file:file.name,...data}:{file:file.name,state:'failed',error:data.error||'Upload failed',code:data.code||String(response.status)};
+    }catch(error){results[index]={file:row.filename,state:'failed',error:error.message||'Upload failed'};}
+    completed++;bulkImageProgress.value=completed;
+    bulkImageResult.textContent='Uploading '+completed+'/'+uploadRows.length+'...';
+   }
+  }
+  await Promise.all(Array.from({length:Math.min(3,uploadRows.length)},()=>worker()));
+  const uploaded=results.filter(r=>r?.state==='uploaded');
+  const failed=results.filter(r=>r?.state==='failed');
+  const intentionallySkipped=mode==='skip'?plan.exists.length:0;
+  const lines=[
+   'DONE · '+uploadRows.length+' attempted',
+   'Uploaded: '+uploaded.length,
+   'Skipped by your choice: '+intentionallySkipped,
+   'Errors: '+failed.length
+  ];
+  if(failed.length){
+   lines.push('','Needs attention:');
+   failed.slice(0,25).forEach(row=>lines.push('- '+row.file+': '+row.error));
+   if(failed.length>25)lines.push('- … '+(failed.length-25)+' more error(s) omitted');
+  }
+  bulkImageResult.textContent=lines.join('\n');
+  if(failed.length)toast(uploaded.length+' image(s) uploaded; '+failed.length+' need attention.',true);
+  else toast(uploaded.length+' image(s) uploaded'+(intentionallySkipped?', '+intentionallySkipped+' existing left unchanged by your choice':'')+'.');
+  resetBulkImageConflictState();
+ }catch(e){
+  bulkImageResult.hidden=false;bulkImageResult.textContent=e.message;toast(e.message,true);
+ }finally{
+  quickBusy=false;bulkImageButton.disabled=false;
+ }
+}
 if(bulkImageInput)bulkImageInput.addEventListener('change',()=>{
+ resetBulkImageConflictState();
  const files=selectedBulkImages();
  $('bulk-image-count').textContent=files.length?files.length+' WebP file'+(files.length===1?'':'s')+' selected.':'No files selected.';
  bulkImageResult.hidden=true;
@@ -321,62 +419,43 @@ if(bulkImageButton)bulkImageButton.onclick=async()=>{
  const files=selectedBulkImages();
  try{
   validateBulkImageFiles(files);
-  const overwrite=$('bulk-image-overwrite').checked;
-  if(overwrite&&!confirm('Replace any existing R2 images with the same filenames? Deterministic image URLs may remain cached for a short time.'))return;
+  resetBulkImageConflictState();
   quickBusy=true;bulkImageButton.disabled=true;
-  bulkImageProgress.hidden=false;bulkImageProgress.max=files.length;bulkImageProgress.value=0;
-  bulkImageResult.hidden=false;bulkImageResult.textContent='Uploading 0/'+files.length+'...';
-  const results=new Array(files.length);
-  let cursor=0,completed=0;
-  async function worker(){
-   while(true){
-    const index=cursor++;
-    if(index>=files.length)return;
-    const file=files[index];
-    try{
-     const response=await fetch('/api/admin/media/article-image',{
-      method:'POST',credentials:'same-origin',body:file,
-      headers:{
-       'Content-Type':'image/webp',
-       'X-TripCaution-Filename':file.name,
-       'X-TripCaution-Overwrite':overwrite?'true':'false'
-      }
-     });
-     if(response.status===401){window.location.replace('/sign-in');throw Error('Please sign in again');}
-     const data=await response.json().catch(()=>({error:'Invalid server response'}));
-     results[index]=response.ok?{file:file.name,...data}:{file:file.name,state:'failed',error:data.error||'Upload failed',code:data.code||String(response.status)};
-    }catch(error){results[index]={file:file.name,state:'failed',error:error.message||'Upload failed'};}
-    completed++;bulkImageProgress.value=completed;
-    bulkImageResult.textContent='Uploading '+completed+'/'+files.length+'...';
-   }
+  bulkImageResult.hidden=false;bulkImageResult.textContent='Checking filenames against imported articles and R2...';
+  bulkImageProgress.hidden=true;
+  const result=await api('/api/admin/media/article-image/preflight',{
+   method:'POST',body:JSON.stringify({filenames:files.map(file=>file.name)})
+  });
+  const summary=summarizePreflight(result);
+  bulkImageResult.textContent=summary.lines.join('\n');
+  if(summary.blocking.length){
+   toast('Nothing uploaded. Fix the listed article or filename issues, then check again.',true);
+   return;
   }
-  await Promise.all(Array.from({length:Math.min(3,files.length)},()=>worker()));
-  const uploaded=results.filter(r=>r?.state==='uploaded');
-  const skipped=results.filter(r=>r?.state==='skipped');
-  const failed=results.filter(r=>r?.state==='failed');
-  const unmatched=failed.filter(r=>r.code==='unmatched');
-  const mismatched=failed.filter(r=>r.code==='path_mismatch');
-  const lines=[
-   'DONE · '+files.length+' selected',
-   'Uploaded: '+uploaded.length,
-   'Skipped existing: '+skipped.length,
-   'Unmatched article: '+unmatched.length,
-   'Path mismatch: '+mismatched.length,
-   'Other errors: '+(failed.length-unmatched.length-mismatched.length)
-  ];
-  if(failed.length){
-   lines.push('','Needs attention:');
-   failed.slice(0,25).forEach(row=>lines.push('- '+row.file+': '+row.error));
-   if(failed.length>25)lines.push('- … '+(failed.length-25)+' more error(s) omitted');
+  pendingBulkImagePlan=summary;
+  if(summary.exists.length){
+   if(bulkConflictActions)bulkConflictActions.hidden=false;
+   toast(summary.exists.length+' existing filename conflict(s) found. Choose Skip, Overwrite, or Cancel.',true);
+   return;
   }
-  bulkImageResult.textContent=lines.join('\n');
-  if(failed.length)toast(uploaded.length+' image(s) uploaded; '+failed.length+' need attention.',true);
-  else toast(uploaded.length+' image(s) uploaded'+(skipped.length?', '+skipped.length+' existing skipped':'')+'. Article URLs now resolve automatically.');
+  await uploadBulkImagePlan('skip');
  }catch(e){
   bulkImageResult.hidden=false;bulkImageResult.textContent=e.message;toast(e.message,true);
  }finally{
   quickBusy=false;bulkImageButton.disabled=false;
  }
+};
+$('bulk-image-skip-btn').onclick=()=>uploadBulkImagePlan('skip');
+$('bulk-image-overwrite-btn').onclick=()=>{
+ if(!pendingBulkImagePlan)return;
+ if(confirm('Overwrite '+pendingBulkImagePlan.exists.length+' existing R2 image(s) and upload the full batch?'))uploadBulkImagePlan('overwrite');
+};
+$('bulk-image-cancel-btn').onclick=()=>{
+ if(!pendingBulkImagePlan)return;
+ const conflicts=pendingBulkImagePlan.exists.length;
+ bulkImageResult.textContent+='\n\nCANCELLED · Nothing else uploaded. '+conflicts+' existing filename conflict(s) remain for you to rename or revise.';
+ resetBulkImageConflictState();
+ toast('Upload cancelled. You can revise article slugs or image filenames.');
 };
 const editorForm=$('article-form');
 function safeSourceUrl(raw){
