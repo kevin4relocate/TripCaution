@@ -1,12 +1,12 @@
 /**
  * TripCaution generated thumbnail queue.
  *
- * Cloudflare Cron processes at most two jobs per hourly run. Image generation
+ * Cloudflare Cron processes at most two jobs every 15 minutes. Image generation
  * is NEVER performed inline with a JSON import or a public page request.
  * This intentionally preserves owner-selected published / scheduled / review
  * statuses, even if the image service is slow or unavailable.
  */
-const STYLE='TripCaution editorial travel safety illustration, carefully hand-painted watercolor and soft gouache on tactile paper, place-specific recognizable everyday travel context, midnight navy and muted amber accents, dignified informative magazine artwork, calm factual scene, no recognizable real person, no company logos, no readable text, no fake incident photograph. Wide landscape composition 3:2, important subject centred for 16:9 website crop.';
+const STYLE='TripCaution editorial travel safety illustration, carefully hand-painted watercolor and soft gouache on tactile paper, place-specific recognizable everyday travel context, midnight navy and muted amber accents, dignified informative field-guide artwork, calm factual scene, no recognizable real person, no company logos, no readable text, no fake incident photograph. Wide landscape composition 3:2, important subject centred for 16:9 website crop.';
 const CATEGORY={
  transport:'Airport pickup, railway, ferry terminal or real local transport context.',
  'scams-theft':'An ordinary travel setting communicating prudent awareness without depicting an accusation or criminal event.',
@@ -17,7 +17,7 @@ const CATEGORY={
  'before-you-go':'Travel preparation scene with map and transport objects.',
  etiquette:'Specific everyday cultural context in the relevant country.'
 };
-const API='https://api.openai.com/v1/images/generations';
+const API='https://generativelanguage.googleapis.com/v1beta/interactions';
 const MAX_BYTES=5_000_000;
 export function imagePrompt(article){
  const details=String(article?.hero_prompt||'').trim().slice(0,3000);
@@ -26,7 +26,7 @@ export function imagePrompt(article){
  return [STYLE,'Destination: '+country+'.','Article topic: '+title+'.',CATEGORY[article?.category_id]||'Relevant travel-preparation environment.',details].join(' ');
 }
 export function thumbnailEnabled(env){
- return env.THUMBNAIL_AUTOGEN_ENABLED==='true'&&Boolean(env.MEDIA)&&Boolean(env.OPENAI_API_KEY)&&Boolean(env.DB);
+ return env.THUMBNAIL_AUTOGEN_ENABLED==='true'&&Boolean(env.MEDIA)&&Boolean(env.GEMINI_API_KEY)&&Boolean(env.DB);
 }
 export function needsThumbnail(article){
  return !article?.hero_image_url&&String(article?.hero_prompt||'').trim().length>=20;
@@ -51,33 +51,49 @@ export async function queueThumbnailOnImport(env,id){
  try{return await enqueueThumbnail(env,id);}
  catch(e){return {state:'unavailable',reason:'Image queue not ready; apply D1 migration and check R2 binding'};}
 }
-function decodeBase64(input){
- if(typeof input!=='string'||input.length>9_000_000)throw Error('Image response invalid or too large');
+function decodeBase64Jpeg(input){
+ if(typeof input!=='string'||input.length>9_000_000)throw Object.assign(new Error('Image response invalid or too large'),{retryable:false});
  const binary=atob(input);
- if(binary.length>MAX_BYTES)throw Error('Generated image exceeds 5 MB');
+ if(binary.length>MAX_BYTES)throw Object.assign(new Error('Generated image exceeds 5 MB'),{retryable:false});
  const bytes=new Uint8Array(binary.length);
  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
- if(String.fromCharCode(...bytes.slice(0,4))!=='RIFF'||String.fromCharCode(...bytes.slice(8,12))!=='WEBP')
-  throw Error('Generated response was not WebP');
+ if(bytes[0]!==255||bytes[1]!==216||bytes[2]!==255)
+  throw Object.assign(new Error('Generated response was not JPEG'),{retryable:false});
  return bytes;
 }
+function imageBlock(payload){
+ if(payload?.output_image?.data)return payload.output_image;
+ for(const step of payload?.steps||[]){
+  if(step?.type!=='model_output')continue;
+  const found=(step.content||[]).find(part=>part?.type==='image'&&typeof part?.data==='string');
+  if(found)return found;
+ }
+ return null;
+}
 export async function renderThumbnail(env,article,{request=fetch}={}){
- const model=env.THUMBNAIL_MODEL||'gpt-image-2';
+ const model=env.THUMBNAIL_MODEL||'gemini-3.1-flash-image';
  const response=await request(API,{
   method:'POST',
-  headers:{'Authorization':'Bearer '+env.OPENAI_API_KEY,'Content-Type':'application/json'},
-  body:JSON.stringify({model,prompt:imagePrompt(article),size:'1536x1024',
-   quality:'low',n:1,output_format:'webp',output_compression:78}),
+  headers:{'x-goog-api-key':env.GEMINI_API_KEY,'Content-Type':'application/json'},
+  body:JSON.stringify({
+   model,
+   input:imagePrompt(article),
+   response_format:{type:'image',mime_type:'image/jpeg',aspect_ratio:'16:9',image_size:'1K'}
+  }),
   signal:AbortSignal.timeout(160000)
  });
  if(!response.ok){
-  // Never log the vendor error body or key. Retry only temporary failures.
+  // Never log the provider response body or secret. Retry only quota/server failures.
   throw Object.assign(new Error('Image provider HTTP '+response.status),{retryable:response.status===429||response.status>=500});
  }
  const payload=await response.json();
- const bytes=decodeBase64(payload?.data?.[0]?.b64_json);
- const key='editorial/'+crypto.randomUUID()+'.webp';
- await env.MEDIA.put(key,bytes.buffer,{httpMetadata:{contentType:'image/webp',cacheControl:'public,max-age=31536000,immutable'}});
+ const generated=imageBlock(payload);
+ if(!generated?.data)throw Object.assign(new Error('Image provider returned no image'),{retryable:false});
+ if(generated.mime_type&&generated.mime_type!=='image/jpeg')
+  throw Object.assign(new Error('Image provider returned unexpected media type'),{retryable:false});
+ const bytes=decodeBase64Jpeg(generated.data);
+ const key='editorial/'+crypto.randomUUID()+'.jpg';
+ await env.MEDIA.put(key,bytes.buffer,{httpMetadata:{contentType:'image/jpeg',cacheControl:'public,max-age=31536000,immutable'}});
  const base=String(env.SITE_URL||'').replace(/\/$/,'');
  return base+'/media/'+key;
 }
@@ -101,7 +117,7 @@ export async function processThumbnailQueue(env,{render=renderThumbnail,limit=2}
     env.DB.prepare("UPDATE articles SET hero_image_url=?,updated_at=datetime('now') WHERE id=? AND (hero_image_url IS NULL OR hero_image_url='')").bind(url,article.article_id),
     env.DB.prepare("UPDATE thumbnail_jobs SET state='ready',lease_until=NULL,last_error=NULL,updated_at=datetime('now') WHERE article_id=?").bind(article.article_id),
     env.DB.prepare("INSERT INTO audit_logs(id,actor,action,article_id,details) VALUES(?,'image-automation','thumbnail-generated',?,?)")
-     .bind(crypto.randomUUID(),article.article_id,JSON.stringify({format:'webp',model:env.THUMBNAIL_MODEL||'gpt-image-2'}))
+     .bind(crypto.randomUUID(),article.article_id,JSON.stringify({format:'webp',model:env.THUMBNAIL_MODEL||'gemini-3.1-flash-image'}))
    ]);
   }catch(e){
    const attempts=Number(article.attempts||0)+1;
