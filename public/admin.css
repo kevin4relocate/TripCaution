@@ -217,6 +217,8 @@
 .region-tile{padding:.85rem;border:1px solid #d6dcd8;border-radius:10px;background:#fff}
 .region-tile strong,.region-tile small{display:block}.region-tile small{margin-top:.35rem;color:#58636a}
 .region-tile.pending{border-style:dashed}
+.region-tile.launch-ready{border-color:#9fc8ad;background:#f3faf5;box-shadow:inset 3px 0 0 #4f8a64}
+.region-tile.launch-ready small{color:#3f6f50;font-weight:700}
 
 /* Sprint 5: human-controlled, article-specific potential-impact classification. */
 .severity-editor{margin:20px 0;padding:18px;border:1px solid #c9d5ca;border-radius:8px;min-width:0}
