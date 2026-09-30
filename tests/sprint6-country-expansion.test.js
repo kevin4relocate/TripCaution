@@ -77,7 +77,7 @@ test('new coverage matrix is private and tracks actual database rows rather than
  assert.equal(SQL.bound.length,11);
  assert.match(SQL.sql,/status IN \('published','review','draft','scheduled'\)/);
 });
-test('editor includes truthful country/topic targets; daily worker remains opt-in',()=>{
+test('editor includes truthful country/topic targets; daily worker is launch-frozen and remains manually opt-in',()=>{
  const editor=readFileSync(new URL('../public/admin.html',import.meta.url),'utf8');
  const js=readFileSync(new URL('../public/admin.js',import.meta.url),'utf8');
  const workflow=readFileSync(new URL('../.github/workflows/daily-content.yml',import.meta.url),'utf8');
@@ -89,7 +89,8 @@ test('editor includes truthful country/topic targets; daily worker remains opt-i
  assert.match(daily,/MAX_REVIEW_BACKLOG/);
  assert.match(daily,/choose_slot/);
  assert.match(daily,/MAX_DAILY_ATTEMPTS/);
- assert.match(workflow,/TRIPCAUTION_AUTO_PUBLISH_ENABLED \|\| 'true'/);
+ assert.match(workflow,/github\.event_name == 'workflow_dispatch'/);
+ assert.match(workflow,/TRIPCAUTION_AUTO_PUBLISH_ENABLED:\s*'false'/);
  assert.match(workflow,/TRIPCAUTION_COMMUNITY_RESEARCH \|\| 'true'/);
  assert.match(daily,/sprint6:/);
 });
