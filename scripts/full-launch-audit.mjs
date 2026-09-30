@@ -49,7 +49,7 @@ async function mapLimit(items,limit,worker){
  return out;
 }
 function attr(tag,name){
- const match=tag.match(new RegExp('\\b'+name+'=["\\']([^"\\']*)["\\']','i'));
+ const match=tag.match(new RegExp("\\b"+name+"=[\\\"']([^\\\"']*)[\\\"']","i"));
  return match?decode(match[1]).trim():'';
 }
 function firstMeta(body,selector,value){
