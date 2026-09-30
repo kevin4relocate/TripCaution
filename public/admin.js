@@ -683,13 +683,13 @@ async function permanentlyPurge(ids=null){
   if(!count){toast('Trash is already empty.');return;}
   const warning=(selected?'Permanently erase '+count+' selected deleted article(s)?':
    'EMPTY ALL TRASH: Permanently erase '+count+' deleted article(s), including any not loaded in this table?')+
-   '\n\nThis removes the articles and their article-linked audit entries from D1. It cannot be undone through Admin. Save a D1 backup before continuing. Cloudflare R2 image objects are NOT deleted.'+
+   '\n\nThis permanently removes the articles, article-linked audit entries, and their TripCaution hero/inline images from Cloudflare R2. It cannot be undone. Save a D1 backup before continuing.'+
    '\n\nType PERMANENTLY DELETE to confirm:';
   if(window.prompt(warning)!=='PERMANENTLY DELETE'){
    toast('Permanent deletion canceled.');return;
   }
   quickBusy=true;updateBulkToolbar();
-  let purged=0;
+  let purged=0,mediaDeleted=0;
   if(selected){
    // D1's SQL bound-parameter ceiling is 100 per statement.
    for(let start=0;start<selected.length;start+=50){
@@ -697,17 +697,18 @@ async function permanentlyPurge(ids=null){
      confirm_count:chunk.length,ids:chunk.map(a=>a.id)};
     const result=await api('/api/admin/purge',{method:'POST',body:JSON.stringify(body)});
     purged+=result.purged;
+    mediaDeleted+=Number(result.media_deleted||0);
     for(const a of chunk)selectedIds.delete(a.id);
    }
   }else{
    const result=await api('/api/admin/purge',{method:'POST',
     body:JSON.stringify({mode,confirmation:'PERMANENTLY DELETE',confirm_count:count})});
-   purged=result.purged;selectedIds.clear();
+   purged=result.purged;mediaDeleted=Number(result.media_deleted||0);selectedIds.clear();
   }
-  toast(purged+' deleted article(s) permanently erased from D1. R2 images are unchanged.');
-  $('bulk-result').textContent=purged+' permanently deleted. R2 images must be checked separately.';
+  toast(purged+' article(s) permanently deleted with '+mediaDeleted+' R2 image(s) cleaned up.');
+  $('bulk-result').textContent=purged+' permanently deleted · '+mediaDeleted+' R2 image(s) removed.';
  }catch(e){
-  $('bulk-result').textContent='Permanent deletion interrupted. Some selected rows may have been erased. Refresh Trash before any retry.';
+  $('bulk-result').textContent='Permanent deletion interrupted. Refresh Trash and retry; R2 cleanup is safe to repeat.';
   toast('Permanent deletion interrupted: '+e.message+'. Refresh Trash before retry.',true);
  }finally{
   try{await refresh();}catch(e){toast('Could not refresh Trash: '+e.message,true);}
