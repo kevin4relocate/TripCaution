@@ -10,6 +10,12 @@ export function normalizeURL(value) {
   if (!value || typeof value !== 'string') return null;
   try { const u = new URL(value); return u.protocol === 'https:' ? u.href : null; } catch { return null; }
 }
+export function normalizeMediaURL(value) {
+  if (!value || typeof value !== 'string') return null;
+  const raw=value.trim();
+  if (/^\/media\/editorial\/[a-z0-9][a-z0-9-]{0,140}\.(?:webp|png|jpe?g)$/i.test(raw)) return raw;
+  return normalizeURL(raw);
+}
 export function normalizeSources(value) {
   if (!Array.isArray(value)) return [];
   return value.slice(0,25).map(s => ({title:cleanString(s?.title,220),publisher:cleanString(s?.publisher,120),
@@ -42,7 +48,7 @@ export function normalizeArticle(raw) {
     severity_rationale:cleanString(raw.severity_rationale,1500),
     seo_title:cleanString(raw.seo_title || seo.title || title,160),
     seo_description:cleanString(raw.seo_description || seo.description || raw.excerpt,300),
-    hero_image_url:normalizeURL(raw.hero_image_url || images.hero_image_url),
+    hero_image_url:normalizeMediaURL(raw.hero_image_url || images.hero_image_url),
     hero_prompt:cleanString(raw.hero_prompt || images.hero_prompt,3000),
     hero_alt:cleanString(raw.hero_alt || images.alt_text,300),
     source_mode:cleanString(raw.source_mode || raw.publishing?.mode,50)||'manual',
