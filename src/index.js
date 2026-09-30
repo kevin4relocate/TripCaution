@@ -601,6 +601,14 @@ async function applyEditorialAction(env,old,action,body,actor){
  await env.DB.batch([stateChange,auditEvent]);
  return {id:old.id,title:old.title,status:target};
 }
+function parseArticleImageFilename(value){
+ const filename=String(value||'').trim();
+ if(filename.length>130 || !/^[a-z0-9]+(?:-[a-z0-9]+)*\.webp$/.test(filename))return null;
+ const stem=filename.slice(0,-5),inline=stem.endsWith('-inline-01');
+ const slug=inline?stem.slice(0,-10):stem;
+ if(!slug || slug.length>105 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))return null;
+ return {filename,slug,kind:inline?'inline':'hero',path:'/media/editorial/'+filename,key:'editorial/'+filename};
+}
 async function readImageWithinLimit(request,maxBytes){
  // Guard both advertised length and untrusted streaming/chunked bodies.
  const lengthHeader=request.headers.get('Content-Length');
@@ -912,6 +920,29 @@ async function api(request,env,url,admin=false){
   await env.DB.batch([update,editAudit]);
   return json({ok:true});
  }
+ if(pathname==='/api/admin/media/article-image' && method==='POST'){
+  if(!env.MEDIA)return json({error:'R2 not configured'},503);
+  const parsed=parseArticleImageFilename(request.headers.get('x-tripcaution-filename'));
+  if(!parsed)return json({error:'Filename must be the exact lowercase article slug, optionally ending in -inline-01, with a .webp extension',code:'invalid_filename'},422);
+  if((request.headers.get('content-type')||'').split(';')[0].trim().toLowerCase()!=='image/webp')
+   return json({error:'Bulk article images must be WebP',code:'invalid_type'},415);
+  const article=await env.DB.prepare("SELECT id,slug,hero_image_url,content_markdown FROM articles WHERE slug=? AND status!='deleted' LIMIT 1").bind(parsed.slug).first();
+  if(!article)return json({error:'No imported article matches filename slug: '+parsed.slug,code:'unmatched',slug:parsed.slug},404);
+  if(parsed.kind==='hero' && String(article.hero_image_url||'')!==parsed.path)
+   return json({error:'Article hero path does not match '+parsed.path,code:'path_mismatch',slug:parsed.slug},409);
+  if(parsed.kind==='inline' && !String(article.content_markdown||'').includes(']('+parsed.path+')'))
+   return json({error:'Article body does not reference '+parsed.path,code:'path_mismatch',slug:parsed.slug},409);
+  const bytes=await readImageWithinLimit(request,5*1024*1024);
+  const signature=bytes.slice(0,12);
+  const valid=String.fromCharCode(...signature.slice(0,4))==='RIFF'&&String.fromCharCode(...signature.slice(8,12))==='WEBP';
+  if(!valid)return json({error:'Image bytes are not WebP',code:'invalid_bytes'},415);
+  const overwrite=request.headers.get('x-tripcaution-overwrite')==='true';
+  const existing=typeof env.MEDIA.head==='function'?await env.MEDIA.head(parsed.key):null;
+  if(existing&&!overwrite)return json({ok:true,state:'skipped',slug:parsed.slug,kind:parsed.kind,path:parsed.path});
+  await env.MEDIA.put(parsed.key,bytes.buffer,{httpMetadata:{contentType:'image/webp'}});
+  await audit(env,actor,'uploaded-article-image',article.id,JSON.stringify({key:parsed.key,kind:parsed.kind,overwrite:Boolean(existing&&overwrite)}));
+  return json({ok:true,state:'uploaded',slug:parsed.slug,kind:parsed.kind,path:parsed.path});
+ }
  if(pathname==='/api/admin/media' && method==='POST'){
   if(!env.MEDIA)return json({error:'R2 not configured; follow README to enable uploads'},503);
   const type=request.headers.get('content-type')||'';
@@ -932,10 +963,13 @@ async function api(request,env,url,admin=false){
 }
 async function media(env,key){
  if(!env.MEDIA)return new Response('Not found',{status:404});
- if(!/^editorial\/[a-f0-9-]{36}\.(png|jpg|webp)$/.test(key))return new Response('Not found',{status:404});
+ const legacy=/^editorial\/[a-f0-9-]{36}\.(?:png|jpg|webp)$/.test(key);
+ const deterministic=/^editorial\/[a-z0-9]+(?:-[a-z0-9]+)*\.webp$/.test(key);
+ if(!legacy&&!deterministic)return new Response('Not found',{status:404});
  const asset=await env.MEDIA.get(key);
  if(!asset)return new Response('Not found',{status:404});
- return new Response(asset.body,{headers:{'content-type':asset.httpMetadata?.contentType||'image/webp','cache-control':'public,max-age=31536000,immutable','x-content-type-options':'nosniff'}});
+ const cache=legacy&&!deterministic?'public,max-age=31536000,immutable':'public,max-age=3600,stale-while-revalidate=86400';
+ return new Response(asset.body,{headers:{'content-type':asset.httpMetadata?.contentType||'image/webp','cache-control':cache,'x-content-type-options':'nosniff'}});
 }
 async function publishDue(env){
  if(!env.DB)return;
