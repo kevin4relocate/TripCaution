@@ -578,6 +578,6 @@ body:not(.admin-body) :is(
  border-left-color:var(--category-accent);
 }
 .caution-directory .caution-topic:not(.caution-pending)[class*="topic-"] small{
- color:var(--category-accent);
+ color:#405249;
  font-weight:800;
 }
