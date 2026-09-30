@@ -31,6 +31,7 @@
   },
   "vars": {
     "SITE_NAME": "TripCaution",
+    "EDITORIAL_CONTACT_EMAIL": "contact@tripcaution.com",
     "AUTO_PUBLISH_ENABLED": "false",
     "SITE_URL": "https://tripcaution.nghiep4tube.workers.dev"
   }
