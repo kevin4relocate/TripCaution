@@ -51,3 +51,8 @@ test('image generation controls are removed and matching slug corrections are au
  assert.match(html,/automatically applies the imported correction/);
  assert.match(html,/External illustration prompt/);
 });
+
+test('clean bulk preflight transitions into the actual uploader',()=>{
+ const needle="quickBusy=false;\n  bulkImageButton.disabled=false;\n  await uploadBulkImagePlan('skip');";
+ assert.ok(js.includes(needle),'preflight must release its busy guard before starting upload');
+});
