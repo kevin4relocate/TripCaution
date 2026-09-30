@@ -843,6 +843,13 @@ async function api(request,env,url,admin=false){
   for(const row of eligible)outcome.push(await queueThumbnailOnImport(env,row.id));
   return json({considered:eligible.length,queued:outcome.filter(v=>v.state==='queued').length,results:outcome});
  }
+ if(pathname==='/api/admin/thumbnails/queue'&&method==='POST'){
+  const input=await request.json();
+  if(typeof input.id!=='string'||!/^[a-f0-9-]{36}$/i.test(input.id))
+   return json({error:'Valid article UUID required'},422);
+  try{return json(await enqueueThumbnail(env,input.id));}
+  catch{return json({error:'Thumbnail queue is not ready. Check D1, Gemini and R2 configuration.'},503);}
+ }
  if(pathname==='/api/admin/thumbnails/retry'&&method==='POST'){
   const input=await request.json();
   if(typeof input.id!=='string'||!/^[a-f0-9-]{36}$/i.test(input.id))

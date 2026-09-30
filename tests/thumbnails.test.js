@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {imagePrompt,needsThumbnail,enqueueThumbnail,renderThumbnail,processThumbnailQueue,thumbnailEnabled} from '../src/thumbnails.js';
 
 const key='k'.repeat(48);
@@ -58,4 +59,17 @@ test('provider failure retries without exposing API credentials',async()=>{
  const retry=queries.find(q=>q.sql.includes('next_attempt_at=CASE'));
  assert.equal(retry.args[0],'retry');
  assert.ok(!JSON.stringify(queries).includes(key));
+});
+
+
+test('single article thumbnail control is wired',()=>{
+ const worker=readFileSync(new URL('../src/index.js',import.meta.url),'utf8');
+ const admin=readFileSync(new URL('../public/admin.js',import.meta.url),'utf8');
+ const html=readFileSync(new URL('../public/admin.html',import.meta.url),'utf8');
+ assert.ok(worker.includes("/api/admin/thumbnails/queue"));
+ assert.ok(html.includes('id="generate-thumbnail-btn"'));
+ assert.ok(html.includes('Generate thumbnail for this article'));
+ assert.ok(admin.includes("/api/admin/thumbnails/queue"));
+ assert.ok(admin.includes('Queued for this article only'));
+ assert.ok(admin.includes('Save changes before generating'));
 });
