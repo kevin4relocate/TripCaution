@@ -541,3 +541,43 @@ body:not(.admin-body) :is(
  .guide-card-side .card-body h3{font-size:17px}
  .more-notes-section .guide-card .card-body h3{font-size:19px}
 }
+
+
+/* Category color system: semantic accents help readers scan caution types
+ * without turning the site into a rainbow. Color is secondary to the text label. */
+.category-scams-theft,.topic-scams-theft{--category-accent:#b44d3a;--category-soft:#f0a08e;--category-on:#fff}
+.category-payments-money,.topic-payments-money{--category-accent:#c5962b;--category-soft:#efd17a;--category-on:#18232d}
+.category-transport,.topic-transport{--category-accent:#d47c24;--category-soft:#f2b665;--category-on:#18232d}
+.category-laws-customs,.topic-laws-customs{--category-accent:#74617f;--category-soft:#c8b5d2;--category-on:#fff}
+.category-safety-health,.topic-safety-health{--category-accent:#a64040;--category-soft:#eb9999;--category-on:#fff}
+.category-travel-essentials,.topic-travel-essentials{--category-accent:#3e7772;--category-soft:#88c7c0;--category-on:#fff}
+.category-general{--category-accent:#627582;--category-soft:#aebdc6;--category-on:#fff}
+
+.guide-card[class*="category-"],
+.featured-layout .guide-card[class*="category-"]{border-top-color:var(--category-accent)}
+.guide-card[class*="category-"]:hover{border-top-color:var(--category-accent)}
+.guide-card .visual-tag[class*="category-"]{
+ background:var(--category-accent);
+ color:var(--category-on);
+ border:1px solid #17222c26;
+ box-shadow:0 1px 0 #111b241f;
+}
+.caution-topics-home .caution-topic:not(.caution-pending)[class*="topic-"]{
+ border-left-color:var(--category-accent);
+}
+.caution-topics-home .caution-topic:not(.caution-pending)[class*="topic-"] small{
+ color:var(--category-soft);
+}
+.caution-topics-home a.caution-topic:not(.caution-pending)[class*="topic-"]:hover,
+.caution-topics-home a.caution-topic:not(.caution-pending)[class*="topic-"]:focus-visible{
+ border-color:#7b8993;
+ border-left-color:var(--category-accent);
+ box-shadow:inset 3px 0 0 var(--category-accent);
+}
+.caution-directory .caution-topic:not(.caution-pending)[class*="topic-"]{
+ border-left-color:var(--category-accent);
+}
+.caution-directory .caution-topic:not(.caution-pending)[class*="topic-"] small{
+ color:var(--category-accent);
+ font-weight:800;
+}
