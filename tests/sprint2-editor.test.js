@@ -48,11 +48,21 @@ test('image generation controls are removed and matching slug corrections are au
  assert.doesNotMatch(js,/\/api\/admin\/thumbnails/);
  assert.doesNotMatch(js,/revision-mode|import-thumbnails/);
  assert.match(html,/Matching slugs are always treated as corrections/);
- assert.match(html,/automatically applies the imported correction/);
+ assert.match(html,/Matching slug/);
  assert.match(html,/External illustration prompt/);
 });
 
 test('clean bulk preflight transitions into the actual uploader',()=>{
  const needle="quickBusy=false;\n  bulkImageButton.disabled=false;\n  await uploadBulkImagePlan('skip');";
  assert.ok(js.includes(needle),'preflight must release its busy guard before starting upload');
+});
+
+test('import center uses a compact two-step responsive workflow',()=>{
+ for(const className of ['import-workflow-grid','import-step','import-file-row','import-note'])
+  assert.ok(html.includes(className),className);
+ assert.match(html,/>1<\/span>/);
+ assert.match(html,/>2<\/span>/);
+ assert.match(css,/\.import-workflow-grid\{display:grid/);
+ assert.match(css,/#json-input\{display:block;width:100%/);
+ assert.match(css,/@media\(max-width:980px\)\{\.import-workflow-grid\{grid-template-columns:1fr\}/);
 });
