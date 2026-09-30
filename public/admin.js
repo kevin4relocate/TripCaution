@@ -298,6 +298,19 @@ function safeSourceUrl(raw){
 function hasSources(a){
  try{return JSON.parse(a?.sources_json||'[]').some(s=>safeSourceUrl(s?.url));}catch{return false;}
 }
+function updateThumbnailAction(){
+ const btn=$('generate-thumbnail-btn'),status=$('single-thumbnail-status'),a=state.selected;
+ if(!btn||!status)return;
+ const prompt=String(a?.hero_prompt||'').trim();
+ const hasImage=Boolean(String(a?.hero_image_url||'').trim());
+ btn.disabled=!a||quickBusy||state.dirty||hasImage||prompt.length<20||a?.status==='deleted';
+ if(!a)status.textContent='';
+ else if(hasImage)status.textContent='Hero image already attached.';
+ else if(prompt.length<20)status.textContent='Save an AI illustration prompt of at least 20 characters first.';
+ else if(state.dirty)status.textContent='Save changes first so the saved prompt is used.';
+ else if(a.status==='deleted')status.textContent='Restore this article before generating an image.';
+ else if(!status.dataset.queued)status.textContent='';
+}
 function updateReviewGate(){
  const a=state.selected;
  const eligible=a&&['review','draft','hidden','scheduled'].includes(a.status);
@@ -319,6 +332,7 @@ function updateReviewGate(){
   severe&&!$('severity-confirm').checked?'Individually verify the scope and potential impact, then tick the confirmation above.':
   !eligible?'This article is already published or needs to be restored. You can still edit or hide it.':
   'Review the article and its source links. Publish only when you are satisfied, or leave it private.';
+ updateThumbnailAction();
 }
 function populateReviewEvidence(a){
  let sources=[];
@@ -619,6 +633,29 @@ $('schedule-btn').onclick=()=>openSchedule('editor',[state.selected?.id].filter(
 $('hide-btn').onclick=()=>action('hide');
 $('delete-btn').onclick=()=>action('delete');
 $('restore-btn').onclick=()=>action('restore');
+$('generate-thumbnail-btn').onclick=async()=>{
+ const status=$('single-thumbnail-status');
+ if(!state.selected||quickBusy)return;
+ if(state.dirty){toast('Save changes before generating so Gemini uses the saved prompt.',true);return;}
+ if(String(state.selected.hero_image_url||'').trim()){toast('This article already has a hero image. Existing images are never overwritten.',true);return;}
+ if(String(state.selected.hero_prompt||'').trim().length<20){toast('Add and save an AI illustration prompt first.',true);return;}
+ if(!confirm('Queue one Gemini thumbnail for "'+state.selected.title+'"? This may use billable Gemini API quota.'))return;
+ try{
+  quickBusy=true;delete status.dataset.queued;updateReviewGate();
+  const result=await api('/api/admin/thumbnails/queue',{method:'POST',body:JSON.stringify({id:state.selected.id})});
+  if(result.state==='queued'){
+   status.dataset.queued='1';
+   status.textContent='Queued for this article only. The Worker will process it on the next 15-minute run.';
+   toast('Thumbnail queued for this article only.');
+  }else if(result.state==='not_needed'){
+   status.textContent='No thumbnail needed; this article already has an image.';
+  }else{
+   status.textContent='Thumbnail was not queued: '+(result.reason||result.state||'unknown state')+'.';
+   toast(status.textContent,true);
+  }
+ }catch(e){status.textContent='Thumbnail queue error: '+e.message;toast(e.message,true);}
+ finally{quickBusy=false;updateReviewGate();}
+};
 $('upload-btn').onclick=async()=>{
  const file=$('image-file').files[0];if(!file){toast('Choose an image first.',true);return;}
  try{
