@@ -19,3 +19,14 @@ test('SEO preview tracks title, slug and description but never blocks owner acti
  assert.match(html,/Search engines may rewrite titles and snippets/);
  assert.match(css,/\.seo-preview-title/);
 });
+
+test('import center supports up to 100 deterministic WebP article images',()=>{
+ for(const id of ['bulk-image-files','bulk-image-upload-btn','bulk-image-progress','bulk-image-result'])
+  assert.ok(html.includes('id="'+id+'"'),id);
+ assert.match(html,/slug\.webp/);
+ assert.match(html,/slug-inline-01\.webp/);
+ assert.match(js,/files\.length>100/);
+ assert.match(js,/X-TripCaution-Filename/);
+ assert.match(js,/\/api\/admin\/media\/article-image/);
+ assert.match(js,/Math\.min\(3,files\.length\)/);
+});
