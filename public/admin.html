@@ -20,28 +20,39 @@
 <p class="bulk-notice">Select all affects only visible articles. Use <strong>More</strong> to restore or delete; permanent deletion is available only under the Deleted filter.</p>
 <div id="bulk-result" role="status" aria-live="polite"></div>
 <div class="table-wrap"><table><thead><tr><th class="select-col"><input id="select-all-visible" type="checkbox" aria-label="Select all visible articles"></th><th>TITLE / DESTINATION</th><th>CATEGORY</th><th>STATUS</th><th>PUBLISH DATE</th><th>ACTIONS</th></tr></thead><tbody id="article-rows"></tbody></table></div><nav id="article-pager" class="article-pager" aria-label="Article library pages"><button type="button" class="ghost" id="page-prev">← Previous</button><span id="page-info" role="status">Page 1</span><button type="button" class="ghost" id="page-next">Next →</button></nav></div></section>
-<section id="import" class="view" hidden><div class="admin-head"><div><small>IMPORT CENTER</small><h1>Bring in great research.</h1><p>Import TripCaution JSON from your research AI. Everything is checked before it enters your queue.</p></div></div><div class="panel narrow"><h2>Import JSON package</h2><p>Upload a valid JSON file or paste JSON below. Up to 30 articles total; imports are processed in safe groups of 10. New articles follow their JSON status when the option below is checked: Published goes live, Scheduled receives its future publication date, Review stays private. If a slug already exists, TripCaution automatically applies the imported correction to that article and moves it back to private Review.</p><input id="json-file" type="file" accept=".json,application/json"><textarea id="json-input" rows="13" placeholder='{"schema_version":"1.0","articles":[...]}'></textarea>
- <label class="revision-opt-in"><input id="apply-import-publishing-plan" type="checkbox" checked> Respect JSON status per article: Published = publish now · Scheduled = schedule date · Review = private</label>
- <p class="revision-warning">The import follows the statuses you set after your local review; no additional in-dashboard review is required. Published and Scheduled require at least one HTTPS source. Scheduled requires a future ISO 8601 time with timezone. Imported live content appears in the Not Reviewed dashboard filter until explicitly marked there.</p>
- <p class="revision-warning"><strong>Matching slugs are always treated as corrections.</strong> Existing Published or Scheduled articles are automatically withdrawn to private Review when a matching slug is imported. New articles still follow the JSON status rules above.</p>
- <div class="row"><button class="ghost" type="button" id="research-check-btn">Check sources & duplicates</button><button class="primary" id="import-btn">Validate & import ↗</button><span id="import-result"></span></div><pre id="research-check-result" class="research-check-result" role="status" aria-live="polite" hidden></pre></div>
-<div class="panel narrow bulk-image-panel">
- <h2>Bulk article images</h2>
- <p>After importing the JSON package, choose up to 100 WebP files. Filenames must exactly match the article paths already in the post: <code>slug.webp</code> for the hero and <code>slug-inline-01.webp</code> for the inline image. TripCaution matches each file to its imported article and uploads it to the exact R2 path automatically.</p>
- <label>Choose WebP files<input id="bulk-image-files" type="file" accept=".webp,image/webp" multiple></label>
- <p class="revision-warning">TripCaution checks all selected filenames before uploading anything. If an R2 filename already exists, upload pauses and shows the conflicts. Nothing is skipped or overwritten until you choose what to do. Uploading images does not change an article's Review, Scheduled or Published status.</p>
- <div class="row"><button type="button" class="primary" id="bulk-image-upload-btn">Check & upload selected WebP files ↗</button><span id="bulk-image-count" class="bulk-notice">No files selected.</span></div>
- <div id="bulk-image-conflict-actions" class="bulk-image-conflict-actions" hidden>
-  <strong>Existing filenames found. Choose how to continue:</strong>
-  <div class="row">
-   <button type="button" class="ghost" id="bulk-image-skip-btn">Skip existing & upload new</button>
-   <button type="button" class="danger" id="bulk-image-overwrite-btn">Overwrite existing & upload all</button>
-   <button type="button" class="ghost" id="bulk-image-cancel-btn">Cancel · fix article/file names</button>
+<section id="import" class="view import-view" hidden>
+ <div class="admin-head import-head"><div><small>IMPORT CENTER</small><h1>Import content.</h1><p>Posts first, then matching images. TripCaution validates both before writing.</p></div></div>
+ <div class="import-workflow-grid">
+  <div class="panel import-step">
+   <div class="import-step-head"><span>1</span><div><small>POSTS</small><h2>Import JSON</h2></div></div>
+   <p class="import-lead">Up to 30 articles. New articles follow their JSON status; matching slugs are corrections and return to private Review.</p>
+   <div class="import-file-row"><label for="json-file">JSON file</label><input id="json-file" type="file" accept=".json,application/json"></div>
+   <textarea id="json-input" rows="12" spellcheck="false" aria-label="TripCaution JSON package" placeholder='{"schema_version":"1.0","articles":[...]}'></textarea>
+   <label class="revision-opt-in compact-opt"><input id="apply-import-publishing-plan" type="checkbox" checked><span>Respect JSON status: <strong>Published</strong> = live · <strong>Scheduled</strong> = scheduled · <strong>Review</strong> = private</span></label>
+   <div class="import-note"><strong>Matching slug?</strong> It is always treated as a correction. Existing Published/Scheduled content moves to private Review.</div>
+   <div class="row import-actions"><button class="ghost" type="button" id="research-check-btn">Check JSON</button><button class="primary" id="import-btn">Validate & import ↗</button><span id="import-result"></span></div>
+   <pre id="research-check-result" class="research-check-result" role="status" aria-live="polite" hidden></pre>
+  </div>
+
+  <div class="panel import-step bulk-image-panel">
+   <div class="import-step-head"><span>2</span><div><small>IMAGES</small><h2>Upload article images</h2></div></div>
+   <p class="import-lead">Choose up to 100 WebP files after the posts are imported. Filenames must match <code>slug.webp</code> and <code>slug-inline-01.webp</code>.</p>
+   <div class="import-file-row"><label for="bulk-image-files">WebP files</label><input id="bulk-image-files" type="file" accept=".webp,image/webp" multiple></div>
+   <div class="import-note">TripCaution checks article matches and R2 filename conflicts first. Nothing is skipped or overwritten without your choice.</div>
+   <div class="row import-actions"><button type="button" class="primary" id="bulk-image-upload-btn">Check & upload ↗</button><span id="bulk-image-count" class="bulk-notice">No files selected.</span></div>
+   <div id="bulk-image-conflict-actions" class="bulk-image-conflict-actions" hidden>
+    <strong>Existing filenames found. Choose how to continue:</strong>
+    <div class="row">
+     <button type="button" class="ghost" id="bulk-image-skip-btn">Skip existing & upload new</button>
+     <button type="button" class="danger" id="bulk-image-overwrite-btn">Overwrite existing & upload all</button>
+     <button type="button" class="ghost" id="bulk-image-cancel-btn">Cancel · fix names</button>
+    </div>
+   </div>
+   <progress id="bulk-image-progress" class="bulk-image-progress" max="1" value="0" hidden></progress>
+   <pre id="bulk-image-result" class="research-check-result bulk-image-result" role="status" aria-live="polite" hidden></pre>
   </div>
  </div>
- <progress id="bulk-image-progress" class="bulk-image-progress" max="1" value="0" hidden></progress>
- <pre id="bulk-image-result" class="research-check-result bulk-image-result" role="status" aria-live="polite" hidden></pre>
-</div></section>
+</section>
 <section id="calendar" class="view" hidden><div class="admin-head"><div><small>YOUR PUBLICATION PIPELINE</small><h1>Publishing queue</h1><p>Set an exact publication date in an approved article. Cloudflare publishes scheduled content on the next hourly run.</p></div></div><div class="panel"><p class="queue-intro">Open <strong>All articles</strong> to select and schedule one or several articles at once. Publishing remains your decision.</p><div id="queue"></div><p id="queue-limit-note" class="bulk-notice" hidden>Showing the next 100 queue entries. Use the filtered article library to find the remaining drafts or scheduled articles.</p></div></section>
 <section id="editor" class="view" hidden><div class="admin-head"><div><small>EDITORIAL REVIEW</small><h1 id="editor-heading">Review article</h1><p id="editor-subheading"></p></div><button class="ghost" data-view="articles">← Library</button></div>
 <section class="panel review-workspace" aria-labelledby="review-workspace-heading">

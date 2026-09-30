@@ -73,5 +73,5 @@ test('in-app thumbnail generation is disabled while external image workflow rema
  assert.ok(!html.includes('Check thumbnail queue'));
  assert.ok(!admin.includes('/api/admin/thumbnails'));
  assert.ok(html.includes('External illustration prompt'));
- assert.ok(html.includes('Bulk article images'));
+ assert.ok(html.includes('Upload article images'));
 });

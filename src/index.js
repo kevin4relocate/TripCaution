@@ -608,6 +608,27 @@ function parseArticleImageFilename(value){
  if(!slug || slug.length>105 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))return null;
  return {filename,slug,kind:inline?'inline':'hero',path:'/media/editorial/'+filename,key:'editorial/'+filename};
 }
+function articleOwnedMediaKeys(env,article){
+ const keys=new Set();
+ const add=value=>{
+  const raw=String(value||'').trim();
+  if(!raw)return;
+  let path=raw;
+  if(/^https:\/\//i.test(raw)){
+   try{
+    const u=new URL(raw),site=new URL(siteURL(env));
+    if(u.origin!==site.origin)return;
+    path=u.pathname;
+   }catch{return;}
+  }
+  const match=path.match(/^\/media\/(editorial\/[a-z0-9][a-z0-9-]{0,140}\.(?:webp|png|jpe?g))$/i);
+  if(match)keys.add(match[1]);
+ };
+ add(article?.hero_image_url);
+ const markdown=String(article?.content_markdown||'');
+ for(const match of markdown.matchAll(/\]\((\/media\/editorial\/[a-z0-9][a-z0-9-]{0,140}\.(?:webp|png|jpe?g))\)/gi))add(match[1]);
+ return [...keys];
+}
 async function inspectArticleImageTarget(env,filename){
  const parsed=parseArticleImageFilename(filename);
  if(!parsed)return {filename:String(filename||''),state:'invalid_filename',error:'Filename must be the exact lowercase article slug, optionally ending in -inline-01, with a .webp extension'};
@@ -759,8 +780,8 @@ async function api(request,env,url,admin=false){
   return json({count:Number(row?.count||0)});
  }
  if(method==='POST' && pathname==='/api/admin/purge'){
-  // Owner-only irreversible deletion. This intentionally never accepts a bot token,
-  // unchecked status, a broad status other than deleted, or a generic "purge all" flag.
+  // Soft Delete stays recoverable. Permanent purge removes both D1 content and
+  // article-owned R2 media so no orphan image objects are left behind.
   const body=await request.json();
   if(body?.confirmation!=='PERMANENTLY DELETE')
    return json({error:'Type PERMANENTLY DELETE to confirm irreversible deletion'},422);
@@ -773,21 +794,26 @@ async function api(request,env,url,admin=false){
    return json({error:'Select 1–50 unique valid deleted article IDs per request'},400);
   if(body.mode==='trash'&&body.ids!==undefined)
    return json({error:'Empty trash never accepts an article ID list'},400);
-  // Require a fresh server-confirmed count so "Empty Trash" cannot erase items
-  // added after the owner opened the dialog.
-  const list=selected?
-   (await env.DB.prepare('SELECT id,status FROM articles WHERE id IN ('+body.ids.map(()=>'?').join(',')+')').bind(...body.ids).all()).results:
-   null;
-  if(selected&&(!Array.isArray(list)||list.length!==body.ids.length||list.some(row=>row.status!=='deleted')))
+
+  const binds=selected?body.ids:[];
+  const rows=selected?
+   (await env.DB.prepare('SELECT id,status,slug,hero_image_url,content_markdown FROM articles WHERE id IN ('+binds.map(()=>'?').join(',')+')').bind(...binds).all()).results:
+   (await env.DB.prepare("SELECT id,status,slug,hero_image_url,content_markdown FROM articles WHERE status='deleted'").all()).results;
+  if(selected&&(!Array.isArray(rows)||rows.length!==body.ids.length||rows.some(row=>row.status!=='deleted')))
    return json({error:'Every selected article must already be in Deleted; refresh the list'},409);
-  const count=selected?list.length:
-   Number((await env.DB.prepare("SELECT COUNT(*) AS count FROM articles WHERE status='deleted'").first())?.count||0);
+  const count=Array.isArray(rows)?rows.length:0;
   if(count===0)return json({error:'Trash is empty; nothing to permanently delete'},409);
   if(!Number.isInteger(body.confirm_count)||body.confirm_count!==count)
    return json({error:'The number of deleted articles has changed. Refresh and confirm again'},409);
-  // D1 batch executes a transaction; if the DELETE fails, old article records
-  // and their associated audit history should remain together.
-  const binds=selected?body.ids:[];
+
+  const mediaKeys=[...new Set(rows.flatMap(row=>articleOwnedMediaKeys(env,row)))];
+  if(mediaKeys.length&&!env.MEDIA)
+   return json({error:'R2 is not configured, so TripCaution cannot permanently delete article images safely. Nothing was deleted.'},503);
+  if(mediaKeys.length){
+   try{await env.MEDIA.delete(mediaKeys.length===1?mediaKeys[0]:mediaKeys);}
+   catch{return json({error:'R2 image cleanup failed. Nothing was permanently deleted from D1; retry after checking R2.'},502);}
+  }
+
   const where=selected?'id IN ('+binds.map(()=>'?').join(',')+') AND status=\'deleted\'':"status='deleted'";
   const auditWhere=selected?'article_id IN ('+binds.map(()=>'?').join(',')+')':
    "article_id IN (SELECT id FROM articles WHERE status='deleted')";
@@ -795,11 +821,11 @@ async function api(request,env,url,admin=false){
   const cleanupArticles=env.DB.prepare('DELETE FROM articles WHERE '+where);
   const record=env.DB.prepare("INSERT INTO audit_logs (id,actor,action,article_id,details) VALUES (?,?,?,?,?)")
    .bind(crypto.randomUUID(),actor,'permanently-purged',null,
-    JSON.stringify({mode:body.mode,count,occurred_at:new Date().toISOString()}));
+    JSON.stringify({mode:body.mode,count,media_deleted:mediaKeys.length,occurred_at:new Date().toISOString()}));
   const statements=[selected?cleanupAudit.bind(...binds):cleanupAudit,
    selected?cleanupArticles.bind(...binds):cleanupArticles,record];
   await env.DB.batch(statements);
-  return json({ok:true,purged:count,mode:body.mode,r2_unchanged:true});
+  return json({ok:true,purged:count,mode:body.mode,media_deleted:mediaKeys.length});
  }
  if(method==='POST' && pathname==='/api/admin/auto-schedule'){
   // Sprint 0 launch freeze: no bulk publishing without a per-article evidence record.
