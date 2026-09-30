@@ -53,29 +53,27 @@ async function refresh(){
  const [overview,cat,coverage]=await Promise.all([
   api('/api/admin/overview'),api('/api/admin/categories'),api('/api/admin/coverage')]);
  state.categories=cat.categories;
- $('region-progress').textContent=coverage.publishedCountries+'/'+coverage.totalCountries+' Southeast Asian countries with a published guide';
- $('region-tiles').innerHTML=coverage.coverage.map(row=>'<div class="region-tile '+(row.published?'':'pending')+'"><strong>'+escapeHTML(row.country)+'</strong><small>'+
-  (row.published?row.published+' published guide'+(row.published===1?'':'s'):'Research planned')+
+ const launchCountryTarget=Number(coverage.launchCountryTarget||10);
+ $('region-progress').textContent=coverage.publishedCountries+'/'+coverage.totalCountries+' Southeast Asian countries represented · launch baseline '+launchCountryTarget+' guides each';
+ $('region-tiles').innerHTML=coverage.coverage.map(row=>'<div class="region-tile '+(row.published>=launchCountryTarget?'launch-ready':row.published?'':'pending')+'"><strong>'+escapeHTML(row.country)+'</strong><small>'+
+  row.published+' / '+launchCountryTarget+' published'+
   (row.pipeline?' · '+row.pipeline+' in pipeline':'')+'</small></div>').join('');
  const matrix=Array.isArray(coverage.topicCoverage)?coverage.topicCoverage:[];
- const totalPublished=coverage.coverage.reduce((sum,row)=>sum+Number(row.published||0),0);
- const launchTarget=Number(coverage.launchTarget||33),launchRemaining=Number(coverage.launchRemaining||0);
+ const totalPublished=Number(coverage.publishedGuides||coverage.coverage.reduce((sum,row)=>sum+Number(row.published||0),0));
+ const launchTarget=Number(coverage.launchTarget||110),launchRemaining=Number(coverage.launchRemaining||0);
  const launchProgress=$('launch-readiness-progress');launchProgress.max=launchTarget;launchProgress.value=Math.min(totalPublished,launchTarget);
- $('launch-readiness-label').textContent=coverage.launchTargetMet?'CONTENT TARGET REACHED':'BUILDING INVENTORY';
- const minDays=launchRemaining?Math.ceil(launchRemaining/3):0;
- $('launch-readiness-detail').textContent=totalPublished+'/'+launchTarget+' published guides · '+Number(coverage.countriesAtFirstPass||0)+'/'+Number(coverage.totalCountries||11)+' countries have at least '+Number(coverage.firstPassTarget||3)+' guides · '+launchRemaining+' guides remaining'+(launchRemaining?' · minimum '+minDays+' day'+(minDays===1?'':'s')+' at 3 successful publications/day':'')+'.';
- const publishedFirst=matrix.reduce((sum,row)=>sum+row.firstPassCovered,0);
- const coveredDepth=matrix.reduce((sum,row)=>sum+row.depthCovered,0);
- $('sprint6-total').textContent=publishedFirst+'/33 phase-one topic opportunities covered · '+coveredDepth+
-  '/88 full topic target covered · '+totalPublished+' total published guides (subject/claim quality still requires manual review)';
+ $('launch-readiness-label').textContent=coverage.launchTargetMet?'LAUNCH INVENTORY READY':'LAUNCH INVENTORY GAP';
+ $('launch-readiness-detail').textContent=totalPublished+'/'+launchTarget+' published guides · '+Number(coverage.countriesAtLaunchTarget||0)+'/'+Number(coverage.totalCountries||11)+' countries at '+launchCountryTarget+'-guide baseline · '+launchRemaining+' guide'+(launchRemaining===1?'':'s')+' remaining. Inventory status only; source review and production audit remain separate gates.';
+ const allTopicCountries=matrix.filter(row=>Number(row.topicsCovered||0)>=Number(row.topicGoal||6)).length;
+ const topicGoal=matrix.length?Number(matrix[0].topicGoal||6):6;
+ $('sprint6-total').textContent=allTopicCountries+'/'+Number(coverage.totalCountries||11)+' countries currently represent all '+topicGoal+' caution topics · '+totalPublished+' total published guides';
  $('sprint6-matrix').innerHTML=matrix.map(row=>{
   const details=row.topics.map(t=>
-   '<li><span>'+escapeHTML(t.label)+'</span><span>'+t.published+'/'+t.target+
-   ' published'+(t.pipeline?' · '+t.pipeline+' in review/pipeline':'')+'</span></li>'
+   '<li><span>'+escapeHTML(t.label)+'</span><span>'+t.published+' published'+(t.pipeline?' · '+t.pipeline+' in review/pipeline':'')+'</span></li>'
   ).join('');
   return '<details class="sprint6-country"><summary><strong>'+escapeHTML(row.country)+'</strong>'+
-    '<span>'+row.depthCovered+' / 8 topic coverage · '+row.published+' published · '+row.pipeline+' in pipeline</span></summary>'+
-    '<ul>'+details+'</ul><small>Targets are editorial opportunities, never fabricated incidents or automatic country safety ratings.</small></details>';
+    '<span>'+row.topicsCovered+' / '+row.topicGoal+' caution topics · '+row.published+' published · '+row.pipeline+' in pipeline</span></summary>'+
+    '<ul>'+details+'</ul><small>Coverage mix is diagnostic only. Add guides when evidence and traveler usefulness justify them, not to fill a quota.</small></details>';
  }).join('');
  const counts=Object.fromEntries(overview.status.map(s=>[s.status,s.count]));
  $('stats').innerHTML=[['Published',counts.published||0],['Not reviewed',overview.unreviewedPublished||0],['Needs review',counts.review||0],['Scheduled',counts.scheduled||0],['Drafts',counts.draft||0]]

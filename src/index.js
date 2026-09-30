@@ -12,7 +12,7 @@ import {CAUTION_LEVELS,cautionLevel,isRatedCaution,severeCaution} from './severi
 import {auditCautionPackage} from './research-audit.js';
 import {assessAutoPublication} from './auto-publish.js';
 import {assessImportPublishingPlan} from './import-publishing.js';
-import {summarizeCountryTopicCounts,FIRST_PASS_TARGET,COUNTRY_ARTICLE_TARGET} from './coverage.js';
+import {summarizeCountryTopicCounts,LAUNCH_COUNTRY_TARGET,LAUNCH_GUIDE_TARGET} from './coverage.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
 
 const json = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -726,13 +726,12 @@ async function api(request,env,url,admin=false){
   const topicRows=(await env.DB.prepare(topicSql).bind(...countries).all()).results||[];
   const topicCoverage=summarizeCountryTopicCounts(topicRows,countries,cautionTopicForCategory);
   const publishedGuides=coverage.reduce((sum,row)=>sum+row.published,0);
-  const launchTarget=FIRST_PASS_TARGET*countries.length;
-  const countriesAtFirstPass=coverage.filter(row=>row.published>=FIRST_PASS_TARGET).length;
+  const countriesAtLaunchTarget=coverage.filter(row=>row.published>=LAUNCH_COUNTRY_TARGET).length;
   return json({coverage,publishedCountries:coverage.filter(row=>row.published>0).length,
-   totalCountries:countries.length,firstPassTarget:FIRST_PASS_TARGET,
-   fullTarget:COUNTRY_ARTICLE_TARGET,topicCoverage,publishedGuides,launchTarget,
-   launchRemaining:Math.max(0,launchTarget-publishedGuides),countriesAtFirstPass,
-   launchTargetMet:publishedGuides>=launchTarget&&countriesAtFirstPass===countries.length});
+   totalCountries:countries.length,topicCoverage,publishedGuides,
+   launchCountryTarget:LAUNCH_COUNTRY_TARGET,launchTarget:LAUNCH_GUIDE_TARGET,
+   launchRemaining:Math.max(0,LAUNCH_GUIDE_TARGET-publishedGuides),countriesAtLaunchTarget,
+   launchTargetMet:publishedGuides>=LAUNCH_GUIDE_TARGET&&countriesAtLaunchTarget===countries.length});
  }
  if(method==='GET' && pathname==='/api/admin/categories'){
   return json({categories:(await env.DB.prepare('SELECT * FROM categories ORDER BY name').all()).results});

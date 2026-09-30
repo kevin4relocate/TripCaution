@@ -3,16 +3,17 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import worker from '../src/index.js';
 import {createAdminSession} from '../src/auth.js';
-import {COUNTRY_ARTICLE_TARGET,FIRST_PASS_TARGET,TOPIC_TARGETS,summarizeCountryTopicCounts} from '../src/coverage.js';
+import {LAUNCH_COUNTRY_TARGET,LAUNCH_GUIDE_TARGET,TOPIC_CATEGORIES,summarizeCountryTopicCounts} from '../src/coverage.js';
 import {cautionTopicForCategory} from '../src/cautions.js';
 
 const origin='https://tripcaution.test';
 const ADMIN_LOGIN_KEY='sprint6-secret-'+('X'.repeat(48));
-test('11 country capacity means 33 first-pass and 88 depth; not a country danger score',()=>{
- assert.equal(FIRST_PASS_TARGET*11,33);
- assert.equal(COUNTRY_ARTICLE_TARGET*11,88);
- assert.equal(TOPIC_TARGETS.reduce((n,t)=>n+t.target,0),8);
- assert.equal(new Set(TOPIC_TARGETS.map(t=>t.slug)).size,6);
+test('launch inventory baseline is 110 guides across 11 countries; not a country danger score',()=>{
+ assert.equal(LAUNCH_COUNTRY_TARGET,10);
+ assert.equal(LAUNCH_GUIDE_TARGET,110);
+ assert.equal(LAUNCH_COUNTRY_TARGET*11,LAUNCH_GUIDE_TARGET);
+ assert.equal(TOPIC_CATEGORIES.length,6);
+ assert.equal(new Set(TOPIC_CATEGORIES.map(t=>t.slug)).size,6);
 });
 test('legacy categories count toward the correct topic without inflating unreviewed publication',()=>{
  const rows=[
@@ -25,14 +26,14 @@ test('legacy categories count toward the correct topic without inflating unrevie
  ];
  const data=summarizeCountryTopicCounts(rows,['Singapore','Vietnam','Malaysia'],cautionTopicForCategory);
  assert.equal(data[0].published,2);
- assert.equal(data[0].firstPassCovered,1);
- assert.equal(data[0].depthCovered,2);
+ assert.equal(data[0].topicsCovered,1);
+ assert.equal(data[0].topicGoal,6);
  assert.equal(data[0].pipeline,4);
  assert.equal(data[0].topics.find(t=>t.slug==='transport').published,2);
  assert.equal(data[0].topics.find(t=>t.slug==='scams-theft').pipeline,1);
  assert.equal(data[0].topics.find(t=>t.slug==='payments-money').pipeline,3);
  assert.equal(data[1].published,1);
- assert.equal(data[1].firstPassCovered,1);
+ assert.equal(data[1].topicsCovered,1);
  assert.equal(data[2].published,0);
 });
 test('new coverage matrix is private and tracks actual database rows rather than invented guides',async()=>{
@@ -62,13 +63,12 @@ test('new coverage matrix is private and tracks actual database rows rather than
  assert.equal(response.status,200);
  const body=await response.json();
  assert.equal(body.totalCountries,11);
- assert.equal(body.firstPassTarget,3);
- assert.equal(body.fullTarget,8);
+ assert.equal(body.launchCountryTarget,10);
  assert.equal(body.publishedCountries,1);
  assert.equal(body.publishedGuides,2);
- assert.equal(body.launchTarget,33);
- assert.equal(body.launchRemaining,31);
- assert.equal(body.countriesAtFirstPass,0);
+ assert.equal(body.launchTarget,110);
+ assert.equal(body.launchRemaining,108);
+ assert.equal(body.countriesAtLaunchTarget,0);
  assert.equal(body.launchTargetMet,false);
  assert.equal(body.topicCoverage.length,11);
  assert.equal(body.topicCoverage.find(c=>c.country==='Singapore').published,2);
@@ -77,13 +77,21 @@ test('new coverage matrix is private and tracks actual database rows rather than
  assert.equal(SQL.bound.length,11);
  assert.match(SQL.sql,/status IN \('published','review','draft','scheduled'\)/);
 });
-test('editor includes truthful country/topic targets; daily worker is launch-frozen and remains manually opt-in',()=>{
+test('editor shows 110-guide launch inventory and category mix; daily worker stays launch-frozen',()=>{
  const editor=readFileSync(new URL('../public/admin.html',import.meta.url),'utf8');
  const js=readFileSync(new URL('../public/admin.js',import.meta.url),'utf8');
  const workflow=readFileSync(new URL('../.github/workflows/daily-content.yml',import.meta.url),'utf8');
  const daily=readFileSync(new URL('../automation/daily.py',import.meta.url),'utf8');
  for(const id of ['sprint6-total','sprint6-matrix','launch-readiness-label','launch-readiness-progress','launch-readiness-detail'])assert.match(editor,new RegExp('id="'+id+'"'));
  assert.match(js,/topicCoverage/);
+ assert.match(editor,/Launch inventory · Southeast Asia/);
+ assert.match(editor,/110 published guides across 11 Southeast Asian countries/);
+ assert.match(editor,/Coverage mix · 11 countries/);
+ assert.doesNotMatch(editor,/Prelaunch content inventory/);
+ assert.doesNotMatch(editor,/33 useful published guides/);
+ assert.doesNotMatch(editor,/88/);
+ assert.match(js,/LAUNCH INVENTORY READY/);
+ assert.match(js,/countriesAtLaunchTarget/);
  assert.match(workflow,/TRIPCAUTION_AUTOMATION_ENABLED == 'true'/);
  assert.match(workflow,/TRIPCAUTION_CONTENT_PHASE/);
  assert.match(daily,/MAX_REVIEW_BACKLOG/);
