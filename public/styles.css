@@ -684,3 +684,35 @@ a.caution-topic:hover,a.caution-topic:focus-visible{border-color:#526d53;transfo
 .prose .article-inline-image{margin:30px 0 34px;}
 .prose .article-inline-image img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:4px;}
 @media(max-width:600px){.prose .article-inline-image{margin:24px 0 28px;}}
+
+
+/* Destination topic hubs: helpful browsing from published articles, not synthetic risk labels. */
+.destination-guides{padding-top:31px;}
+.destination-topic-nav{display:flex;align-items:center;flex-wrap:wrap;gap:9px;padding:16px 0 24px;
+ border-bottom:1px solid #d7ddd7;margin-bottom:25px;}
+.destination-topic-nav>strong{font-size:11px;letter-spacing:1px;text-transform:uppercase;
+ color:#44594a;margin-right:7px;}
+.destination-topic-nav a{display:inline-flex;align-items:center;gap:6px;border:1px solid #c5d1c6;
+ border-radius:25px;background:#f7f9f5;color:#243e32;font-size:12px;font-weight:700;padding:8px 13px;}
+.destination-topic-nav a:hover,.destination-topic-nav a:focus-visible{border-color:#567b64;background:#e4eee3;}
+.destination-topic-nav small{font-size:10px;color:#4b6553;}
+.destination-topic-section{scroll-margin-top:22px;}
+.destination-topic-section+.destination-topic-section{border-top:1px solid #d9e0d8;
+ padding-top:27px;margin-top:32px;}
+.destination-topic-heading{display:flex;gap:15px;justify-content:space-between;align-items:end;
+ margin-bottom:17px;}
+.destination-topic-heading h2{font:normal clamp(27px,3.2vw,38px)/1.18 'DM Serif Display',Georgia,serif;
+ letter-spacing:-.65px;margin:0 0 6px;}
+.destination-topic-heading p{font-size:12px;line-height:1.65;color:#586b5b;max-width:650px;margin:0;}
+.destination-topic-heading .topic-index-link{white-space:nowrap;font-weight:700;font-size:12px;
+ border-bottom:1px solid #76947d;padding-bottom:4px;}
+.destination-guides-note{font-size:12px;line-height:1.7;color:#5c6a5d;margin:25px 0 0;}
+@media(max-width:650px){
+ .destination-guides{padding-top:18px;}
+ .destination-topic-nav{padding:13px 0 18px;margin-bottom:20px;gap:7px;}
+ .destination-topic-nav>strong{width:100%;}
+ .destination-topic-nav a{font-size:11px;padding:7px 11px;}
+ .destination-topic-heading{align-items:start;flex-direction:column;gap:6px;}
+ .destination-topic-heading h2{font-size:28px;}
+ .destination-topic-section+.destination-topic-section{margin-top:25px;padding-top:24px;}
+}

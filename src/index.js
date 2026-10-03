@@ -14,6 +14,7 @@ import {assessAutoPublication} from './auto-publish.js';
 import {assessImportPublishingPlan} from './import-publishing.js';
 import {summarizeCountryTopicCounts,LAUNCH_COUNTRY_TARGET,LAUNCH_GUIDE_TARGET} from './coverage.js';
 import { articleStructuredData, isoDate, rasterImage, jsonLdTag, sitemapXML } from './seo.js';
+import {groupDestinationGuides,destinationHubDescription} from './destination-hubs.js';
 
 const json = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const esc = value => String(value??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -322,10 +323,20 @@ async function destinationPage(env,slug){
   articles=(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND lower(a.city)=? ORDER BY a.published_at DESC LIMIT 100").bind(city.name.toLowerCase()).all()).results;
  }
  const heading=city?.name||country;
- const body=`<main><div class="destination-hero"><div class="shell"><a class="backlink" href="/">← All destinations</a><div class="eyebrow">DESTINATION GUIDE / ${esc(country.toUpperCase())}${city?' / '+esc(city.name.toUpperCase()):''}</div><h1>${esc(heading)}<span class="title-star"> ✳</span></h1><p>What to know, what to double-check, and how to travel with more confidence.</p><span class="dest-count">${articles.length} RESEARCHED GUIDES</span></div></div><section class="section shell">
- ${articles.length?'<div class="guide-grid">'+articles.map(a=>articleCard(a)).join('')+'</div>':'<div class="empty-state"><span>✳</span><h3>Research in progress.</h3><p>We are building carefully sourced guides for this destination. No warnings are published until evidence is checked.</p></div>'}
- </section></main>`;
- return html(layout(env,heading+' travel precautions',body,{path:'/destinations/'+slug,description:'Travel precautions, cultural considerations and researched guides for '+heading+', '+country+'.',noindex:articles.length===0}));
+ const groups=groupDestinationGuides(articles);
+ const topicNav=groups.length?'<nav class="destination-topic-nav" aria-label="Jump to '+esc(heading)+' travel topics"><strong>Browse by topic</strong>'+
+  groups.map(group=>'<a href="#topic-'+esc(group.slug)+'">'+esc(group.title)+' <small>'+group.guides.length+'</small></a>').join('')+'</nav>':'';
+ const sections=groups.length?groups.map(group=>'<section class="destination-topic-section" aria-labelledby="topic-'+esc(group.slug)+'">'+
+  '<div class="destination-topic-heading"><div><h2 id="topic-'+esc(group.slug)+'">'+esc(group.title)+'</h2><p>'+esc(group.description)+'</p></div>'+
+  (group.slug==='other'?'':'<a class="topic-index-link" href="/cautions/'+esc(group.slug)+'">Explore this topic ↗</a>')+'</div>'+
+  '<div class="guide-grid">'+group.guides.map(article=>articleCard(article)).join('')+'</div></section>').join(''):
+  '<div class="empty-state"><span>✳</span><h3>Research in progress.</h3><p>We are building carefully sourced guides for this destination. No warnings are published until evidence is checked.</p></div>';
+ const body=`<main><div class="destination-hero"><div class="shell"><a class="backlink" href="/destinations">← All destinations</a><div class="eyebrow">DESTINATION GUIDE / ${esc(country.toUpperCase())}${city?' / '+esc(city.name.toUpperCase()):''}</div><h1>${esc(heading)}<span class="title-star"> ✳</span></h1><p>${esc(destinationHubDescription(heading,country,groups,articles.length))}</p><span class="dest-count">${articles.length} PUBLISHED ${articles.length===1?'GUIDE':'GUIDES'}</span></div></div><section class="section shell destination-guides">
+  ${topicNav}${sections}
+  ${articles.length?'<p class="destination-guides-note">Before traveling, verify important details with the linked original sources. A specific issue does not apply automatically to an entire country.</p>':''}
+  </section></main>`;
+ return html(layout(env,heading+' travel precautions',body,{path:'/destinations/'+slug,
+  description:destinationHubDescription(heading,country,groups,articles.length),noindex:articles.length===0}));
 }
 function renderGuideArticle(env,a,preview=false,related=[]){
  const parsedSources=safeParse(a.sources_json);

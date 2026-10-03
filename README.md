@@ -17,6 +17,7 @@ TripCaution is a Cloudflare Workers application with a GitHub Actions/Gemini res
 | Illustration workflow | Optional Gemini-generated 16:9 editorial thumbnails stored in Cloudflare R2, plus manual illustration URLs |
 | Safety | 12-hour HMAC-signed HttpOnly/Secure admin cookie, D1 login throttling, same-origin mutation checks, separate bot token, source gate, manual review and audit log |
 | SEO | Per-article titles, meta descriptions, canonical, social metadata, dynamic sitemap, source lists |
+| Destination discovery | Country hubs group existing published guides by problem category, with crawlable, contextual links and no invented countrywide risk ratings |
 
 **Launch geography:** The initial public inventory is focused on all eleven Southeast Asian countries. The launch baseline is **110 published guides — 10 per country**. Category coverage is diagnostic only; it is not a safety score or a quota that justifies weak content. Source URLs still need human verification: linked-source checks are safeguards, not proof that every assertion is true.\n\n**Images:** In-app AI image generation is disabled. Article hero and inline illustrations are created externally and uploaded as deterministic WebP files to R2. The launch audit checks all public article image objects.
 
