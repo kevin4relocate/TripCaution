@@ -35,10 +35,10 @@ test('reader-facing labels and low-contrast text were hardened',()=>{
 
 
 test('mobile destination directory keeps counts and research-only labels readable',()=>{
- assert.match(css,/\\.continent-nav a small \\{color:#79513c;font-size:12px;\\}/);
- assert.match(css,/\\.continent-count \\{ font-size:12px;letter-spacing:\\.8px;color:#56635a; \\}/);
- assert.match(css,/\\.directory-tile-meta\\{font-size:12px;white-space:nowrap;color:#4f6655;font-weight:700;\\}/);
- assert.match(css,/\\.destination-pending \\.destination-name\\{color:#56635a!important;\\}/);
- assert.match(css,/\\.destination-pending \\.directory-tile-meta\\{color:#5f675f;\\}/);
- assert.match(css,/\\.all-destination-section \\.directory-tile-meta\\{font-size:12px;\\}/);
+ assert.match(css,/\.continent-nav a small \{color:#79513c;font-size:12px;\}/);
+ assert.match(css,/\.continent-count \{ font-size:12px;letter-spacing:\.8px;color:#56635a; \}/);
+ assert.match(css,/\.directory-tile-meta\{font-size:12px;white-space:nowrap;color:#4f6655;font-weight:700;\}/);
+ assert.match(css,/\.destination-pending \.destination-name\{color:#56635a!important;\}/);
+ assert.match(css,/\.destination-pending \.directory-tile-meta\{color:#5f675f;\}/);
+ assert.match(css,/\.all-destination-section \.directory-tile-meta\{font-size:12px;\}/);
 });
