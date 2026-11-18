@@ -1,0 +1,30 @@
+name: Import seven Southeast Asia research briefs
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type IMPORT to seed seven unique private REVIEW drafts (never publish)"
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: tripcaution-gap-seeding
+  cancel-in-progress: false
+jobs:
+  seed:
+    if: ${{ github.ref == 'refs/heads/main' && inputs.confirmation == 'IMPORT' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate manuscripts without external credentials
+        run: python -m unittest discover -s tests_python -p 'test_prelaunch_gap_pack.py'
+      - name: Seed missing manuscripts into private Review only
+        env:
+          TRIPCAUTION_API_URL: ${{ vars.TRIPCAUTION_API_URL }}
+          TRIPCAUTION_INGEST_TOKEN: ${{ secrets.TRIPCAUTION_INGEST_TOKEN }}
+        run: python automation/import_review_pack.py

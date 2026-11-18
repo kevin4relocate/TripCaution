@@ -1,0 +1,22 @@
+name: Import TripCaution starter guides
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tripcaution-starter-import
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Import the three researched guides as review drafts
+        env:
+          TRIPCAUTION_API_URL: ${{ vars.TRIPCAUTION_API_URL }}
+          TRIPCAUTION_INGEST_TOKEN: ${{ secrets.TRIPCAUTION_INGEST_TOKEN }}
+        run: python automation/import_starter.py

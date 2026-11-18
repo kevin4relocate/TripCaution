@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<title>Private editorial login — TripCaution</title>
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/sign-in.css">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+</head>
+<body class="login-body">
+<header class="login-header"><a class="login-brand" href="/"><span class="brand-mark">!</span>TRIP<span>CAUTION</span></a><a href="/" class="login-back">← View public website</a></header>
+<main class="login-wrap">
+ <div class="login-art" aria-hidden="true"><div class="login-art-inner"><img src="/illustrations/travel-journal.svg" alt="" width="720" height="440"><span>PRIVATE / EDITORIAL DESK</span></div></div>
+ <section class="login-panel">
+  <div class="login-eyebrow">✳  TRIPCAUTION / EDITORIAL</div>
+  <h1>Welcome back, <em>editor.</em></h1>
+  <p>Enter your private admin key to manage guides and your publishing queue.</p>
+  <form id="login-form" novalidate>
+   <label for="admin-key">Your private admin key</label>
+   <div class="key-field"><input id="admin-key" name="key" type="password" autocomplete="current-password" required minlength="32" maxlength="512" placeholder="Enter your key" spellcheck="false" autofocus><button id="toggle-key" type="button" aria-label="Show admin key" aria-pressed="false">Show</button></div>
+   <button id="login-submit" class="login-submit" type="submit">Unlock dashboard <span aria-hidden="true">↗</span></button>
+   <p role="status" aria-live="polite" class="login-feedback" id="login-feedback"></p>
+  </form>
+  <div class="login-foot"><span>PRIVATE ACCESS</span><span>12-hour session · Secure cookie</span></div>
+ </section>
+</main>
+<script src="/sign-in.js" defer></script>
+</body>
+</html>

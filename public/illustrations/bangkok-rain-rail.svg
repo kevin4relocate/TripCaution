@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="t d">
+<title id="t">An elevated Bangkok airport rail journey in rain-washed colors</title><desc id="d">AI-authored editorial illustration. Not a photograph.</desc>
+<defs>
+ <linearGradient id="paper" x2=".8" y2="1"><stop stop-color="#e6e5d9"/><stop offset="1" stop-color="#bfd0c6"/></linearGradient>
+ <linearGradient id="sky" x2=".6" y2="1"><stop stop-color="#e6e5d9"/><stop offset="1" stop-color="#dadfd6"/></linearGradient>
+ <filter id="water"><feTurbulence baseFrequency=".012" numOctaves="3" seed="13" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.3"/></filter>
+ <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".52" numOctaves="3" seed="23" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".11"/></feComponentTransfer></filter>
+</defs>
+<rect width="1200" height="675" fill="url(#paper)"/>
+<rect width="1200" height="675" fill="url(#sky)" opacity=".6"/>
+
+<circle cx="897" cy="123" r="81" fill="#e8c998" opacity=".65"/>
+<g fill="#ccd1c3" stroke="#a0b3a9" stroke-width="3" filter="url(#water)">
+<path d="M0 310l81-53 77 55v206H0Z"/><path d="M182 272h101v246H182Z"/><path d="M320 320h107V515H320Z"/><path d="M477 275h105v236H477Z"/><path d="M628 328h112V520H628Z"/><path d="M858 280h100v226H858Z"/><path d="M996 325h153v191H996Z"/>
+</g>
+<g fill="#abc0b5" opacity=".67"><rect x="202" y="308" width="12" height="27"/><rect x="234" y="308" width="12" height="27"/><rect x="268" y="308" width="12" height="27"/><rect x="500" y="311" width="15" height="23"/><rect x="541" y="311" width="15" height="23"/><rect x="871" y="308" width="13" height="24"/><rect x="921" y="308" width="13" height="24"/></g>
+<path d="M0 511Q192 490 377 510T770 501Q992 485 1200 508V675H0Z" fill="#b9bdb0"/>
+<path d="M0 596l1200-37v116H0Z" fill="#d8d6c7"/>
+<path d="M0 373C220 365 462 386 703 360S1045 372 1200 355" stroke="#7d988f" stroke-width="22" fill="none" opacity=".75"/>
+<path d="M0 370C220 362 462 383 703 357S1045 369 1200 352" stroke="#61786f" stroke-width="8" fill="none"/>
+<path d="M0 393C220 385 462 405 703 379S1045 390 1200 376" stroke="#d5c8af" stroke-width="4" fill="none"/>
+<g stroke="#687d70" stroke-width="5" filter="url(#water)">
+<path d="M136 411V564M336 420V582M579 409V564M822 400V573M1067 400V570" stroke-width="17" opacity=".73"/>
+<!-- elevated train -->
+<path d="M215 283q0-28 31-31l658-5q37 1 50 31l23 81q0 20-29 22l-681 11q-35 0-46-23Z" fill="#f2edda" stroke="#5d7a75"/>
+<path d="M263 269h170v71H252Z" fill="#a1b7b5"/><path d="M457 265h155v71H457Z" fill="#a1b7b5"/><path d="M635 265h159v70H635Z" fill="#a1b7b5"/><path d="M817 265l90 1 34 70H817Z" fill="#a1b7b5"/>
+<path d="M237 356l717-6" stroke="#b47c62" stroke-width="12"/>
+</g>
+<g stroke="#a1b5b1" opacity=".7" stroke-width="3" stroke-linecap="round"><path d="M105 87l-28 62M231 72l-27 63M353 86l-25 58M524 54l-22 67M678 80l-26 55M773 54l-24 61M984 59l-30 62M1097 100l-27 58M1184 80l-30 70"/></g>
+<path d="M0 636Q278 616 472 631T910 617Q1060 617 1200 621" stroke="#90a9a4" stroke-width="6" fill="none" opacity=".6"/>
+
+<rect width="1200" height="675" filter="url(#grain)" opacity=".4"/>
+</svg>

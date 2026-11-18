@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="t d">
+<title id="t">A calm Vietnamese city street with an editorial taxi</title><desc id="d">AI-authored editorial illustration. Not a photograph.</desc>
+<defs>
+ <linearGradient id="paper" x2=".8" y2="1"><stop stop-color="#f7e9ce"/><stop offset="1" stop-color="#d9dcc5"/></linearGradient>
+ <linearGradient id="sky" x2=".6" y2="1"><stop stop-color="#f7e9ce"/><stop offset="1" stop-color="#f6dfbf"/></linearGradient>
+ <filter id="water"><feTurbulence baseFrequency=".012" numOctaves="3" seed="13" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.3"/></filter>
+ <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".52" numOctaves="3" seed="23" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".11"/></feComponentTransfer></filter>
+</defs>
+<rect width="1200" height="675" fill="url(#paper)"/>
+<rect width="1200" height="675" fill="url(#sky)" opacity=".6"/>
+
+<circle cx="916" cy="145" r="86" fill="#e8c48c" opacity=".7"/>
+<path d="M0 401Q236 365 443 390T886 373Q1046 368 1200 390V675H0Z" fill="#d9dfc7"/>
+<path d="M0 477Q174 423 407 442Q634 410 821 449T1200 448V675H0Z" fill="#aebea6" opacity=".75"/>
+<path d="M0 482L1200 493V675H0Z" fill="#ddcfb9" opacity=".85"/>
+<path d="M0 575Q268 555 447 583T905 582L1200 555V675H0Z" fill="#acb6a1" opacity=".75"/>
+<g stroke="#7c8370" stroke-linejoin="round" stroke-width="4" filter="url(#water)">
+<path d="M47 304l103-75 118 76v207H47Z" fill="#d8b99a"/><path d="M21 309l126-100 137 102-16 19-118-86-103 88Z" fill="#bd866e"/>
+<path d="M303 350l122-74 140 75v171H303Z" fill="#e7caa7"/><path d="M280 352l145-94 152 91-14 22-139-82-121 82Z" fill="#9c9f83"/>
+<path d="M769 335l111-90 154 83v201H769Z" fill="#ddbc9a"/><path d="M746 339l132-115 177 109-22 22-153-95-117 100Z" fill="#a87765"/>
+</g>
+<g stroke="#728779" stroke-width="3" fill="#9eb19a"><rect x="94" y="359" width="48" height="68" rx="19"/><rect x="182" y="354" width="51" height="68" rx="19"/><rect x="354" y="389" width="58" height="59" rx="16"/><rect x="466" y="389" width="62" height="59" rx="16"/><rect x="813" y="388" width="57" height="65" rx="19"/><rect x="946" y="382" width="57" height="63" rx="19"/></g>
+<g stroke="#607969" stroke-width="10" stroke-linecap="round"><path d="M681 511V254M699 332l-62-65M688 351l70-76M1110 532l-8-305M1108 318l-72-67"/></g>
+<g fill="#779a7e" opacity=".85" filter="url(#water)"><ellipse cx="683" cy="241" rx="65" ry="46"/><ellipse cx="626" cy="281" rx="49" ry="43"/><ellipse cx="739" cy="282" rx="53" ry="42"/><ellipse cx="1095" cy="220" rx="74" ry="51"/><ellipse cx="1035" cy="274" rx="39" ry="42"/><ellipse cx="1152" cy="256" rx="54" ry="44"/></g>
+<!-- taxi with no operator branding -->
+<g stroke="#4c6a5e" stroke-width="5" stroke-linejoin="round" filter="url(#water)">
+<path d="M220 472h359l47 59v61H172v-59Z" fill="#d4e2cf"/>
+<path d="M289 467l64-70h139l68 70Z" fill="#f4edcf"/>
+<path d="M355 411h61v50h-108ZM428 410h60l53 51h-113Z" fill="#a4bdc0" stroke-width="3"/>
+<rect x="184" y="531" width="429" height="18" rx="6" fill="#8eae97"/>
+<circle cx="261" cy="586" r="37" fill="#4e615b"/><circle cx="530" cy="586" r="37" fill="#4e615b"/>
+<circle cx="261" cy="586" r="14" fill="#ebeadb"/><circle cx="530" cy="586" r="14" fill="#ebeadb"/>
+<path d="M390 392h47v15h-47Z" fill="#e6d0a5"/><rect x="184" y="507" width="34" height="16" rx="4" fill="#e8c49b"/><rect x="583" y="506" width="26" height="16" rx="4" fill="#df9e83"/>
+</g>
+<g stroke="#776b62" stroke-width="5" fill="none"><path d="M923 509l-3 75m-30-71l60 0"/></g><rect x="899" y="485" width="45" height="32" rx="5" fill="#a17f6c"/><rect x="886" y="576" width="78" height="9" rx="3" fill="#a17f6c"/>
+<path d="M0 644Q270 621 540 643T1200 644" stroke="#f2e3cb" stroke-width="10" fill="none" opacity=".75"/>
+
+<rect width="1200" height="675" filter="url(#grain)" opacity=".4"/>
+</svg>

@@ -1,0 +1,44 @@
+name: TripCaution daily research
+on:
+  workflow_dispatch:
+  schedule:
+    # 02:17 Singapore time (18:17 UTC previous day).
+    - cron: '17 18 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: tripcaution-daily-editorial
+  cancel-in-progress: false
+jobs:
+  create-article:
+    # Launch freeze: scheduled runs intentionally do not create or publish content.
+    # A deliberate workflow_dispatch can still run research when the repository variable is enabled.
+    if: ${{ github.event_name == 'workflow_dispatch' && vars.TRIPCAUTION_AUTOMATION_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Diagnose API connectivity without exposing any secrets
+        env:
+          TRIPCAUTION_API_URL: ${{ vars.TRIPCAUTION_API_URL }}
+          TRIPCAUTION_INGEST_TOKEN: ${{ secrets.TRIPCAUTION_INGEST_TOKEN }}
+        run: python scripts/diagnose-ingest.py
+      - name: Generate up to three independently researched articles
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          TRIPCAUTION_RESEARCH_MODE: ${{ vars.TRIPCAUTION_RESEARCH_MODE }}
+          TRIPCAUTION_CONTENT_PHASE: ${{ vars.TRIPCAUTION_CONTENT_PHASE || '1' }}
+          # Keep manual research fail-closed during launch freeze; generated material enters Review.
+          TRIPCAUTION_AUTO_PUBLISH_ENABLED: 'false'
+          TRIPCAUTION_DAILY_TARGET: ${{ vars.TRIPCAUTION_DAILY_TARGET || '3' }}
+          TRIPCAUTION_MAX_DAILY_ATTEMPTS: ${{ vars.TRIPCAUTION_MAX_DAILY_ATTEMPTS || '6' }}
+          TRIPCAUTION_COMMUNITY_RESEARCH: ${{ vars.TRIPCAUTION_COMMUNITY_RESEARCH || 'true' }}
+          TRIPCAUTION_API_URL: ${{ vars.TRIPCAUTION_API_URL }}
+          TRIPCAUTION_INGEST_TOKEN: ${{ secrets.TRIPCAUTION_INGEST_TOKEN }}
+        run: python automation/daily.py
