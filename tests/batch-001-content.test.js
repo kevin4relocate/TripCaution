@@ -49,3 +49,12 @@ test('all 200 reference-style prompts are synchronized across article, manifest 
   assert.ok(hero.caption && inline.caption);
  }
 });
+
+test('prompts stay self-contained under 1600 characters and articles.json stays GitHub-readable',()=>{
+ const raw=readFileSync(new URL('../content/batch-001/articles.json',import.meta.url));
+ assert.ok(raw.length<1000000,'JSON file must remain below the GitHub 1 MB contents API threshold');
+ for(const x of manifest.images){
+  assert.ok(x.prompt.length<=1600, 'Image '+x.number+' prompt too long');
+  assert.ok(x.prompt.includes('gouache and ink-wash'), 'Style missing');
+ }
+});

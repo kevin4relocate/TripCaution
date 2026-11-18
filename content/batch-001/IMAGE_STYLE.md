@@ -4,7 +4,9 @@ All **200 image prompts** in `image-manifest.csv`, `image-manifest.json`, and th
 
 ## Mandatory style prefix
 
-> Moody editorial travel-safety illustration in the TripCaution reference style: semi-realistic hand-painted digital gouache and ink-wash, confident charcoal keylines, layered matte brushwork, atmospheric cinematic lighting, slightly distressed off-white paper texture. Restrained cool slate-blue, steel gray, near-black and deep midnight navy; small muted brick-red caution accents and selective warm amber light. An irregular dark illustrated scene framed by off-white paper margins, sharp layered angular navy/red chevrons and broken directional warning motifs around the edges, like a striking graphic-novel editorial print. Adult travelers with believable human anatomy and expressive but understated faces, strong readable environmental storytelling. Stylized painting, not a photograph, not flat vector, not anime, not cute cartoon, not glossy 3D.
+> Moody editorial travel-safety illustration in the TripCaution reference style: semi-realistic hand-painted gouache and ink-wash with charcoal outlines, matte pigments and distressed off-white paper texture. Cinematic slate-blue, charcoal and midnight-navy shadows, muted brick-red accents and warm amber highlights; a dark central illustrated scene with irregular painted edges and angular navy/red chevrons across the paper margins. Believable stylized adult figures, expressive but restrained gestures; not a photo, 3D, anime or flat vector.
+
+Every individual hero and inline prompt embeds this complete prefix and stays below 1,600 characters for convenient image-tool use.
 
 ## Composition
 
