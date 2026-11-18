@@ -21,3 +21,7 @@ Each article references `/media/editorial/<slug>.webp` (hero) and `/media/editor
 5. Import approved articles to private Review and schedule **one** for each date. The dates in JSON do not automatically schedule/publicly release anything.
 
 The current website's existing Markdown renderer supports alt on inline images; the proposed individual captions are also stored in this manifest. A separate CMS/rendering change is required for structured per-image `figcaption` in the live site rather than a textual caption underneath the inline image.
+
+### Reference-locked image style
+
+All 200 image prompts now use the moody cinematic ink-and-gouache TripCaution travel-caution illustration style (slate-blue/navy, muted red warning-chevron accents, off-white paper borders). The two images for each article use different narrative framings. See [IMAGE_STYLE.md](IMAGE_STYLE.md). Slot numbers, filenames, R2 destinations, SEO captions and publishing dates remain unchanged.

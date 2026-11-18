@@ -28,3 +28,24 @@ test('exactly one planned publishing slot per day',()=>{
  for(let i=0;i<batch.articles.length;i++)
   assert.equal(batch.articles[i].planned_publish_at,new Date(Date.UTC(2026,10,20,1)+86400000*i).toISOString());
 });
+
+test('all 200 reference-style prompts are synchronized across article, manifest and CSV',()=>{
+ const style='Moody editorial travel-safety illustration in the TripCaution reference style:';
+ const csv=readFileSync(new URL('../content/batch-001/image-manifest.csv',import.meta.url),'utf8');
+ const names=['number','article_number','upload_filename','target_filename','r2_key','public_path','role','country','title','alt','caption','prompt'];
+ const encode=value=>'"'+String(value??'').replaceAll('"','""')+'"';
+ const reconstructed=names.join(',')+'\n'+manifest.images.map(row=>names.map(name=>encode(row[name])).join(',')).join('\n')+'\n';
+ assert.equal(csv,reconstructed);
+ for(let i=0;i<100;i++){
+  const a=batch.articles[i],hero=manifest.images[i*2],inline=manifest.images[i*2+1];
+  assert.ok(a.hero_prompt.startsWith(style));
+  assert.equal(a.hero_prompt,hero.prompt);
+  assert.ok(inline.prompt.startsWith(style));
+  assert.match(hero.prompt,/angular navy\/red chevrons/);
+  assert.match(inline.prompt,/INLINE \/ SUPPORTING SCENE/);
+  assert.ok(!/watercolor/i.test(hero.prompt+inline.prompt));
+  assert.equal(a.hero_alt,hero.alt);
+  assert.equal(a.image_metadata.inline_alt,inline.alt);
+  assert.ok(hero.caption && inline.caption);
+ }
+});
