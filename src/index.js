@@ -5,6 +5,7 @@ import {
   requireKeySession, checkLoginThrottle, recordLoginFailure
 } from './auth.js';
 import { normalizeArticle, normalizeMediaURL, STATUSES, CATEGORIES, isValidSchedule, slugify } from './content.js';
+import {githubGuides,githubArticle,mergeGuides,githubTopicCounts} from './github-articles.js';
 import { STARTER_DESTINATIONS, SOUTHEAST_ASIA_COUNTRIES, CONTINENT_COUNTRIES, isSoutheastAsia, groupDestinationsByContinent } from './destinations.js';
 import { renderArticleMarkdown, editorialQuickTakes } from './article-content.js';
 import { CAUTION_TOPICS, cautionTopic, cautionTopicForCategory } from './cautions.js';
@@ -76,7 +77,7 @@ function articleCard(a,variant='standard') {
  const categoryClass=topic?' category-'+topic.slug:' category-general';
  const cls=(variant==='lead'?' guide-card-lead':variant==='side'?' guide-card-side':'')+categoryClass;
  const level=isRatedCaution(a.caution_level)?cautionLevel(a.caution_level):null;
- const autoDisclosure=a.status==='published'&&['github-automation','owner-import'].includes(a.source_mode)&&Number(a.review_approved)===0?'<span class="auto-research-label">Imported content · Not reviewed in Dashboard</span>':'';
+ const autoDisclosure=a.status==='published'&&['github-automation','owner-import','github-scheduled'].includes(a.source_mode)&&Number(a.review_approved)===0?'<span class="auto-research-label">'+(a.source_mode==='github-scheduled'?'Scheduled research · Sources require verification':'Imported content · Not reviewed in Dashboard')+'</span>':'';
  const badge=level&&a.severity_scope?.length>=12&&a.severity_rationale?.length>=40?'<span class="impact-pill impact-'+level.id+'">'+esc(level.label)+'</span>':'';
  return `<article class="guide-card${cls}"><a class="card-visual" href="${path}" aria-label="Read ${esc(a.title)} — ${category}">
  ${safeMedia(a.hero_image_url)?'<img loading="lazy" decoding="async" fetchpriority="low" width="640" height="360" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
@@ -110,6 +111,15 @@ async function homepage(env){
   ]);
   latest=a.results;countryRows=c.results;categoryRows=topics.results||[];count=n?.count||0;
  }
+ const released=githubGuides();
+ latest=mergeGuides(latest,released,12);
+ const countryCount=new Map(countryRows.map(row=>[row.country,Number(row.total)||0]));
+ for(const a of released)countryCount.set(a.country,(countryCount.get(a.country)||0)+1);
+ countryRows=[...countryCount].map(([country,total])=>({country,total}));
+ const categoryCount=new Map(categoryRows.map(row=>[row.category_id,Number(row.total)||0]));
+ for(const a of released)categoryCount.set(a.category_id,(categoryCount.get(a.category_id)||0)+1);
+ categoryRows=[...categoryCount].map(([category_id,total])=>({category_id,total}));
+ count+=released.length;
  const publishedCountries=countryRows.filter(row=>row.country && Number(row.total)>0);
  const feature=latest.slice(0,3);
  const additional=latest.slice(3,12);
@@ -185,9 +195,13 @@ async function homepage(env){
 // Worldwide issue discovery is always based on actually published records.
 // Never imply an issue is documented in a country until a reviewed guide exists.
 async function publishedTopicCounts(env){
- if(!env.DB)return new Map();
- const rows=await env.DB.prepare("SELECT category_id,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY category_id").all();
- return new Map((rows.results||[]).map(row=>[row.category_id,Number(row.total)||0]));
+ const counts=new Map();
+ if(env.DB){
+  const rows=await env.DB.prepare("SELECT category_id,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY category_id").all();
+  for(const row of rows.results||[])counts.set(row.category_id,Number(row.total)||0);
+ }
+ for(const [id,n] of githubTopicCounts())counts.set(id,(counts.get(id)||0)+n);
+ return counts;
 }
 function impactLegend(){
  return '<aside class="impact-legend" aria-label="How impact labels work"><strong>Impact levels explain consequences if a specific problem happens—not the likelihood or the safety of a country.</strong>'+
@@ -220,6 +234,8 @@ async function cautionTopicPage(env,topic,url){
   const countryResults=await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now') AND category_id IN ("+ph+") ORDER BY country COLLATE NOCASE ASC").bind(...ids).all();
   countries=(countryResults.results||[]).map(row=>row.country).filter(Boolean);
  }
+ for(const item of githubGuides())if(ids.includes(item.category_id)&&!countries.includes(item.country))countries.push(item.country);
+ countries.sort((a,b)=>a.localeCompare(b));
  const requested=String(url.searchParams.get('country')||'').trim().slice(0,90);
  // Never use arbitrary, unverified country labels in page headings or SQL filters.
  selectedCountry=countries.find(name=>name.toLocaleLowerCase('en')===requested.toLocaleLowerCase('en'))||'';
@@ -227,7 +243,9 @@ async function cautionTopicPage(env,topic,url){
  const selectedLevel=CAUTION_LEVELS.some(x=>x.id===requestedLevel&&x.id!=='unassessed')?requestedLevel:'';
  const conditions=(selectedCountry?' AND a.country=?':'')+(selectedLevel?' AND a.caution_level=?':'');
  const args=[...ids,...(selectedCountry?[selectedCountry]:[]),...(selectedLevel?[selectedLevel]:[])];
- const rows=env.DB?(await env.DB.prepare("SELECT a.*,c.name category_name"+sql+conditions+" ORDER BY a.published_at DESC,a.id DESC LIMIT 40").bind(...args).all()).results||[]:[];
+ let rows=env.DB?(await env.DB.prepare("SELECT a.*,c.name category_name"+sql+conditions+" ORDER BY a.published_at DESC,a.id DESC LIMIT 40").bind(...args).all()).results||[]:[];
+ rows=mergeGuides(rows,githubGuides().filter(a=>ids.includes(a.category_id)&&
+   (!selectedCountry||a.country===selectedCountry)&&(!selectedLevel||a.caution_level===selectedLevel)),40);
  const countryOptions=countries.map(name=>'<option value="'+esc(name)+'"'+(name===selectedCountry?' selected':'')+'>'+esc(name)+'</option>').join('');
  const levelOptions=CAUTION_LEVELS.filter(item=>item.id!=='unassessed')
   .map(item=>'<option value="'+item.id+'"'+(item.id===selectedLevel?' selected':'')+'>'+esc(item.label)+'</option>').join('');
@@ -248,7 +266,10 @@ async function cautionTopicPage(env,topic,url){
  }));
 }
 async function southeastAsiaPage(env){
- const rows=env.DB?(await env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country").all()).results:[];
+ let rows=env.DB?(await env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country").all()).results:[];
+ const totals=new Map(rows.map(row=>[row.country,Number(row.total)||0]));
+ for(const a of githubGuides())totals.set(a.country,(totals.get(a.country)||0)+1);
+ rows=[...totals].map(([country,total])=>({country,total}));
  const regionalRows=rows.filter(row=>isSoutheastAsia(row.country)&&Number(row.total)>0);
  const publishedCount=regionalRows.reduce((sum,row)=>sum+Number(row.total),0);
  let articles=[];
@@ -257,6 +278,7 @@ async function southeastAsiaPage(env){
   articles=(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND a.country IN ("+placeholders+") ORDER BY a.published_at DESC LIMIT 6")
    .bind(...SOUTHEAST_ASIA_COUNTRIES).all()).results;
  }
+ articles=mergeGuides(articles,githubGuides().filter(a=>isSoutheastAsia(a.country)),6);
  const body=`<main><section class="destination-hero sea-hub-hero"><div class="shell">
   <a class="backlink" href="/">← Back to TripCaution</a>
   <div class="eyebrow">REGIONAL GUIDE / ALL 11 COUNTRIES</div>
@@ -277,7 +299,10 @@ async function southeastAsiaPage(env){
  }),200,{'cache-control':'public, max-age=60'});
 }
 async function destinationIndexPage(env){
- const rows=env.DB?(await env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country ORDER BY country COLLATE NOCASE ASC LIMIT 250").all()).results:[];
+ let rows=env.DB?(await env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country ORDER BY country COLLATE NOCASE ASC LIMIT 250").all()).results:[];
+ const totals=new Map(rows.map(row=>[row.country,Number(row.total)||0]));
+ for(const a of githubGuides())totals.set(a.country,(totals.get(a.country)||0)+1);
+ rows=[...totals].map(([country,total])=>({country,total}));
  const countByCountry=new Map(rows.map(row=>[row.country.toLocaleLowerCase('en'),Number(row.total)]));
  // The platform is worldwide; unpublished countries are plain research-planned tiles.
  // Southeast Asia remains the content priority, not a catalog constraint.
@@ -316,11 +341,13 @@ async function destinationPage(env,slug){
  const common={'vietnam':'Vietnam','cambodia':'Cambodia','thailand':'Thailand','laos':'Laos','japan':'Japan','singapore':'Singapore','france':'France','indonesia':'Indonesia','malaysia':'Malaysia','italy':'Italy','spain':'Spain','united-states':'United States'};
  const cityMap={'bangkok':{name:'Bangkok',country:'Thailand'}};
  const city=cityMap[slug]||null;
- const country=common[slug]||city?.country||all.results[0]?.country;
+ const released=githubGuides().filter(a=>slugify(a.country)===slug);
+ const country=common[slug]||city?.country||all.results[0]?.country||released[0]?.country;
  if(!country)return html(layout(env,'Destination not found','<main class="shell simple"><h1>We could not find that destination.</h1><a href="/">Explore destinations ↗</a></main>',{noindex:true}),404,{'cache-control':'no-store','x-robots-tag':'noindex'});
- let articles=all.results;
+ let articles=mergeGuides(all.results,released,100);
  if(city && env.DB) {
-  articles=(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND lower(a.city)=? ORDER BY a.published_at DESC LIMIT 100").bind(city.name.toLowerCase()).all()).results;
+  const dbCity=(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND lower(a.city)=? ORDER BY a.published_at DESC LIMIT 100").bind(city.name.toLowerCase()).all()).results;
+  articles=mergeGuides(dbCity,githubGuides().filter(a=>a.city?.toLowerCase()===city.name.toLowerCase()),100);
  }
  const heading=city?.name||country;
  const groups=groupDestinationGuides(articles);
@@ -350,7 +377,7 @@ function renderGuideArticle(env,a,preview=false,related=[]){
   '<div class="impact-panel-head"><strong>Potential impact · '+esc(rating.label)+'</strong><span>For this situation only</span></div>'+
   '<p><strong>When this applies:</strong> '+esc(a.severity_scope)+'</p><p><strong>Why this level:</strong> '+esc(a.severity_rationale)+'</p>'+
   '<small>Impact if this problem occurs—not its likelihood, a live alert, or a safety rating for the country. Consult linked sources for changes.</small></section>':'';
- const autoDisclosure=a.status==='published'&&['github-automation','owner-import'].includes(a.source_mode)&&Number(a.review_approved)===0?'<p class="auto-research-notice"><strong>Imported content · Not yet reviewed in Dashboard.</strong> This article was published from a research package and has not been marked reviewed in the Dashboard. Automated research links may have been excerpt-checked, while owner-imported packages may have been checked locally. Verify original sources, especially before important travel decisions.</p>':'';
+ const autoDisclosure=a.status==='published'&&['github-automation','owner-import','github-scheduled'].includes(a.source_mode)&&Number(a.review_approved)===0?'<p class="auto-research-notice"><strong>Research-first guide · Not independently verified.</strong> This page was published from a research package without an individual Dashboard review, and important claims still require checking against original sources. Automated research links may have been excerpt-checked, while owner-imported packages may have been checked locally. Verify original sources, especially before important travel decisions.</p>':'';
  const takes=editorialQuickTakes(a.content_markdown);
  const tocHTML=rendered.headings.length>=2?'<details class="article-toc" data-article-toc open><summary>In this guide <span aria-hidden="true">⌄</span></summary><nav aria-label="On this page"><ol>'+
   rendered.headings.map(h=>'<li class="toc-level-'+h.level+'"><a href="#'+esc(h.id)+'">'+esc(h.label)+'</a></li>').join('')+
@@ -379,7 +406,7 @@ function renderGuideArticle(env,a,preview=false,related=[]){
  return html(page,200,preview?{'cache-control':'private, no-store','x-robots-tag':'noindex, nofollow, noarchive','referrer-policy':'no-referrer','x-frame-options':'DENY'}:{'cache-control':'public, max-age=60'});
 }
 async function relatedPublishedGuides(env,a){
- if(!env.DB)return [];
+ if(!env.DB)return githubGuides().filter(other=>other.slug!==a.slug&&(other.country===a.country||other.category_id===a.category_id)).slice(0,3);
  const regional=isSoutheastAsia(a.country)?1:0;
  const regionSlots=SOUTHEAST_ASIA_COUNTRIES.map(()=>'?').join(',');
  // Region-first applies only as a tie-break among relevant, published guides.
@@ -389,10 +416,11 @@ async function relatedPublishedGuides(env,a){
   ORDER BY CASE WHEN a.country=? THEN 0 WHEN ?=1 AND a.country IN (${regionSlots}) THEN 1 ELSE 2 END,
    a.published_at DESC,a.id DESC LIMIT 3`)
   .bind(a.id,a.country,a.category_id,a.country,regional,...SOUTHEAST_ASIA_COUNTRIES).all();
- return rows.results||[];
+ return mergeGuides(rows.results||[],githubGuides().filter(other=>other.slug!==a.slug&&(other.country===a.country||other.category_id===a.category_id)),3);
 }
 async function guidePage(env,slug){
- const a=env.DB?await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.slug=? AND a.status='published' AND a.published_at<=datetime('now') LIMIT 1").bind(slug).first():null;
+ const stored=env.DB?await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.slug=? AND a.status='published' AND a.published_at<=datetime('now') LIMIT 1").bind(slug).first():null;
+ const a=stored||await githubArticle(env,slug);
  if(!a)return html(layout(env,'Guide unavailable','<main class="shell simple"><h1>Guide not found.</h1><a href="/">Browse destinations ↗</a></main>',{noindex:true}),404,{'cache-control':'no-store','x-robots-tag':'noindex'});
  // Related links are limited to already-public guides. Never expose draft metadata.
  const related=await relatedPublishedGuides(env,a);
@@ -437,7 +465,8 @@ function staticPage(env,type){
 }
 async function searchPage(env,url){
  const q=String(url.searchParams.get('q')||'').slice(0,80).trim();
- const countryRows=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+ let countryRows=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+ for(const country of githubGuides().map(x=>x.country))if(!countryRows.some(r=>r.country===country))countryRows.push({country});
  const ready=new Set(countryRows.map(row=>String(row.country).toLocaleLowerCase('en')));
  const countries=[...new Set([...STARTER_DESTINATIONS,...countryRows.map(row=>row.country)].filter(Boolean))];
  const exactCountry=countries.find(country=>country.toLocaleLowerCase('en')===q.toLocaleLowerCase('en'));
@@ -447,7 +476,11 @@ async function searchPage(env,url){
  const matches=q?countries.filter(country=>country.toLocaleLowerCase('en').includes(q.toLocaleLowerCase('en'))).slice(0,12):[];
  // ESCAPE literal LIKE wildcards; searching "%" must not reveal the entire index.
  const pattern='%'+q.replace(/[!%_]/g,char=>'!'+char)+'%';
- const rows=q&&env.DB?(await env.DB.prepare("SELECT * FROM articles WHERE status='published' AND published_at<=datetime('now') AND (title LIKE ? ESCAPE '!' OR country LIKE ? ESCAPE '!' OR city LIKE ? ESCAPE '!' OR excerpt LIKE ? ESCAPE '!') ORDER BY published_at DESC LIMIT 30").bind(...Array(4).fill(pattern)).all()).results:[];
+ let rows=q&&env.DB?(await env.DB.prepare("SELECT * FROM articles WHERE status='published' AND published_at<=datetime('now') AND (title LIKE ? ESCAPE '!' OR country LIKE ? ESCAPE '!' OR city LIKE ? ESCAPE '!' OR excerpt LIKE ? ESCAPE '!') ORDER BY published_at DESC LIMIT 30").bind(...Array(4).fill(pattern)).all()).results:[];
+ if(q){
+  const term=q.toLowerCase();
+  rows=mergeGuides(rows,githubGuides().filter(a=>[a.title,a.country,a.city,a.excerpt].some(v=>String(v||'').toLowerCase().includes(term))),30);
+ }
  // City route currently exists for Bangkok only; add new city routes explicitly
  // alongside their destination resolver rather than creating dead-end links.
  if(q.toLocaleLowerCase('en')==='bangkok'&&rows.some(row=>String(row.city||'').toLocaleLowerCase('en')==='bangkok'))
@@ -1084,6 +1117,8 @@ export default {
    }
    if(path.startsWith('/api/'))return await api(request,env,url);
    if(path.startsWith('/media/'))return await media(env,path.slice(7));
+   // The JSON file backs rendered guide pages; do not expose a duplicate raw URL.
+   if(path.startsWith('/releases/'))return new Response('Not found',{status:404,headers:{'x-robots-tag':'noindex','cache-control':'no-store'}});
    if(path==='/')return await homepage(env);
    if(path==='/about'||path==='/privacy'||path==='/contact')return staticPage(env,path.slice(1));
    if(path==='/search')return await searchPage(env,url);
@@ -1104,14 +1139,18 @@ export default {
     catch {return json({status:'not-ready',database:'schema-missing'},503);}
    }
    if(path==='/robots.txt'){
-    return new Response('User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /sign-in\nDisallow: /api/\nSitemap: '+siteURL(env)+'/sitemap.xml\n',
+    return new Response('User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /sign-in\nDisallow: /api/\nDisallow: /releases/\nSitemap: '+siteURL(env)+'/sitemap.xml\n',
       {headers:{'content-type':'text/plain; charset=utf-8','cache-control':'public, max-age=300','x-content-type-options':'nosniff'}});
    }
    if(path==='/sitemap.xml'){
-    const rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at,published_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
-    const countries=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+    let rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at,published_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
+    let countries=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+    const additional=githubGuides();
+    rows=[...new Map([...rows,...additional.map(a=>({slug:a.slug,published_at:a.published_at,updated_at:a.updated_at}))].map(a=>[a.slug,a])).values()];
+    countries=[...new Map([...countries,...additional.map(a=>({country:a.country}))].map(a=>[a.country,a])).values()];
     const hasContact=Boolean(editorialEmail(env))&&env.EDITORIAL_CONTACT_VERIFIED==='true';
-    const publishedCategories=env.DB?(await env.DB.prepare("SELECT DISTINCT category_id FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+    let publishedCategories=env.DB?(await env.DB.prepare("SELECT DISTINCT category_id FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+    publishedCategories=[...new Map([...publishedCategories,...additional.map(a=>({category_id:a.category_id}))].map(a=>[a.category_id,a])).values()];
     const active=new Set(publishedCategories.map(row=>row.category_id));
     const publishedTopics=CAUTION_TOPICS.filter(topic=>topic.ids.some(id=>active.has(id))).map(topic=>topic.slug);
     return new Response(sitemapXML(siteURL(env),rows,countries,hasContact,countries.some(row=>isSoutheastAsia(row.country)),publishedTopics),{
