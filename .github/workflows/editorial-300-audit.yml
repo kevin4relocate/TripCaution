@@ -1,0 +1,42 @@
+name: TripCaution 300-draft editorial evidence audit
+on:
+  pull_request:
+    paths:
+      - 'scripts/audit-300-editorial.mjs'
+      - '.github/workflows/editorial-300-audit.yml'
+      - 'content/batch-001/articles.json'
+      - 'content/batch-002/articles.json'
+      - 'content/batch-003/articles.json'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/audit-300-editorial.mjs'
+      - '.github/workflows/editorial-300-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate script
+        run: node --check scripts/audit-300-editorial.mjs
+      - name: Analyze all 300 drafts and compare public published inventory
+        env:
+          SITE_URL: ${{ vars.TRIPCAUTION_API_URL || 'https://tripcaution.nghiep4tube.workers.dev' }}
+        run: node scripts/audit-300-editorial.mjs --live
+      - name: Upload 300-article per-title and source research queue
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tripcaution-300-editorial-evidence
+          path: audit-reports/
+          if-no-files-found: error
+          retention-days: 90

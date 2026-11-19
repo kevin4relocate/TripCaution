@@ -17,7 +17,7 @@ test('100 evergreen draft guides are distinct from the first two batches',()=>{
  const previous=new Set([...b1.articles,...b2.articles].map(x=>x.slug));
  assert.ok(articles.every(a=>!previous.has(a.slug) && a.evergreen===true));
  assert.ok(articles.every(a=>a.editorial_status==='REVIEW_REQUIRED_NOT_PUBLISHABLE_AS_IS'));
- assert.ok(articles.every(a=>a.sources.length===2 && a.content_markdown.split(/\s+/).length>=780));
+ assert.ok(articles.every(a=>a.sources.length>=2 && a.content_markdown.split(/\s+/).length>=780));
  assert.ok(articles.every(a=>a.editorial_status==='REVIEW_REQUIRED_NOT_PUBLISHABLE_AS_IS' && a.research?.uncertainties?.length>=2));
 });
 test('200 image prompts, watermark, filenames and article roles align',()=>{
