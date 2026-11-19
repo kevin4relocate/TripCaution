@@ -38,7 +38,7 @@ test('300 original image slots and scheduled day spacing remain intact',()=>{
    assert.equal(a.hero_alt,hero.alt,a.slug);
    assert.equal(a.image_metadata.inline_caption,inline.caption,a.slug);
    assert.ok(a.content_markdown.includes(']('+inline.public_path+')'),a.slug);
-   assert.equal((a.content_markdown.match(/^!\\[/gm)||[]).length,1,a.slug);
+   assert.equal((a.content_markdown.match(/^!\[/gm)||[]).length,1,a.slug);
   }
  }
  assert.equal(articles[0].planned_publish_at,'2026-11-20T01:00:00.000Z');

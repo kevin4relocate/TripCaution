@@ -4,7 +4,7 @@
 import {readFileSync,writeFileSync,mkdirSync,existsSync} from 'node:fs';
 import {join,dirname} from 'node:path';
 import {pathToFileURL} from 'node:url';
-const batches=['001','002','003'];
+const batches=['001','002','003','004'];
 const repo=process.cwd();
 const read=path=>JSON.parse(readFileSync(join(repo,path),'utf8'));
 const logPath=join(repo,'content/github-release-log.json');
@@ -78,7 +78,7 @@ function indexRecord(a){
 }
 export async function releaseOne({dryRun=false,now=new Date()}={}){
  const drafts=allDrafts(),log=read('content/github-release-log.json');
- if(drafts.length!==300)throw Error('Expected exactly 300 drafts');
+ if(drafts.length!==400)throw Error('Expected exactly 400 drafts');
  if(!Array.isArray(log.releases))throw Error('Invalid release log');
  if(new Set(log.releases.map(x=>x.slug)).size!==log.releases.length)throw Error('Release log has duplicate slugs');
  if(log.releases.some(x=>!drafts.some(a=>a.slug===x.slug)))throw Error('Release log contains unknown slug');

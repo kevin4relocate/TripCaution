@@ -1,0 +1,64 @@
+name: TripCaution batch 004 — upload images to R2
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Choose preview or upload (200 images)
+        type: choice
+        options: [preview, upload]
+        default: preview
+        required: true
+      confirmation:
+        description: Type UPLOAD for upload mode
+        type: string
+        required: false
+permissions:
+  contents: write
+concurrency:
+  group: tripcaution-image-batch-004
+  cancel-in-progress: false
+jobs:
+  images:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (inputs.mode == 'preview' || (inputs.mode == 'upload' && inputs.confirmation == 'UPLOAD'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify manifest, files, sizes and WebP headers
+        run: python scripts/batch-004-images.py --mode validate
+      - name: Print preview mapping, no R2 writes
+        if: inputs.mode == 'preview'
+        run: |
+          python - <<'PY'
+          import json
+          for r in json.load(open('content/batch-004/image-manifest.json'))['images']:
+              print(r['upload_filename'], '->', r['r2_key'], r['title'])
+          PY
+      - name: Install scoped R2 client
+        if: inputs.mode == 'upload'
+        run: python -m pip install 'boto3>=1.34,<2'
+      - name: Upload and verify each R2 object (refuse overwrite)
+        if: inputs.mode == 'upload'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: python scripts/batch-004-images.py --mode upload
+      - name: Rename Github images in isolated branch, not main
+        if: inputs.mode == 'upload'
+        run: |
+          python scripts/batch-004-images.py --mode rename
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c media/batch-004-processed
+          git add -A Images
+          git commit -m "Rename 200 verified batch-004 image files to SEO slugs"
+          git push origin media/batch-004-processed
+          echo "Uploaded 200 R2 objects. Renamed source files on media/batch-004-processed; main unchanged." >> "$GITHUB_STEP_SUMMARY"
