@@ -37,6 +37,7 @@ jobs:
           TRIPCAUTION_PUBLIC_URL: ${{ vars.TRIPCAUTION_API_URL || 'https://tripcaution.nghiep4tube.workers.dev' }}
         run: node scripts/release-daily-article.mjs
       - name: Commit the newly public article and release index
+        id: commit
         run: |
           git add content/github-release-log.json src/github-release-index.js
           if [ -d public/releases/articles ]; then git add public/releases/articles/; fi
@@ -44,8 +45,31 @@ jobs:
             echo "No article due, already released today, or no pending articles." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          slug=$(git diff --cached --name-only | sed -n 's#^public/releases/articles/\(.*\)\.json$#\1#p' | head -n1)
+          if [ -z "$slug" ]; then
+            echo "::error::Release commit is missing the new public article asset"
+            exit 1
+          fi
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "release: publish one scheduled TripCaution guide"
           git push origin HEAD:main
-          echo "Released one due article. The Cloudflare Git integration must deploy this commit automatically." >> "$GITHUB_STEP_SUMMARY"
+          echo "Released one due article. Cloudflare Git integration must now deploy this commit." >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify Cloudflare auto-deployed the new article
+        if: steps.commit.outputs.slug != ''
+        env:
+          RELEASED_SLUG: ${{ steps.commit.outputs.slug }}
+          SITE_URL: ${{ vars.TRIPCAUTION_API_URL || 'https://tripcaution.nghiep4tube.workers.dev' }}
+        run: |
+          origin="${SITE_URL%/}"
+          for attempt in $(seq 1 36); do
+            status=$(curl --location --silent --show-error --output /tmp/tripcaution-release.html --write-out '%{http_code}' "$origin/guides/$RELEASED_SLUG" || true)
+            if [ "$status" = "200" ] && grep -Fq 'sources-and-verification' /tmp/tripcaution-release.html; then
+              echo "Cloudflare published /guides/$RELEASED_SLUG" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::GitHub committed the article but Cloudflare did not serve it. Check the Git auto-build integration and Worker deployment."
+          exit 1
