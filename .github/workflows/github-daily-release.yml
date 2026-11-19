@@ -40,6 +40,8 @@ jobs:
         env:
           TRIPCAUTION_PUBLIC_URL: ${{ vars.TRIPCAUTION_API_URL || 'https://tripcaution.nghiep4tube.workers.dev' }}
         run: node scripts/release-daily-article.mjs
+      - name: Validate generated release in Cloudflare Worker bundle
+        run: npx wrangler deploy --dry-run --outdir /tmp/tripcaution-release-build
       - name: Commit the newly public article and release index
         id: commit
         run: |
