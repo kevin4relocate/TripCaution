@@ -1,0 +1,1307 @@
+{
+  "batch_id": "batch-003",
+  "generated_at": "2026-11-19",
+  "scope": "100 distinct evergreen SEA guides across 10 countries; avoids repetitive Myanmar tourism content",
+  "topics": [
+    {
+      "country": "Brunei",
+      "city": "Bandar Seri Begawan",
+      "category": "before-you-go",
+      "title": "Exploring Kampong Ayer Boardwalks With Mobility Needs",
+      "situation": "Water-village paths and boat access may not suit everyone",
+      "checks": [
+        "Confirm the entry route and any steps with a host",
+        "Assess railings footwear and turning space",
+        "Arrange a shorter experience or land viewpoint"
+      ],
+      "unique_scenario": "An older traveler prefers level ground and a clear stopping point"
+    },
+    {
+      "country": "Brunei",
+      "city": "Jerudong",
+      "category": "travel-essentials",
+      "title": "Planning a Relaxed Jerudong Beach Evening for Families",
+      "situation": "A seaside outing may extend past a child's comfort",
+      "checks": [
+        "Choose a comfortable arrival and exit time",
+        "Find shade facilities and a meeting point",
+        "Keep a simple way to return"
+      ],
+      "unique_scenario": "Parents compare a brief shore visit with a long evening"
+    },
+    {
+      "country": "Brunei",
+      "city": "Bandar Seri Begawan",
+      "category": "etiquette",
+      "title": "Visiting a Brunei Museum Without Rushing Cultural Context",
+      "situation": "A short museum visit can turn exhibits into disconnected pictures",
+      "checks": [
+        "Review exhibit and photography guidance",
+        "Allow time to read explanations",
+        "Choose fewer exhibits to explore properly"
+      ],
+      "unique_scenario": "A curious visitor wants context without breaking camera rules"
+    },
+    {
+      "country": "Brunei",
+      "city": "Temburong",
+      "category": "before-you-go",
+      "title": "Questions for a Temburong Canopy Experience With Mixed Fitness",
+      "situation": "A canopy activity may involve steps and exertion",
+      "checks": [
+        "Ask about the amount of climbing",
+        "Check mobility weather and age suitability",
+        "Select a ground-level nature experience if needed"
+      ],
+      "unique_scenario": "Three friends have different fitness levels"
+    },
+    {
+      "country": "Brunei",
+      "city": "Bandar Seri Begawan",
+      "category": "food",
+      "title": "Choosing a Brunei Market Breakfast With Dietary Questions",
+      "situation": "Breakfast stalls may use unfamiliar sauces",
+      "checks": [
+        "Identify ingredients to avoid",
+        "Ask about shared utensils and preparation",
+        "Choose a simpler verifiable meal"
+      ],
+      "unique_scenario": "Two visitors have different dietary requirements"
+    },
+    {
+      "country": "Brunei",
+      "city": "Brunei",
+      "category": "transport",
+      "title": "Planning a Brunei Road Day for Three Generations",
+      "situation": "A short-looking drive can become tiring",
+      "checks": [
+        "Match segments to the least comfortable passenger",
+        "Plan rest and meal stops",
+        "Keep a shorter sightseeing loop"
+      ],
+      "unique_scenario": "A driver plans for both a child and a grandparent"
+    },
+    {
+      "country": "Brunei",
+      "city": "Bandar Seri Begawan",
+      "category": "travel-essentials",
+      "title": "Building a Rain-Ready Bandar Waterfront Walk",
+      "situation": "Showers may interrupt a waterfront walk",
+      "checks": [
+        "Identify covered stops and crossings",
+        "Protect shoes and electronics from rain",
+        "Use an indoor alternative if necessary"
+      ],
+      "unique_scenario": "A visitor chooses a dry route home"
+    },
+    {
+      "country": "Brunei",
+      "city": "Brunei",
+      "category": "safety-health",
+      "title": "Packing Personal Medication for a Humid Brunei Trip",
+      "situation": "Health supplies may be exposed to unsuitable storage",
+      "checks": [
+        "Keep medicines and instructions secure",
+        "Check storage and customs requirements with authorities",
+        "Follow a clinician-approved backup plan"
+      ],
+      "unique_scenario": "A traveler with routine medicine plans a long outdoor day"
+    },
+    {
+      "country": "Brunei",
+      "city": "Bandar Seri Begawan",
+      "category": "before-you-go",
+      "title": "Choosing Between a Brunei History Walk and a Private Guide",
+      "situation": "Cultural tours differ in pace and depth",
+      "checks": [
+        "Compare routes and subjects covered",
+        "Ask about duration and accessible paths",
+        "Use a self-paced museum alternative"
+      ],
+      "unique_scenario": "A family wants history without a forced walking pace"
+    },
+    {
+      "country": "Brunei",
+      "city": "Bandar Seri Begawan",
+      "category": "travel-essentials",
+      "title": "Using a Stroller on a Bandar Seri Begawan City Day",
+      "situation": "Stroller paths may include steps and crossings",
+      "checks": [
+        "Check entrances and curb transitions",
+        "Prioritize short routes and practical stops",
+        "Change to a compact outing if needed"
+      ],
+      "unique_scenario": "A caregiver wants to avoid carrying a stroller through stairs"
+    },
+    {
+      "country": "Cambodia",
+      "city": "Siem Reap",
+      "category": "before-you-go",
+      "title": "Choosing Angkor Stops for Travelers Who Walk Slowly",
+      "situation": "Multi-temple plans can require extensive walking",
+      "checks": [
+        "Ask about terrain and steps at each stop",
+        "Prioritize a few high-interest sites",
+        "Keep an early exit option"
+      ],
+      "unique_scenario": "Older relatives want cultural depth without a forced circuit"
+    },
+    {
+      "country": "Cambodia",
+      "city": "Siem Reap",
+      "category": "travel-essentials",
+      "title": "Planning a Siem Reap Temple Morning Without Skipping Breakfast",
+      "situation": "Early departures can leave meals unplanned",
+      "checks": [
+        "Arrange breakfast and drinking water",
+        "Confirm departure meeting instructions",
+        "Shorten the outing when rest is needed"
+      ],
+      "unique_scenario": "A family weighs an early meal against a rushed departure"
+    },
+    {
+      "country": "Cambodia",
+      "city": "Phnom Penh",
+      "category": "transport",
+      "title": "Returning From the Phnom Penh Riverside With a Clear Pickup",
+      "situation": "An evening ride pickup may be ambiguous",
+      "checks": [
+        "Choose an exact public meeting landmark",
+        "Check the driver's pickup instructions",
+        "Use another accessible point if necessary"
+      ],
+      "unique_scenario": "Friends split into groups before reuniting"
+    },
+    {
+      "country": "Cambodia",
+      "city": "Tonle Sap",
+      "category": "etiquette",
+      "title": "Taking a Respectful Tonle Sap Community Boat Tour",
+      "situation": "Community visits can turn residents into photo subjects",
+      "checks": [
+        "Ask how local people participate",
+        "Avoid filming homes and children without consent",
+        "Choose a privacy-respecting educational route"
+      ],
+      "unique_scenario": "A visitor prioritizes learning over intrusive photographs"
+    },
+    {
+      "country": "Cambodia",
+      "city": "Kep",
+      "category": "food",
+      "title": "Understanding Seafood Orders at a Kep Market Meal",
+      "situation": "A market seafood order may have unclear preparation fees",
+      "checks": [
+        "Confirm the selected item and method",
+        "Clarify all preparation and service charges",
+        "Choose a straightforward order when unsure"
+      ],
+      "unique_scenario": "A couple wants a meal without unexpected assumptions"
+    },
+    {
+      "country": "Cambodia",
+      "city": "Battambang",
+      "category": "before-you-go",
+      "title": "Booking a Battambang Art Workshop With Clear Expectations",
+      "situation": "Workshops differ in materials and hands-on time",
+      "checks": [
+        "Confirm technique and equipment",
+        "Check duration and what is included",
+        "Choose a demonstration instead of a full class"
+      ],
+      "unique_scenario": "A visitor has limited time to try a craft"
+    },
+    {
+      "country": "Cambodia",
+      "city": "Kampot",
+      "category": "before-you-go",
+      "title": "Choosing a Gentle Kampot Riverside Kayak Excursion",
+      "situation": "A river outing can vary in difficulty",
+      "checks": [
+        "Ask about currents and group supervision",
+        "Verify flotation gear and turnaround",
+        "Select a land-based visit if conditions do not fit"
+      ],
+      "unique_scenario": "Two beginner paddlers want a manageable outing"
+    },
+    {
+      "country": "Cambodia",
+      "city": "Phnom Penh",
+      "category": "safety-health",
+      "title": "Preparing for a Pharmacy Visit During a Cambodia Trip",
+      "situation": "Travelers may need routine medicine while away",
+      "checks": [
+        "Carry original medication information",
+        "Consult a qualified clinician or pharmacist",
+        "Avoid unverified substitutes"
+      ],
+      "unique_scenario": "A visitor needs to replace a routine supply responsibly"
+    },
+    {
+      "country": "Cambodia",
+      "city": "Phnom Penh",
+      "category": "before-you-go",
+      "title": "Keeping Children Engaged on a Cambodia Museum Day",
+      "situation": "Children tire during long cultural visits",
+      "checks": [
+        "Choose exhibits suitable for their attention",
+        "Build quiet breaks around the visit",
+        "Leave before fatigue disrupts others"
+      ],
+      "unique_scenario": "A parent balances cultural learning and play"
+    },
+    {
+      "country": "Cambodia",
+      "city": "Siem Reap",
+      "category": "etiquette",
+      "title": "Supporting Cambodian Craftspeople Without Performative Bargaining",
+      "situation": "Buying a craft involves a real maker and their time",
+      "checks": [
+        "Ask about materials and maker attribution",
+        "Clarify agreed price and customization",
+        "Decline politely rather than stage arguments"
+      ],
+      "unique_scenario": "A visitor wants a meaningful souvenir"
+    },
+    {
+      "country": "Indonesia",
+      "city": "Ubud",
+      "category": "before-you-go",
+      "title": "Choosing a Ubud Rice-Terrace Walk That Fits Your Group",
+      "situation": "Rice terraces may have steep narrow paths",
+      "checks": [
+        "Ask about the real path and access",
+        "Wear suitable footwear and respect planted areas",
+        "Choose a legal viewpoint if walking is unsuitable"
+      ],
+      "unique_scenario": "Two travelers want photos without walking on crops"
+    },
+    {
+      "country": "Indonesia",
+      "city": "Bandung",
+      "category": "transport",
+      "title": "Arranging a Bandung Rail Arrival With an Easy Hotel Transfer",
+      "situation": "Rail arrival may involve confusing pickup areas",
+      "checks": [
+        "Confirm the station exit and hotel address",
+        "Find an authorized pickup point",
+        "Keep a simpler backup transfer"
+      ],
+      "unique_scenario": "A traveler arrives with bulky luggage"
+    },
+    {
+      "country": "Indonesia",
+      "city": "Gili Islands",
+      "category": "travel-essentials",
+      "title": "Packing for a Small-Boat Gili Islands Arrival",
+      "situation": "Island landings may involve wet or uneven surfaces",
+      "checks": [
+        "Check baggage and landing arrangements",
+        "Protect electronics and documents in a dry pouch",
+        "Bring manageable luggage rather than oversized bags"
+      ],
+      "unique_scenario": "A pair chooses lighter baggage for multiple transfers"
+    },
+    {
+      "country": "Indonesia",
+      "city": "Jakarta",
+      "category": "before-you-go",
+      "title": "Creating a Child-Friendly Jakarta Museum Route",
+      "situation": "Multiple museums can overwhelm young travelers",
+      "checks": [
+        "Choose one anchor museum",
+        "Check facilities and entry route",
+        "Keep a short return plan"
+      ],
+      "unique_scenario": "A family avoids rushing between venues"
+    },
+    {
+      "country": "Indonesia",
+      "city": "Bali",
+      "category": "safety-health",
+      "title": "Evaluating a Bali Sunrise Hike Before Committing",
+      "situation": "Pre-dawn hikes require more than scenic ambition",
+      "checks": [
+        "Ask about terrain and guide supervision",
+        "Check fitness and weather policies",
+        "Choose a later easy viewpoint instead"
+      ],
+      "unique_scenario": "A visitor questions the group's readiness to hike"
+    },
+    {
+      "country": "Indonesia",
+      "city": "Yogyakarta",
+      "category": "before-you-go",
+      "title": "Choosing a Yogyakarta Batik Workshop for Beginners",
+      "situation": "Craft lessons may involve hot tools or dyes",
+      "checks": [
+        "Ask about materials and safety instructions",
+        "Check hands-on time and inclusions",
+        "Observe instead of participating when appropriate"
+      ],
+      "unique_scenario": "A family wants to learn without pressuring children"
+    },
+    {
+      "country": "Indonesia",
+      "city": "Yogyakarta",
+      "category": "food",
+      "title": "Ordering Street Food in Yogyakarta With Ingredient Clarity",
+      "situation": "Sauces and toppings are not always visible",
+      "checks": [
+        "Name the specific dietary restriction",
+        "Ask about preparation and cross-contact",
+        "Choose food with verifiable ingredients"
+      ],
+      "unique_scenario": "A traveler watches a street-food stall cook"
+    },
+    {
+      "country": "Indonesia",
+      "city": "Flores",
+      "category": "transport",
+      "title": "Spacing Out a Flores Road Trip With Realistic Rest Stops",
+      "situation": "A scenic road day can become overloaded",
+      "checks": [
+        "Discuss route demands with a local provider",
+        "Mark rest and daylight turnaround points",
+        "Shorten the loop instead of adding detours"
+      ],
+      "unique_scenario": "Friends plan several distant viewpoints"
+    },
+    {
+      "country": "Indonesia",
+      "city": "Sumatra",
+      "category": "etiquette",
+      "title": "Watching Sumatran Wildlife Without Chasing a Photograph",
+      "situation": "An animal sighting is not permission to approach",
+      "checks": [
+        "Follow the guide's distance rules",
+        "Avoid feeding noise and blocking movement",
+        "Accept a missed photo rather than disturbing wildlife"
+      ],
+      "unique_scenario": "A photographer chooses patience over proximity"
+    },
+    {
+      "country": "Indonesia",
+      "city": "Lombok",
+      "category": "safety-health",
+      "title": "Reading Beach Conditions Before Swimming in Lombok",
+      "situation": "Clear water does not prove safe swimming",
+      "checks": [
+        "Read posted local warnings",
+        "Assess supervision and personal water confidence",
+        "Stay on shore when uncertain"
+      ],
+      "unique_scenario": "A family chooses between water play and a beach walk"
+    },
+    {
+      "country": "Laos",
+      "city": "Vientiane",
+      "category": "travel-essentials",
+      "title": "Planning a Comfortable Vientiane Riverfront Evening",
+      "situation": "A riverside walk may tire travelers after a long day",
+      "checks": [
+        "Choose a manageable route segment",
+        "Set a meeting point and rest break",
+        "Arrange a return that does not require more walking"
+      ],
+      "unique_scenario": "A mixed-age group wants a relaxed evening"
+    },
+    {
+      "country": "Laos",
+      "city": "Xieng Khouang",
+      "category": "before-you-go",
+      "title": "Approaching the Plain of Jars With Respect for Marked Paths",
+      "situation": "Informal shortcuts can lead beyond authorized visitor routes",
+      "checks": [
+        "Confirm current permitted access",
+        "Stay on designated marked paths",
+        "Skip any area with unclear access or safety status"
+      ],
+      "unique_scenario": "A visitor resists leaving a marked route for a photo"
+    },
+    {
+      "country": "Laos",
+      "city": "Luang Prabang",
+      "category": "etiquette",
+      "title": "Observing a Luang Prabang Alms-Giving Ceremony Respectfully",
+      "situation": "Religious ceremonies may be disturbed by crowds and cameras",
+      "checks": [
+        "Follow community visitor guidance",
+        "Stay back and never block participants",
+        "Observe without a staged photograph"
+      ],
+      "unique_scenario": "A visitor chooses respectful distance"
+    },
+    {
+      "country": "Laos",
+      "city": "Pakse",
+      "category": "before-you-go",
+      "title": "Preparing for a Pakse Waterfall Viewpoint Walk",
+      "situation": "Viewpoints may have wet steps and uneven terrain",
+      "checks": [
+        "Ask about the walking approach",
+        "Wear suitable shoes and avoid unmarked edges",
+        "Choose a sheltered viewpoint instead"
+      ],
+      "unique_scenario": "A traveler reevaluates a route after rain"
+    },
+    {
+      "country": "Laos",
+      "city": "Vang Vieng",
+      "category": "safety-health",
+      "title": "Questions Before a Vang Vieng River Tubing Activity",
+      "situation": "River tubing requires suitable water confidence",
+      "checks": [
+        "Check operator supervision and equipment",
+        "Confirm entry exit and return arrangements",
+        "Decline if crucial safety details are missing"
+      ],
+      "unique_scenario": "Friends with different swimming abilities compare options"
+    },
+    {
+      "country": "Laos",
+      "city": "Vientiane",
+      "category": "before-you-go",
+      "title": "Checking Accessible Entrances for a Vientiane Cultural Day",
+      "situation": "An attraction address does not prove step-free access",
+      "checks": [
+        "Ask about ramps lifts and paths",
+        "Choose a route with manageable effort",
+        "Visit fewer venues with confirmed access"
+      ],
+      "unique_scenario": "A wheelchair user needs reliable entrance details"
+    },
+    {
+      "country": "Laos",
+      "city": "Luang Prabang",
+      "category": "etiquette",
+      "title": "Learning About Laos Textiles at a Local Workshop",
+      "situation": "Craft demonstrations involve artisans at work",
+      "checks": [
+        "Ask how techniques and materials are explained",
+        "Request permission for photos and purchases",
+        "Respect the maker's time and choices"
+      ],
+      "unique_scenario": "A visitor wants to understand a weaving process"
+    },
+    {
+      "country": "Laos",
+      "city": "Laos",
+      "category": "etiquette",
+      "title": "Setting Respectful Boundaries During a Laos Homestay",
+      "situation": "Guests may assume household space is public",
+      "checks": [
+        "Ask about routines and private spaces",
+        "Clarify meals and photography permission",
+        "Decline activities politely if needed"
+      ],
+      "unique_scenario": "A visitor stays with a host family and respects privacy"
+    },
+    {
+      "country": "Laos",
+      "city": "Laos",
+      "category": "travel-essentials",
+      "title": "Keeping Bags Organized Across Several Laos Transport Legs",
+      "situation": "Several handoffs make small essentials easy to lose",
+      "checks": [
+        "Keep medicine and ID within reach",
+        "Count and identify bags at each transfer",
+        "Carry a manageable luggage kit"
+      ],
+      "unique_scenario": "A traveler switches between different transport types"
+    },
+    {
+      "country": "Laos",
+      "city": "Luang Prabang",
+      "category": "etiquette",
+      "title": "Choosing a Luang Prabang Sunset Viewpoint Without Crowding Others",
+      "situation": "Popular viewpoints may have narrow paths",
+      "checks": [
+        "Follow access and queuing instructions",
+        "Keep public routes clear",
+        "Choose another angle instead of blocking others"
+      ],
+      "unique_scenario": "Friends take photographs without obstructing visitors"
+    },
+    {
+      "country": "Malaysia",
+      "city": "Melaka",
+      "category": "transport",
+      "title": "Building a Melaka Heritage Walk With Manageable Street Crossings",
+      "situation": "Compact heritage areas can still have difficult crossings",
+      "checks": [
+        "Mark practical pedestrian routes",
+        "Plan rest and indoor stops",
+        "Use a ride when return walking is awkward"
+      ],
+      "unique_scenario": "A family follows a relaxed city trail"
+    },
+    {
+      "country": "Malaysia",
+      "city": "George Town",
+      "category": "etiquette",
+      "title": "Photographing Penang Street Art Without Blocking Homes",
+      "situation": "A mural may be beside someone's doorway",
+      "checks": [
+        "Check entrances before standing for photos",
+        "Avoid blocking homes and businesses",
+        "Leave without a picture if space is limited"
+      ],
+      "unique_scenario": "Visitors step aside for residents"
+    },
+    {
+      "country": "Malaysia",
+      "city": "Kuala Lumpur",
+      "category": "food",
+      "title": "Confirming Food Preferences in a Kuala Lumpur Food Court",
+      "situation": "Different stalls have different preparation methods",
+      "checks": [
+        "Ask the specific vendor about ingredients",
+        "Verify personally important dietary needs",
+        "Choose a stall with clear answers"
+      ],
+      "unique_scenario": "Friends with mixed dietary preferences share a meal"
+    },
+    {
+      "country": "Malaysia",
+      "city": "Johor Bahru",
+      "category": "transport",
+      "title": "Planning a Malaysia-Singapore Day Crossing With Flexible Connections",
+      "situation": "Cross-border stages may not be predictable",
+      "checks": [
+        "Check each passport's entry requirements",
+        "Allow flexibility for immigration and onward travel",
+        "Avoid fixed commitments immediately after crossing"
+      ],
+      "unique_scenario": "A family considers a same-day return"
+    },
+    {
+      "country": "Malaysia",
+      "city": "Sabah",
+      "category": "etiquette",
+      "title": "Choosing a Reef-Respectful Sabah Marine Excursion",
+      "situation": "Visitors can harm marine habitat without realizing",
+      "checks": [
+        "Ask about conservation briefing",
+        "Do not touch reef or crowd animals",
+        "Choose a shore activity if instructions cannot be followed"
+      ],
+      "unique_scenario": "A newcomer wants a low-impact snorkeling experience"
+    },
+    {
+      "country": "Malaysia",
+      "city": "Kota Kinabalu",
+      "category": "before-you-go",
+      "title": "Comparing a Kota Kinabalu Day Guide With a Self-Guided Visit",
+      "situation": "Guided tours and independent travel differ in support",
+      "checks": [
+        "Compare route and transport details",
+        "Check suitability and emergency contacts",
+        "Choose the format fitting the least confident traveler"
+      ],
+      "unique_scenario": "A group values support over attraction count"
+    },
+    {
+      "country": "Malaysia",
+      "city": "Ipoh",
+      "category": "etiquette",
+      "title": "Approaching an Ipoh Cave Temple With Appropriate Visitor Etiquette",
+      "situation": "A cave temple is an active cultural space",
+      "checks": [
+        "Read site-specific entry rules",
+        "Respect worship and photography boundaries",
+        "Observe quietly if ceremonies are underway"
+      ],
+      "unique_scenario": "A visitor appreciates architecture without interrupting worship"
+    },
+    {
+      "country": "Malaysia",
+      "city": "Cameron Highlands",
+      "category": "before-you-go",
+      "title": "Visiting a Cameron Highlands Tea Landscape Without Trespassing",
+      "situation": "Scenic slopes may be working agricultural land",
+      "checks": [
+        "Use authorized paths and viewing areas",
+        "Check terrain and weather suitability",
+        "Choose a viewpoint instead of a field shortcut"
+      ],
+      "unique_scenario": "A photographer stays off planted slopes"
+    },
+    {
+      "country": "Malaysia",
+      "city": "Kuching",
+      "category": "transport",
+      "title": "Checking a Kuching Riverside Boat Ride Before Boarding",
+      "situation": "A short boat ride still involves boarding and return decisions",
+      "checks": [
+        "Confirm the jetty and operator",
+        "Check safety equipment and return times",
+        "Stay ashore when conditions are unclear"
+      ],
+      "unique_scenario": "Visitors want an uncomplicated short river trip"
+    },
+    {
+      "country": "Malaysia",
+      "city": "Kuala Lumpur",
+      "category": "travel-essentials",
+      "title": "Choosing a Kuala Lumpur Hotel for Reliable Remote Meetings",
+      "situation": "Important work calls require privacy and connectivity",
+      "checks": [
+        "Ask about workspace and noise",
+        "Plan backup power and internet",
+        "Prioritize usable room layout over photos"
+      ],
+      "unique_scenario": "A visitor schedules a video conference during travel"
+    },
+    {
+      "country": "Philippines",
+      "city": "Banaue",
+      "category": "before-you-go",
+      "title": "Choosing a Banaue Viewpoint Visit With an Appropriate Local Guide",
+      "situation": "Scenic terraced paths can be steep or private",
+      "checks": [
+        "Ask about permitted visitor access",
+        "Check guide transport and exertion",
+        "Choose an easier lookout if necessary"
+      ],
+      "unique_scenario": "A family wants a landscape visit without entering farmland"
+    },
+    {
+      "country": "Philippines",
+      "city": "Vigan",
+      "category": "etiquette",
+      "title": "Exploring Vigan Heritage Streets Without Treating Homes as Attractions",
+      "situation": "Old facades may still be private homes",
+      "checks": [
+        "Stay in public visitor areas",
+        "Ask before identifiable portraits or interior photos",
+        "Choose public museums for deeper context"
+      ],
+      "unique_scenario": "A visitor admires buildings without intruding"
+    },
+    {
+      "country": "Philippines",
+      "city": "Manila",
+      "category": "travel-essentials",
+      "title": "Creating a Manila Hotel Meet-Up Plan for a Split Group",
+      "situation": "Friends may arrive at different hours and entrances",
+      "checks": [
+        "Agree on one permitted meeting location",
+        "Share contact and waiting instructions",
+        "Choose a fallback if a phone fails"
+      ],
+      "unique_scenario": "A group arrives on separate flights"
+    },
+    {
+      "country": "Philippines",
+      "city": "Boracay",
+      "category": "safety-health",
+      "title": "Choosing Boracay Beach Activities for Different Swimming Abilities",
+      "situation": "Friends may feel pressured to join difficult water activities",
+      "checks": [
+        "Ask about supervision and equipment",
+        "Match activity to personal swimming ability",
+        "Let non-swimmers enjoy shore alternatives"
+      ],
+      "unique_scenario": "A group plans both swimming and beach time"
+    },
+    {
+      "country": "Philippines",
+      "city": "Cebu",
+      "category": "etiquette",
+      "title": "Evaluating a Cebu Wildlife Encounter for Responsible Tourism",
+      "situation": "A close wildlife encounter may involve harmful feeding",
+      "checks": [
+        "Ask about how animals are treated",
+        "Avoid touching feeding or chasing wildlife",
+        "Prefer observation from a suitable distance"
+      ],
+      "unique_scenario": "A visitor considers an ethical alternative to staged encounters"
+    },
+    {
+      "country": "Philippines",
+      "city": "Palawan",
+      "category": "etiquette",
+      "title": "Taking a Palawan Mangrove Tour Without Disturbing the Habitat",
+      "situation": "Mangrove areas are sensitive to noise and waste",
+      "checks": [
+        "Follow guide routes and distance rules",
+        "Secure litter and belongings",
+        "Avoid restricted or fragile areas"
+      ],
+      "unique_scenario": "A paddler sees wildlife but remains at a distance"
+    },
+    {
+      "country": "Philippines",
+      "city": "Sagada",
+      "category": "before-you-go",
+      "title": "Assessing a Sagada Cave Activity Before Saying Yes",
+      "situation": "Caving may involve enclosed spaces or slippery terrain",
+      "checks": [
+        "Ask about route exit and required guide",
+        "Check footwear lighting and fitness needs",
+        "Take a surface-level alternative if necessary"
+      ],
+      "unique_scenario": "A visitor hesitates about a confined cave route"
+    },
+    {
+      "country": "Philippines",
+      "city": "Davao",
+      "category": "food",
+      "title": "Shopping at a Davao Food Market With Clear Payments",
+      "situation": "Busy orders can lead to unclear quantities",
+      "checks": [
+        "Confirm units portions and full price",
+        "Ask about packaging and food transport",
+        "Choose a simpler purchase if needed"
+      ],
+      "unique_scenario": "A family buys produce without rushing payment"
+    },
+    {
+      "country": "Philippines",
+      "city": "Baguio",
+      "category": "travel-essentials",
+      "title": "Packing Layers for a Baguio Highland Stay",
+      "situation": "Highland weather may differ from the departure city",
+      "checks": [
+        "Check conditions near the travel date",
+        "Pack adaptable layers and rain protection",
+        "Avoid single-use bulky clothing"
+      ],
+      "unique_scenario": "A visitor prepares for mornings and afternoon walks"
+    },
+    {
+      "country": "Philippines",
+      "city": "Camiguin",
+      "category": "before-you-go",
+      "title": "Choosing a Camiguin Spring Visit for a Mixed-Age Group",
+      "situation": "Water recreation may involve slippery steps and access limits",
+      "checks": [
+        "Ask about access and facilities",
+        "Check suitability for all ages",
+        "Keep a dry-land option for non-swimmers"
+      ],
+      "unique_scenario": "A family plans with an older relative"
+    },
+    {
+      "country": "Singapore",
+      "city": "Changi Airport",
+      "category": "travel-essentials",
+      "title": "Moving Through Changi With Luggage and a Mobility Aid",
+      "situation": "Mobility equipment and luggage may need additional assistance",
+      "checks": [
+        "Check airport assistance channels",
+        "Confirm lifts exits and suitable pickup",
+        "Allow extra time for accessible connections"
+      ],
+      "unique_scenario": "A visitor coordinates a mobility aid and bags"
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "before-you-go",
+      "title": "Planning a Singapore Museum Day Around Timed Exhibitions",
+      "situation": "Timed exhibitions can complicate a museum itinerary",
+      "checks": [
+        "Check timed or separate admission requirements",
+        "Allow enough time to appreciate exhibits",
+        "Keep a flexible general gallery fallback"
+      ],
+      "unique_scenario": "A visitor wants depth rather than rushed admissions"
+    },
+    {
+      "country": "Singapore",
+      "city": "Botanic Gardens",
+      "category": "safety-health",
+      "title": "Building Rest Stops Into a Singapore Botanical Walk",
+      "situation": "Garden walking routes can be longer than expected",
+      "checks": [
+        "Choose a comfortable section and rest stops",
+        "Carry suitable water and rain protection",
+        "Use a nearer exit if tired"
+      ],
+      "unique_scenario": "A couple plans a relaxed botanical walk"
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "etiquette",
+      "title": "Using Singapore Hawker Seating and Shared Tables Considerately",
+      "situation": "Shared tables and busy walkways need practical courtesy",
+      "checks": [
+        "Follow the venue's seating and clearing signs",
+        "Keep bags clear of seats and paths",
+        "Choose another time if crowded"
+      ],
+      "unique_scenario": "A family shares space without assuming local customs"
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore River",
+      "category": "transport",
+      "title": "Planning a Singapore River Walk With a Clear Return Route",
+      "situation": "A river walk can finish far from the starting point",
+      "checks": [
+        "Set a realistic turnaround landmark",
+        "Identify the planned onward connection",
+        "End sooner if the group tires"
+      ],
+      "unique_scenario": "Two visitors want an unhurried evening stroll"
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "etiquette",
+      "title": "Working Quietly From a Singapore Public Library",
+      "situation": "Library policies for calls and devices may differ",
+      "checks": [
+        "Read the particular venue's guidance",
+        "Keep calls in designated spaces",
+        "Use another workspace for video meetings"
+      ],
+      "unique_scenario": "A remote worker needs quiet writing time"
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "before-you-go",
+      "title": "Designing a Singapore Stopover for Young Children Indoors",
+      "situation": "A stopover can exceed a child's attention span",
+      "checks": [
+        "Choose one manageable indoor activity",
+        "Assess airport travel time and rest needs",
+        "Leave a buffer before onward departure"
+      ],
+      "unique_scenario": "Parents avoid an overly packed layover"
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "transport",
+      "title": "Choosing a Singapore Bicycle Rental for a Low-Stress Ride",
+      "situation": "Rental equipment and paths may not suit every beginner",
+      "checks": [
+        "Verify bike condition and current rules",
+        "Choose an appropriate permitted cycling route",
+        "Use transit if cycling feels unsuitable"
+      ],
+      "unique_scenario": "A new rider chooses a short safe route"
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "etiquette",
+      "title": "Responding Calmly to Wildlife on a Singapore Park Walk",
+      "situation": "Wildlife encounters should not invite feeding or pursuit",
+      "checks": [
+        "Keep food secure and follow park guidance",
+        "Allow animals space to move",
+        "Change paths if necessary"
+      ],
+      "unique_scenario": "Walkers avoid staging a close animal photo"
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "food",
+      "title": "Choosing a Singapore Group Meal With Different Diets",
+      "situation": "Groups may have conflicting food and seating needs",
+      "checks": [
+        "Agree on dietary essentials in advance",
+        "Check actual ingredients with each vendor",
+        "Pick a venue offering workable choices"
+      ],
+      "unique_scenario": "Friends choose individual meals thoughtfully"
+    },
+    {
+      "country": "Thailand",
+      "city": "Bangkok",
+      "category": "transport",
+      "title": "Evaluating a Bangkok Canal Boat Tour Before Booking",
+      "situation": "Canal boat boarding may be awkward for some visitors",
+      "checks": [
+        "Ask about boarding and cabin accessibility",
+        "Confirm route guide and return inclusions",
+        "Use a land-based viewpoint if necessary"
+      ],
+      "unique_scenario": "Travelers compare scenery with comfort entering a vessel"
+    },
+    {
+      "country": "Thailand",
+      "city": "Chiang Rai",
+      "category": "etiquette",
+      "title": "Planning a Respectful Chiang Rai Temple Day",
+      "situation": "Decorative attractions can also be worship spaces",
+      "checks": [
+        "Check dress and photography rules at each site",
+        "Keep a manageable number of stops",
+        "Respect ceremonies that limit visitor access"
+      ],
+      "unique_scenario": "Friends admire art without crowding worshippers"
+    },
+    {
+      "country": "Thailand",
+      "city": "Mae Hong Son",
+      "category": "transport",
+      "title": "Preparing for Winding Roads on a Mae Hong Son Journey",
+      "situation": "Mountain curves can tire motion-sensitive passengers",
+      "checks": [
+        "Choose a suitable vehicle and route",
+        "Plan rest and motion comfort measures",
+        "Shorten the route if someone is unwell"
+      ],
+      "unique_scenario": "A family chooses a gentler road day"
+    },
+    {
+      "country": "Thailand",
+      "city": "Pattaya",
+      "category": "travel-essentials",
+      "title": "Making a Pattaya Evening Market Walk Comfortable",
+      "situation": "Market visits can involve crowded long walks",
+      "checks": [
+        "Set a short loop and meeting point",
+        "Carry valuables discretely and respect others",
+        "Leave before fatigue complicates return"
+      ],
+      "unique_scenario": "Friends want a relaxed evening visit"
+    },
+    {
+      "country": "Thailand",
+      "city": "Phuket",
+      "category": "safety-health",
+      "title": "Checking Snorkel Mask Fit Before a Phuket Water Activity",
+      "situation": "Poor-fitting gear can affect comfort in the water",
+      "checks": [
+        "Test mask fit before setting out",
+        "Explain ability and supervision needs",
+        "Use shore activities if uncomfortable"
+      ],
+      "unique_scenario": "A new snorkeler asks for better equipment"
+    },
+    {
+      "country": "Thailand",
+      "city": "Bangkok",
+      "category": "before-you-go",
+      "title": "Choosing a Bangkok Floating-Market Visit Without a Packed Schedule",
+      "situation": "Tour descriptions may hide a long journey for a short stay",
+      "checks": [
+        "Verify the destination and tour itinerary",
+        "Compare travel time with on-site time",
+        "Choose a nearby market if needed"
+      ],
+      "unique_scenario": "A visitor wants to observe without racing"
+    },
+    {
+      "country": "Thailand",
+      "city": "Sukhothai",
+      "category": "transport",
+      "title": "Cycling Around a Sukhothai Heritage Area at a Comfortable Pace",
+      "situation": "Cycling routes may have uneven sections and other visitors",
+      "checks": [
+        "Check permitted paths and site guidance",
+        "Inspect the bicycle and plan shade breaks",
+        "Walk or shorten the route when tired"
+      ],
+      "unique_scenario": "A couple rides slowly around heritage sites"
+    },
+    {
+      "country": "Thailand",
+      "city": "Hua Hin",
+      "category": "before-you-go",
+      "title": "Choosing a Hua Hin Family Beach Day With Practical Facilities",
+      "situation": "Families benefit from knowing where to rest and change",
+      "checks": [
+        "Identify facilities and easy arrival access",
+        "Follow posted swimming conditions",
+        "Keep an indoor rest alternative"
+      ],
+      "unique_scenario": "Parents plan sand play without requiring swimming"
+    },
+    {
+      "country": "Thailand",
+      "city": "Koh Lanta",
+      "category": "etiquette",
+      "title": "Selecting a Low-Impact Koh Lanta Mangrove Kayak Tour",
+      "situation": "Mangrove roots and wildlife need care",
+      "checks": [
+        "Ask about route and conservation rules",
+        "Avoid touching habitat or crowding animals",
+        "Choose a guided short route if necessary"
+      ],
+      "unique_scenario": "A beginner values a respectful kayak outing"
+    },
+    {
+      "country": "Thailand",
+      "city": "Bangkok",
+      "category": "etiquette",
+      "title": "Preparing Footwear and Belongings for Bangkok Temple Visits",
+      "situation": "Busy temple entrances require practical courtesy",
+      "checks": [
+        "Check posted footwear and entry guidance",
+        "Keep belongings compact and secure",
+        "Step out if a crowd makes entry impractical"
+      ],
+      "unique_scenario": "A visitor prepares shoes before reaching the threshold"
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Dili",
+      "category": "safety-health",
+      "title": "Making a Dili Shoreline Walk Comfortable in the Heat",
+      "situation": "Long shoreline walks may have limited shade",
+      "checks": [
+        "Choose a shorter walk with rests",
+        "Carry appropriate drinking water and protection",
+        "Return early if anyone is tired"
+      ],
+      "unique_scenario": "A traveler prefers a brief enjoyable shoreline visit"
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Atauro",
+      "category": "etiquette",
+      "title": "Reducing Waste During an Atauro Island Homestay",
+      "situation": "Small islands may have limited waste services",
+      "checks": [
+        "Ask hosts about water and disposal practices",
+        "Bring reusable essentials and avoid packaging",
+        "Take permitted waste back when appropriate"
+      ],
+      "unique_scenario": "A guest reduces the burden on the host"
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Timor-Leste",
+      "category": "food",
+      "title": "Shopping for a Timor-Leste Market Picnic Respectfully",
+      "situation": "Food may need care during transport to a picnic",
+      "checks": [
+        "Ask about ingredients and handling",
+        "Confirm portion and price",
+        "Choose items suitable for carrying"
+      ],
+      "unique_scenario": "Travelers prepare a simple market lunch"
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Dili",
+      "category": "before-you-go",
+      "title": "Planning a Dili Family Outing Around Accessibility Needs",
+      "situation": "City sites may have difficult entrances",
+      "checks": [
+        "Confirm actual access with the venue",
+        "Plan comfortable distances and breaks",
+        "Choose fewer stops with usable entrances"
+      ],
+      "unique_scenario": "A family includes someone with mobility limitations"
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Timor-Leste",
+      "category": "before-you-go",
+      "title": "Choosing a Guided Timor-Leste Hike With Communication Plans",
+      "situation": "Remote hikes need realistic support plans",
+      "checks": [
+        "Ask about route and emergency response",
+        "Share return expectations with a trusted contact",
+        "Postpone if communication plans are inadequate"
+      ],
+      "unique_scenario": "A small group reviews a guide's briefing"
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Dili",
+      "category": "etiquette",
+      "title": "Buying Timorese Handicrafts With Respect for the Maker",
+      "situation": "Handmade purchases involve artisan time and decisions",
+      "checks": [
+        "Ask about materials and provenance",
+        "Agree on customization and price",
+        "Decline politely if an item does not fit"
+      ],
+      "unique_scenario": "A traveler values a craft without aggressive bargaining"
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Dili",
+      "category": "travel-essentials",
+      "title": "Preparing a Calm Dili Departure Morning With Offline Documents",
+      "situation": "Departure information may be scattered across apps",
+      "checks": [
+        "Confirm actual departure and baggage requirements",
+        "Save documents and contacts offline",
+        "Allow time for booking issues"
+      ],
+      "unique_scenario": "A visitor checks details the evening before"
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Timor-Leste",
+      "category": "transport",
+      "title": "Making a Timor-Leste Coastal Drive Easier for Passengers",
+      "situation": "Coastal roads may be uncomfortable for some passengers",
+      "checks": [
+        "Ask about road conditions and vehicle suitability",
+        "Plan rests and daylight time",
+        "Change route if a passenger becomes unwell"
+      ],
+      "unique_scenario": "A family chooses fewer scenic stops"
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Atauro",
+      "category": "etiquette",
+      "title": "Enjoying Atauro Reef Views Without Entering the Water",
+      "situation": "Marine habitats can be appreciated from shore",
+      "checks": [
+        "Use authorized viewpoints",
+        "Avoid disturbing or taking natural features",
+        "Follow local access advice"
+      ],
+      "unique_scenario": "A non-swimmer enjoys a coastal educational tour"
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Dili",
+      "category": "food",
+      "title": "Explaining Dietary Restrictions at a Dili Restaurant",
+      "situation": "Unfamiliar dishes may contain hidden ingredients",
+      "checks": [
+        "Describe exact dietary needs",
+        "Ask about sauces and shared tools",
+        "Choose another meal if uncertain"
+      ],
+      "unique_scenario": "A traveler discusses food options respectfully"
+    },
+    {
+      "country": "Vietnam",
+      "city": "Hoi An",
+      "category": "before-you-go",
+      "title": "Planning Hoi An Tailoring Fittings Without Rushing the Process",
+      "situation": "Custom garments can require several fittings",
+      "checks": [
+        "Clarify materials measurements and expected fittings",
+        "Confirm pickup and alteration terms",
+        "Choose ready-made clothing if time is insufficient"
+      ],
+      "unique_scenario": "A visitor avoids an unrealistic last-day fitting"
+    },
+    {
+      "country": "Vietnam",
+      "city": "Hanoi",
+      "category": "food",
+      "title": "Asking About Ingredients at a Hanoi Street-Food Stall",
+      "situation": "Broth and garnishes can include unexpected ingredients",
+      "checks": [
+        "State the precise dietary requirement",
+        "Ask about broth condiments and shared equipment",
+        "Choose a verifiable alternative"
+      ],
+      "unique_scenario": "A visitor asks before ordering"
+    },
+    {
+      "country": "Vietnam",
+      "city": "Hue",
+      "category": "safety-health",
+      "title": "Building a Comfortable Hue Imperial-Sites Walking Day",
+      "situation": "Heritage routes may have exposed paths and steps",
+      "checks": [
+        "Check distances among selected sites",
+        "Plan water shade and breaks",
+        "Shorten the circuit as needed"
+      ],
+      "unique_scenario": "A family values an unrushed historic visit"
+    },
+    {
+      "country": "Vietnam",
+      "city": "Ninh Binh",
+      "category": "transport",
+      "title": "Preparing for a Ninh Binh Rowboat Excursion With Easy Boarding",
+      "situation": "Boat boarding may be difficult with knee discomfort",
+      "checks": [
+        "Ask about boarding and seating",
+        "Protect belongings and follow crew instructions",
+        "Choose a land viewpoint if unsuitable"
+      ],
+      "unique_scenario": "A visitor chooses comfort over a difficult boarding"
+    },
+    {
+      "country": "Vietnam",
+      "city": "Da Lat",
+      "category": "travel-essentials",
+      "title": "Packing Flexible Layers for a Da Lat Highland Weekend",
+      "situation": "Highland mornings can differ from warm afternoons",
+      "checks": [
+        "Check conditions for the actual dates",
+        "Pack adaptable layers and rain protection",
+        "Avoid bulky one-use items"
+      ],
+      "unique_scenario": "A traveler packs for walks and cafés"
+    },
+    {
+      "country": "Vietnam",
+      "city": "Ho Chi Minh City",
+      "category": "before-you-go",
+      "title": "Creating a Ho Chi Minh City Museum Day Across Language Barriers",
+      "situation": "Exhibit interpretation may not be in the visitor's language",
+      "checks": [
+        "Check available interpretation or guides",
+        "Choose a few exhibits to study well",
+        "Consult reliable explanatory sources later"
+      ],
+      "unique_scenario": "A history enthusiast avoids inventing context"
+    },
+    {
+      "country": "Vietnam",
+      "city": "Da Nang",
+      "category": "safety-health",
+      "title": "Reading Beach Safety Information Before Swimming in Da Nang",
+      "situation": "A scenic beach does not guarantee swimming suitability",
+      "checks": [
+        "Follow posted warnings and lifeguard directions",
+        "Assess abilities and current conditions",
+        "Choose shore activities if uncertain"
+      ],
+      "unique_scenario": "A traveler declines water entry without safety confirmation"
+    },
+    {
+      "country": "Vietnam",
+      "city": "Phong Nha",
+      "category": "before-you-go",
+      "title": "Choosing a Phong Nha Cave Tour for the Least Experienced Traveler",
+      "situation": "Caves differ in confinement terrain and physical effort",
+      "checks": [
+        "Ask about route guide and equipment",
+        "Discuss comfort with enclosed spaces",
+        "Choose a surface alternative if needed"
+      ],
+      "unique_scenario": "A group includes someone uneasy in dark spaces"
+    },
+    {
+      "country": "Vietnam",
+      "city": "Sapa",
+      "category": "etiquette",
+      "title": "Buying Sapa Handmade Textiles Without Pressuring Sellers",
+      "situation": "Craft purchases should respect makers' choices",
+      "checks": [
+        "Ask about materials and maker attribution",
+        "Clarify price and any shipping",
+        "Decline politely when not buying"
+      ],
+      "unique_scenario": "A visitor values textile craftsmanship"
+    },
+    {
+      "country": "Vietnam",
+      "city": "Vietnam",
+      "category": "travel-essentials",
+      "title": "Creating a Privacy Kit for an Overnight Vietnam Train",
+      "situation": "Shared berths create questions about sleep and belongings",
+      "checks": [
+        "Check compartment layout and storage",
+        "Keep documents and necessities secure",
+        "Choose another class or daytime travel if needed"
+      ],
+      "unique_scenario": "A first-time train passenger prepares for a shared space"
+    }
+  ]
+}
