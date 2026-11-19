@@ -581,3 +581,11 @@ body:not(.admin-body) :is(
  color:#405249;
  font-weight:800;
 }
+
+/* Long-form reading: stable heading deep links and descriptive image captions. */
+.prose .heading-anchor{font:600 .44em/1.2 'DM Sans',Arial,sans-serif;display:inline-block;vertical-align:middle;opacity:.68;margin-left:.24em;text-decoration:none;color:#876329;transition:opacity .15s}
+.prose .heading-anchor:hover,.prose .heading-anchor:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.prose .article-inline-image figcaption{margin-top:9px;font:400 12px/1.55 'DM Sans',Arial,sans-serif;color:#66736f}
+.prose .article-inline-image{margin-bottom:33px}
+.prose .heading-anchor:focus-visible,.article-toc a:focus-visible{outline:2px solid #ad7a24;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.prose .heading-anchor{transition:none}}
