@@ -37,6 +37,17 @@ function validate(draft,log){
  const paths=[hero,inline];
  return paths;
 }
+async function assertNotAlreadyLive(slug){
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),20000);
+ try{
+  const url=publicOrigin+'/guides/'+encodeURIComponent(slug);
+  const response=await fetch(url,{signal:controller.signal});
+  await response.body?.cancel();
+  if(response.status===200)throw Error('A public guide already uses this slug: '+slug);
+  if(response.status!==404)throw Error('Cannot confirm this slug is absent from the live site: HTTP '+response.status);
+ }finally{clearTimeout(timer);}
+}
 async function verifyR2(paths){
  for(const path of paths){
   const controller=new AbortController();
@@ -77,6 +88,7 @@ export async function releaseOne({dryRun=false,now=new Date()}={}){
  console.log('NEXT_RELEASE '+JSON.stringify({slug:next.slug,date:next.planned_publish_at,images:media}));
  if(dryRun)return {slug:next.slug,media,dryRun:true};
  await verifyR2(media);
+ await assertNotAlreadyLive(next.slug);
  const article=publishedRecord(next,now);
  const index=indexRecord(article);
  const target=join(releasesDir,article.slug+'.json');
