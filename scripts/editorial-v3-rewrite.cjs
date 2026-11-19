@@ -95,5 +95,16 @@ function deriveNote(topic){
  const [one,two,three]=topic.checks;
  return 'The practical issue here is that '+describe.slice(0,1).toLowerCase()+describe.slice(1)+'. For this specific itinerary, '+low(one)+'; then '+low(two)+'; and finally '+low(three)+'. These checks are planning suggestions, not a confirmation of local operating conditions.';
 }
-module.exports={upgrade,context,rewriteRepeated,rewriteQuestions,deriveNote};
+
+function finalize(article){
+ const c=context(article), [source,detail,record]=c.family;
+ let body=article.content_markdown;
+ body=body.replace(/\n\nThe checks below identify decisions to verify with the responsible provider; they are not confirmation of live conditions\./g,'');
+ body=body.replace(/^Store [^\n]+ privately\. Check live details with [^\n]+$/gm,
+   'For **'+low(c.steps[1])+'**, keep '+record+' and ask '+source+' to verify '+detail+'. Country-level advisories cannot guarantee a named service is available.');
+ body=body.replace(/\n{3,}/g,'\n\n');
+ return {...article,content_markdown:body};
+}
+module.exports={upgrade,context,rewriteRepeated,rewriteQuestions,deriveNote,finalize};
+
 
