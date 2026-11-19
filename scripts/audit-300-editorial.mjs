@@ -41,7 +41,7 @@ function sources(a){
   status:'GENERAL_ADVISORIES_NOT_CLAIM_LEVEL_EVIDENCE'};
 }
 function matches(a,group){
- return group.filter(x=>x.slug!==a.slug&&(!a.country||!x.country||a.country.toLowerCase()===x.country.toLowerCase()))
+ return group.filter(x=>x.slug!==a.slug&&a.country&&x.country&&a.country.toLowerCase()===x.country.toLowerCase())
   .map(x=>({slug:x.slug,title:x.title,similarity:similarity(a.title,x.title),scope:x.scope||'draft'}))
   .filter(x=>x.similarity>=0.35).sort((x,y)=>y.similarity-x.similarity||x.slug.localeCompare(y.slug)).slice(0,4);
 }
@@ -76,15 +76,31 @@ function pageTitle(html){
   html.match(/<title>([\s\S]*?)<\/title>/i)?.[1]||'';
  return decode(h.replace(/<[^>]*>/g,'').replace(/\s+\|\s+TripCaution.*$/,'').trim());
 }
+function pageMetadata(html){
+ let country='',headline='';
+ const blocks=[...html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+ for(const m of blocks){try{
+  const d=JSON.parse(m[1]),items=[...(Array.isArray(d['@graph'])?d['@graph']:[]),d];
+  for(const x of items){
+   if(x?.['@type']==='Article'&&x.headline)headline=String(x.headline);
+   if(x?.['@type']==='BreadcrumbList'){
+    const el=x.itemListElement?.find?.(item=>Number(item.position)===2);
+    if(el?.name)country=String(el.name).trim();
+   }
+  }
+ }catch{}}
+ return {country,headline:headline||pageTitle(html)};
+}
 async function publicInventory(){
  const xml=await get(origin+'/sitemap.xml'),links=[...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m=>decode(m[1]));
  const urls=[...new Set(links.filter(link=>{try{const u=new URL(link);return u.origin===origin&&u.pathname.startsWith('/guides/');}catch{return false;}}))];
  if(!urls.length)throw Error('No public guide URLs in sitemap');
  const published=[],failed=[];let index=0;
  async function work(){while(index<urls.length){const url=urls[index++];try{
-  const html=await get(url),title=pageTitle(html);
+  const html=await get(url),meta=pageMetadata(html),title=meta.headline;
   if(!title||title.length<8)throw Error('Missing H1');
-  published.push({slug:decodeURIComponent(new URL(url).pathname.split('/').pop()),title,url,scope:'published'});
+  if(!meta.country)throw Error('Missing breadcrumb country');
+  published.push({slug:decodeURIComponent(new URL(url).pathname.split('/').pop()),title,country:meta.country,url,scope:'published'});
  }catch(e){failed.push({url,error:String(e).slice(0,130)})}}}
  await Promise.all(Array.from({length:Math.min(6,urls.length)},()=>work()));
  return {urls,published,failed};
@@ -94,7 +110,10 @@ if(process.argv.includes('--live')){
   const published=await publicInventory();
   rows.forEach(row=>{row.liveCandidates=matches(row,published.published);});
   summary.publicInventory={status:published.failed.length?'PARTIAL':'SUCCESS',sitemapCount:published.urls.length,
-   parsedPages:published.published.length,error:published.failed.length?published.failed.slice(0,4):null};
+   parsedPages:published.published.length,error:published.failed.length?published.failed.slice(0,4):null,
+   draftsWithTitleOverlapCandidate:rows.filter(x=>x.liveCandidates.length>0).length,
+   draftsWithStrongTitleOverlapCandidate:rows.filter(x=>x.liveCandidates.some(m=>m.similarity>=0.5)).length};
+  console.log('TOP_LIVE_TITLE_OVERLAPS '+JSON.stringify(rows.flatMap(x=>x.liveCandidates.map(y=>({draft:x.title,published:y.title,score:y.similarity}))).sort((a,b)=>b.score-a.score).slice(0,18)));
  }catch(e){summary.publicInventory={status:'UNAVAILABLE',sitemapCount:null,parsedPages:0,error:String(e)};}
 }
 const report={generatedAt:new Date().toISOString(),summary,articles:rows};
