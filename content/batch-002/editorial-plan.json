@@ -1,0 +1,1219 @@
+{
+  "batch": 2,
+  "status": "evergreen_research_drafts",
+  "countries": [
+    "Brunei",
+    "Cambodia",
+    "Indonesia",
+    "Laos",
+    "Malaysia",
+    "Myanmar",
+    "Philippines",
+    "Singapore",
+    "Thailand",
+    "Timor-Leste",
+    "Vietnam"
+  ],
+  "topics": [
+    {
+      "country": "Brunei",
+      "city": "Bandar Seri Begawan",
+      "category": "travel-essentials",
+      "title": "How to Plan a Brunei Stopover Without Overpacking the Day",
+      "situation": "A limited stopover tempts visitors to book too many stops",
+      "checks": [
+        "Choose one anchor activity and a nearby optional stop",
+        "Compare door-to-door journey times rather than map distance",
+        "Leave an uncommitted buffer before the next departure"
+      ]
+    },
+    {
+      "country": "Brunei",
+      "city": "Bandar Seri Begawan",
+      "category": "transport",
+      "title": "Building a Walkable Route in Bandar Seri Begawan",
+      "situation": "A city walking route crosses roads and stretches of exposed pavement",
+      "checks": [
+        "Mark actual crossing points and accessible entrances",
+        "Plan water and shade breaks between indoor stops",
+        "Keep a ride-back option if walking becomes impractical"
+      ]
+    },
+    {
+      "country": "Brunei",
+      "city": "Bandar Seri Begawan",
+      "category": "travel-essentials",
+      "title": "Choosing Family Accommodation in Brunei by Practical Needs",
+      "situation": "A room listing may not reveal how a family will actually use the space",
+      "checks": [
+        "Confirm beds, stairs and layout in writing",
+        "Ask about safe movement to common areas",
+        "Check meal and transport access at arrival time"
+      ]
+    },
+    {
+      "country": "Brunei",
+      "city": "Bandar Seri Begawan",
+      "category": "food",
+      "title": "Explaining Dietary Restrictions at Brunei Restaurants",
+      "situation": "A menu name alone may not reveal every ingredient",
+      "checks": [
+        "Name ingredients and preparations to avoid explicitly",
+        "Ask about broths, sauces and shared equipment",
+        "Choose another meal if staff cannot verify a restriction"
+      ]
+    },
+    {
+      "country": "Brunei",
+      "city": "Brunei",
+      "category": "travel-essentials",
+      "title": "Packing for Brunei's Humid Outdoor Days",
+      "situation": "Repeated indoor and outdoor stops can leave clothing and devices damp",
+      "checks": [
+        "Pack breathable layers and a dry change",
+        "Protect documents and electronics in a separate pouch",
+        "Plan a way to dry damp items overnight"
+      ]
+    },
+    {
+      "country": "Brunei",
+      "city": "Bandar Seri Begawan",
+      "category": "etiquette",
+      "title": "Street Photography in Brunei Without Intruding on Others",
+      "situation": "A striking street scene includes working people and private entrances",
+      "checks": [
+        "Read rules posted at the specific site",
+        "Ask permission before identifiable close-up photographs",
+        "Move aside if photography blocks a path or business"
+      ]
+    },
+    {
+      "country": "Brunei",
+      "city": "Temburong",
+      "category": "before-you-go",
+      "title": "Questions to Ask Before a Brunei River Wildlife Excursion",
+      "situation": "A boat wildlife excursion has unpredictable conditions and sightings",
+      "checks": [
+        "Confirm the operator's route and expected return time",
+        "Ask about flotation equipment and weather decisions",
+        "Observe animals from an appropriate distance"
+      ]
+    },
+    {
+      "country": "Brunei",
+      "city": "Tutong",
+      "category": "travel-essentials",
+      "title": "Preparing Offline Navigation for a Brunei Day Trip",
+      "situation": "A day trip depends on phone navigation and a single meeting location",
+      "checks": [
+        "Download the route and real pickup address",
+        "Keep the driver or accommodation contact separately",
+        "Set a practical turnaround time before departure"
+      ]
+    },
+    {
+      "country": "Brunei",
+      "city": "Bandar Seri Begawan",
+      "category": "before-you-go",
+      "title": "Creating a Flexible Museum Day in Brunei",
+      "situation": "An indoor culture day can fail if one planned venue is unavailable",
+      "checks": [
+        "Check each venue's own visitor information",
+        "Identify a second nearby indoor attraction",
+        "Avoid rigid transfers around an unconfirmed opening"
+      ]
+    },
+    {
+      "country": "Cambodia",
+      "city": "Siem Reap",
+      "category": "transport",
+      "title": "Agreeing on a Siem Reap Tuk-Tuk Itinerary Before Departure",
+      "situation": "A multi-stop ride becomes confusing when only the first destination is agreed",
+      "checks": [
+        "List stops and the final drop-off in order",
+        "Clarify waiting time and total price before riding",
+        "Keep the agreed plan accessible to both rider and driver"
+      ]
+    },
+    {
+      "country": "Cambodia",
+      "city": "Siem Reap",
+      "category": "safety-health",
+      "title": "Building a Heat-Conscious Cambodia Temple Day",
+      "situation": "A heritage visit involves more walking and exposed time than expected",
+      "checks": [
+        "Choose fewer sites with realistic walking distances",
+        "Build water and shade breaks into the route",
+        "Keep a shorter exit option if anyone becomes unwell"
+      ]
+    },
+    {
+      "country": "Cambodia",
+      "city": "Siem Reap",
+      "category": "travel-essentials",
+      "title": "Keeping Cambodia Heritage Tickets and Booking Proof Organized",
+      "situation": "Receipts and entry credentials can be confused during a multi-site visit",
+      "checks": [
+        "Separate the purchase record from the entry ticket",
+        "Check the site, date and entrance on each document",
+        "Save an offline copy without sharing a private QR code"
+      ]
+    },
+    {
+      "country": "Cambodia",
+      "city": "Battambang",
+      "category": "transport",
+      "title": "Inspecting a Rental Bicycle Before a Cambodia Town Ride",
+      "situation": "A bicycle appears convenient but may not fit the rider or route",
+      "checks": [
+        "Check brakes, tires, lights and seat fit",
+        "Choose streets suited to experience and daylight",
+        "Confirm return time and damage responsibility"
+      ]
+    },
+    {
+      "country": "Cambodia",
+      "city": "Kampot",
+      "category": "safety-health",
+      "title": "Planning Drinking Water for a Cambodia Day Trip",
+      "situation": "An outdoor trip may pass few reliable places to buy drinks",
+      "checks": [
+        "Carry suitable drinking water for conditions",
+        "Locate potential refills before leaving town",
+        "Keep a spare amount rather than relying on one shop"
+      ]
+    },
+    {
+      "country": "Cambodia",
+      "city": "Cambodia",
+      "category": "travel-essentials",
+      "title": "Packing a Dust-and-Rain Kit for Cambodia Road Travel",
+      "situation": "A long road transfer exposes bags to mixed weather and dust",
+      "checks": [
+        "Put essential documents in a waterproof inner pouch",
+        "Keep hygiene items and a dry layer within reach",
+        "Protect medication from being stranded in checked luggage"
+      ]
+    },
+    {
+      "country": "Cambodia",
+      "city": "Phnom Penh",
+      "category": "food",
+      "title": "Asking About Food Allergens at Cambodia Restaurants",
+      "situation": "A familiar-looking dish may contain an unexpected ingredient",
+      "checks": [
+        "Explain the specific allergy clearly",
+        "Ask about sauces and shared preparation surfaces",
+        "Decline the dish if a reliable answer is unavailable"
+      ]
+    },
+    {
+      "country": "Cambodia",
+      "city": "Phnom Penh",
+      "category": "before-you-go",
+      "title": "Choosing a Cambodia Hotel Near an Early Bus Departure",
+      "situation": "An early bus makes a distant cheap room less convenient",
+      "checks": [
+        "Locate the actual boarding point before booking",
+        "Check access at the departure hour",
+        "Arrange a safe alternative if walking is impractical"
+      ]
+    },
+    {
+      "country": "Cambodia",
+      "city": "Phnom Penh",
+      "category": "etiquette",
+      "title": "Taking Respectful Photographs at Cambodia Markets",
+      "situation": "Busy market scenes involve vendors, transactions and bystanders",
+      "checks": [
+        "Ask vendors before filming or close-up portraits",
+        "Avoid disrupting a transaction or obstructing an entrance",
+        "Keep children's faces and payment details out of the frame"
+      ]
+    },
+    {
+      "country": "Indonesia",
+      "city": "Indonesia",
+      "category": "transport",
+      "title": "Choosing Between a Ferry and Flight for an Indonesia Island Connection",
+      "situation": "Two island routes have different transfer and disruption risks",
+      "checks": [
+        "Compare end-to-end travel time and extra transfers",
+        "Review luggage and cancellation conditions",
+        "Leave recovery time before the next fixed commitment"
+      ]
+    },
+    {
+      "country": "Indonesia",
+      "city": "Bali",
+      "category": "before-you-go",
+      "title": "Evaluating a Bali Homestay Beyond the Listing Photos",
+      "situation": "Photographs omit practical details of an unfamiliar stay",
+      "checks": [
+        "Confirm entrance, steps and luggage access",
+        "Ask about noise, shared facilities and check-in",
+        "Review the evening arrival route before paying"
+      ]
+    },
+    {
+      "country": "Indonesia",
+      "city": "Bali",
+      "category": "transport",
+      "title": "Questions Before Renting a Scooter in Indonesia",
+      "situation": "A scooter can seem simpler than understanding local road conditions",
+      "checks": [
+        "Check license, local rules and insurance applicability",
+        "Inspect brakes, tires, lights and helmets",
+        "Use another mode when experience or conditions are unsuitable"
+      ]
+    },
+    {
+      "country": "Indonesia",
+      "city": "Java",
+      "category": "before-you-go",
+      "title": "Planning an Indonesia Volcano Viewpoint With a Backup",
+      "situation": "A natural viewpoint can be inaccessible even with a booked transfer",
+      "checks": [
+        "Identify the responsible access authority",
+        "Ask about terrain, guide arrangements and weather policy",
+        "Keep a different outing or cancellation option"
+      ]
+    },
+    {
+      "country": "Indonesia",
+      "city": "Indonesia",
+      "category": "travel-essentials",
+      "title": "What to Keep Handy if Luggage Is Delayed in Indonesia",
+      "situation": "Inter-island travel can separate a traveler from a checked bag",
+      "checks": [
+        "Carry critical medication and documents personally",
+        "Save baggage claim details and airline contact",
+        "Pack one light change of clothes in hand luggage"
+      ]
+    },
+    {
+      "country": "Indonesia",
+      "city": "Bali",
+      "category": "etiquette",
+      "title": "Planning a Lower-Waste Bali Beach Day",
+      "situation": "Convenient single-use purchases create unnecessary beach litter",
+      "checks": [
+        "Bring refillable and reusable basics when sensible",
+        "Locate appropriate disposal before leaving",
+        "Avoid disturbing wildlife or taking natural objects"
+      ]
+    },
+    {
+      "country": "Indonesia",
+      "city": "Jakarta",
+      "category": "transport",
+      "title": "Building a Jakarta Day Plan Around Road-Travel Uncertainty",
+      "situation": "A city itinerary includes appointments in different districts",
+      "checks": [
+        "Group nearby activities into one section of town",
+        "Compare rail and road connections for each leg",
+        "Protect time before meetings with fixed start times"
+      ]
+    },
+    {
+      "country": "Indonesia",
+      "city": "Yogyakarta",
+      "category": "before-you-go",
+      "title": "Choosing a Guided Heritage Walk in Yogyakarta",
+      "situation": "A cultural tour description may not explain the actual walk",
+      "checks": [
+        "Ask which sites and guide services are included",
+        "Confirm distance, accessibility and meeting point",
+        "Respect each active site's visitor rules"
+      ]
+    },
+    {
+      "country": "Indonesia",
+      "city": "Indonesia",
+      "category": "travel-essentials",
+      "title": "Keeping Phones and Cameras Dry on Humid Indonesia Trips",
+      "situation": "Heat and showers can affect equipment during a walking day",
+      "checks": [
+        "Use moisture-resistant storage for essentials",
+        "Back up tickets and contacts before the outing",
+        "Dry items appropriately before sealing them away"
+      ]
+    },
+    {
+      "country": "Laos",
+      "city": "Luang Prabang",
+      "category": "before-you-go",
+      "title": "Choosing a Luang Prabang Guesthouse for an Early Start",
+      "situation": "An early departure happens before reception is staffed",
+      "checks": [
+        "Confirm checkout and entry arrangements in advance",
+        "Record the exact pickup entrance",
+        "Settle luggage and payment questions the night before"
+      ]
+    },
+    {
+      "country": "Laos",
+      "city": "Vang Vieng",
+      "category": "transport",
+      "title": "Setting a Turnaround Point for a Laos Cycling Day",
+      "situation": "A leisure ride may take longer than its outward leg suggests",
+      "checks": [
+        "Choose a route matched to daylight and fitness",
+        "Inspect brakes, tires and helmet fit",
+        "Turn back before fatigue or bad weather complicates return"
+      ]
+    },
+    {
+      "country": "Laos",
+      "city": "Laos",
+      "category": "transport",
+      "title": "Reading a Laos Bus Ticket Before Travel Day",
+      "situation": "A ticket can name a company without a clear boarding point",
+      "checks": [
+        "Confirm the physical stop and boarding margin",
+        "Read seat and baggage terms",
+        "Save a contact for last-minute boarding changes"
+      ]
+    },
+    {
+      "country": "Laos",
+      "city": "Luang Prabang",
+      "category": "food",
+      "title": "Choosing a Laos Cooking Class With Dietary Needs in Mind",
+      "situation": "A hands-on class may use unfamiliar shared ingredients",
+      "checks": [
+        "Explain dietary needs before paying",
+        "Confirm duration, class format and transport",
+        "Choose a suitable alternative if restrictions cannot be accommodated"
+      ]
+    },
+    {
+      "country": "Laos",
+      "city": "Vientiane",
+      "category": "travel-essentials",
+      "title": "Creating a Simple Laos Meet-Up Plan Without Mobile Data",
+      "situation": "Two travelers may arrive separately without reliable connectivity",
+      "checks": [
+        "Agree on one precise public meeting point",
+        "Set a waiting window and backup contact",
+        "Share the accommodation address offline"
+      ]
+    },
+    {
+      "country": "Laos",
+      "city": "Luang Prabang",
+      "category": "etiquette",
+      "title": "Sharing Space Respectfully at a Laos Morning Market",
+      "situation": "Photographs and browsing can interfere with vendors' work",
+      "checks": [
+        "Ask permission before close-up filming",
+        "Keep bags out of narrow working aisles",
+        "Give priority to customers making purchases"
+      ]
+    },
+    {
+      "country": "Laos",
+      "city": "Laos",
+      "category": "travel-essentials",
+      "title": "Protecting Bags and Documents on a Laos Boat Journey",
+      "situation": "A water crossing may involve wet platforms and hand-carried bags",
+      "checks": [
+        "Keep documents in a sealed inner pouch",
+        "Separate frequently needed items from the main bag",
+        "Confirm safe boarding and baggage placement with the operator"
+      ]
+    },
+    {
+      "country": "Laos",
+      "city": "Nong Khiaw",
+      "category": "before-you-go",
+      "title": "Questions to Ask Before a Rural Laos Homestay",
+      "situation": "A homestay listing does not define comfort or accessibility",
+      "checks": [
+        "Ask about sleeping arrangements and bathroom access",
+        "Confirm meals and arrival directions",
+        "Agree on return transport without assuming constant signal"
+      ]
+    },
+    {
+      "country": "Laos",
+      "city": "Luang Prabang",
+      "category": "etiquette",
+      "title": "Helping Children Visit Laos Religious Sites Respectfully",
+      "situation": "Families need to translate visitor etiquette into simple steps",
+      "checks": [
+        "Explain quiet behavior and site boundaries beforehand",
+        "Check dress and photography rules at entry",
+        "Offer an exit break if children cannot comfortably stay"
+      ]
+    },
+    {
+      "country": "Malaysia",
+      "city": "Kuala Lumpur",
+      "category": "transport",
+      "title": "Planning a Walkable Kuala Lumpur Day With Fewer Transfers",
+      "situation": "A day of attractions looks close on a map but crosses major roads",
+      "checks": [
+        "Prioritize connected walking areas and safe crossings",
+        "Use transit for awkward gaps rather than forcing a walk",
+        "Build indoor rest options into the day"
+      ]
+    },
+    {
+      "country": "Malaysia",
+      "city": "Penang",
+      "category": "before-you-go",
+      "title": "Choosing a Penang Guesthouse for Accessibility and Comfort",
+      "situation": "A heritage stay can have architectural constraints hidden in listing photos",
+      "checks": [
+        "Ask about steps, lifts and room access",
+        "Confirm noise and bathroom arrangements",
+        "Match the entrance with your arrival transport"
+      ]
+    },
+    {
+      "country": "Malaysia",
+      "city": "George Town",
+      "category": "food",
+      "title": "Explaining Allergies at a Penang Food Stall",
+      "situation": "A popular local dish can involve multiple ingredients and shared utensils",
+      "checks": [
+        "Name the exact allergen rather than a vague preference",
+        "Ask about cooking oil, condiments and cross-contact",
+        "Choose food with verifiable ingredients when necessary"
+      ]
+    },
+    {
+      "country": "Malaysia",
+      "city": "Sabah",
+      "category": "before-you-go",
+      "title": "Selecting a Responsible Borneo Wildlife Guide",
+      "situation": "A wildlife experience should prioritize safety and minimal disturbance",
+      "checks": [
+        "Ask about group size and guide procedures",
+        "Confirm route, return time and safety equipment",
+        "Keep distance from wildlife and do not feed animals"
+      ]
+    },
+    {
+      "country": "Malaysia",
+      "city": "Malaysia",
+      "category": "travel-essentials",
+      "title": "Organizing Documents for Domestic Malaysia Connections",
+      "situation": "A domestic itinerary may still require identity and transport documents",
+      "checks": [
+        "Check carrier requirements for each ticket",
+        "Keep bookings and identification accessible",
+        "Allow margin when transferring between separate services"
+      ]
+    },
+    {
+      "country": "Malaysia",
+      "city": "Kuala Lumpur",
+      "category": "travel-essentials",
+      "title": "Preparing a Malaysian City Emergency Contact Card",
+      "situation": "A phone may fail when a traveler needs essential details",
+      "checks": [
+        "Write accommodation and trusted contacts in a usable form",
+        "Save official emergency resources without assuming numbers",
+        "Store a copy separately from the phone"
+      ]
+    },
+    {
+      "country": "Malaysia",
+      "city": "Cameron Highlands",
+      "category": "before-you-go",
+      "title": "Packing for a Malaysia Highland Day Trip",
+      "situation": "Highland weather and walking needs may differ from the departure city",
+      "checks": [
+        "Carry a light layer and rain protection",
+        "Check footwear and terrain against the actual route",
+        "Keep an indoor or shorter alternative"
+      ]
+    },
+    {
+      "country": "Malaysia",
+      "city": "Kuala Lumpur",
+      "category": "transport",
+      "title": "Checking a Kuala Lumpur Transit Transfer Before You Travel",
+      "situation": "Two connecting services may use different stations or ticket systems",
+      "checks": [
+        "Identify the exact interchange and exit",
+        "Confirm payment acceptance with each operator",
+        "Protect a backup route if the planned leg fails"
+      ]
+    },
+    {
+      "country": "Malaysia",
+      "city": "Malaysia",
+      "category": "etiquette",
+      "title": "Photographing Malaysia Festival Events With Courtesy",
+      "situation": "Festivals bring crowds and moments of personal religious significance",
+      "checks": [
+        "Find the organizer's photography guidance",
+        "Ask before making identifiable close-up portraits",
+        "Keep walkways and ritual spaces unobstructed"
+      ]
+    },
+    {
+      "country": "Myanmar",
+      "city": "Myanmar",
+      "category": "before-you-go",
+      "title": "Creating a Myanmar Advisory Review Checklist Before Any Travel Decision",
+      "situation": "Old itinerary notes cannot answer an evolving security question",
+      "checks": [
+        "Record the issue dates of relevant government advisories",
+        "Compare warnings for the exact region involved",
+        "Treat uncertainty as a reason to postpone"
+      ]
+    },
+    {
+      "country": "Myanmar",
+      "city": "Myanmar",
+      "category": "travel-essentials",
+      "title": "Reading Travel Insurance Exclusions for Myanmar Without Guessing",
+      "situation": "A policy summary can omit important conflict or warning exclusions",
+      "checks": [
+        "Read full written exclusions for the proposed purpose",
+        "Ask the insurer about evacuation and assistance limitations",
+        "Do not infer coverage from the purchase confirmation"
+      ]
+    },
+    {
+      "country": "Myanmar",
+      "city": "Myanmar",
+      "category": "travel-essentials",
+      "title": "Planning a Communication Contingency for Essential Myanmar Travel",
+      "situation": "A necessary journey may have unpredictable communications",
+      "checks": [
+        "Agree on check-in intervals with a responsible organization",
+        "Keep contact information offline and encrypted where suitable",
+        "Establish a missed-check-in escalation decision"
+      ]
+    },
+    {
+      "country": "Myanmar",
+      "city": "Myanmar",
+      "category": "etiquette",
+      "title": "Protecting Other People's Privacy When Sharing Myanmar Images",
+      "situation": "An image can reveal faces or locations of vulnerable people",
+      "checks": [
+        "Consider whether a person can be identified or located",
+        "Seek informed consent where possible and safe",
+        "Avoid publishing sensitive images or metadata"
+      ]
+    },
+    {
+      "country": "Myanmar",
+      "city": "Myanmar",
+      "category": "before-you-go",
+      "title": "Separating Myanmar Residency Paperwork From Tourism Advice",
+      "situation": "Entry and stay documentation depends on the traveler and purpose",
+      "checks": [
+        "Identify the correct authority for the legal category",
+        "Keep authenticated document copies where required",
+        "Do not apply generic visitor rules to essential work"
+      ]
+    },
+    {
+      "country": "Myanmar",
+      "city": "Myanmar",
+      "category": "safety-health",
+      "title": "Questions Organizations Should Ask About Myanmar Medical Evacuation",
+      "situation": "A plan for essential work may depend on external medical assistance",
+      "checks": [
+        "Consult qualified risk and medical professionals before travel",
+        "Check insurer and employer responsibilities in writing",
+        "Have a genuine no-go threshold when arrangements fail"
+      ]
+    },
+    {
+      "country": "Myanmar",
+      "city": "Myanmar",
+      "category": "before-you-go",
+      "title": "Comparing Official Myanmar Warnings Across Different Governments",
+      "situation": "Two advisories can emphasize different geographic or traveler concerns",
+      "checks": [
+        "Read the complete current text and date",
+        "Compare advice relevant to nationality and itinerary",
+        "Resolve contradictions before making commitments"
+      ]
+    },
+    {
+      "country": "Myanmar",
+      "city": "Myanmar",
+      "category": "travel-essentials",
+      "title": "Handling Sensitive Digital Information for Myanmar Essential Travel",
+      "situation": "Personal data can create privacy risks in uncertain conditions",
+      "checks": [
+        "Minimize unnecessary documents and account access",
+        "Use appropriate device security and secure backups",
+        "Seek professional guidance for sensitive organizational data"
+      ]
+    },
+    {
+      "country": "Myanmar",
+      "city": "Myanmar",
+      "category": "before-you-go",
+      "title": "How to Put a Myanmar Journey on Hold Without Losing Booking Records",
+      "situation": "Postponing a trip can be complicated by scattered reservations",
+      "checks": [
+        "Collect written refund and change policies",
+        "Record deadlines and provider responses",
+        "Review official warnings before selecting any replacement date"
+      ]
+    },
+    {
+      "country": "Philippines",
+      "city": "Palawan",
+      "category": "before-you-go",
+      "title": "Asking for a Boat Safety Briefing Before a Philippines Island Trip",
+      "situation": "Passengers sometimes focus on scenery rather than the practical briefing",
+      "checks": [
+        "Ask where lifejackets and safe boarding points are",
+        "Clarify weather decisions and return arrangements",
+        "Do not board when critical safety questions remain unanswered"
+      ]
+    },
+    {
+      "country": "Philippines",
+      "city": "Cebu",
+      "category": "before-you-go",
+      "title": "Choosing Island Accommodation With a Weather Backup",
+      "situation": "A beach property may be convenient only under ideal conditions",
+      "checks": [
+        "Check transfer and shelter arrangements in advance",
+        "Ask about cancellation and alternative lodging",
+        "Avoid depending on the final boat of the day"
+      ]
+    },
+    {
+      "country": "Philippines",
+      "city": "Philippines",
+      "category": "safety-health",
+      "title": "Preparing a Philippines Outdoor Day Without Overheating",
+      "situation": "A packed outdoor itinerary may leave little time for recovery",
+      "checks": [
+        "Plan drinking water and rest stops",
+        "Choose breathable clothing and shade breaks",
+        "Shorten the plan if health or weather conditions require"
+      ]
+    },
+    {
+      "country": "Philippines",
+      "city": "Manila",
+      "category": "transport",
+      "title": "Designing a Manila Walking Route Around Safe Crossings",
+      "situation": "A map's shortest route may not be the practical pedestrian route",
+      "checks": [
+        "Prioritize crossings and identifiable entrances",
+        "Plan transit for difficult connections",
+        "Keep a return option away from peak congestion"
+      ]
+    },
+    {
+      "country": "Philippines",
+      "city": "Philippines",
+      "category": "food",
+      "title": "Checking Ingredients When Ordering Filipino Food",
+      "situation": "Shared preparation and unfamiliar sauces complicate dietary decisions",
+      "checks": [
+        "Communicate the exact restriction in clear words",
+        "Ask about ingredients and common preparation surfaces",
+        "Choose another dish if the answer is uncertain"
+      ]
+    },
+    {
+      "country": "Philippines",
+      "city": "Siargao",
+      "category": "travel-essentials",
+      "title": "Keeping Essential Devices Charged During an Island Stay",
+      "situation": "A traveler relies on one phone for tickets, navigation and contacts",
+      "checks": [
+        "Bring a safe compatible power solution",
+        "Save important information offline",
+        "Agree on a meeting point if the phone becomes unavailable"
+      ]
+    },
+    {
+      "country": "Philippines",
+      "city": "Bohol",
+      "category": "before-you-go",
+      "title": "Reading Small-Operator Cancellation Terms in the Philippines",
+      "situation": "A tour listing can bury weather and refund details",
+      "checks": [
+        "Ask who decides whether a departure runs",
+        "Keep cancellation and deposit terms in writing",
+        "Protect onward reservations from a fragile transfer"
+      ]
+    },
+    {
+      "country": "Philippines",
+      "city": "Philippines",
+      "category": "travel-essentials",
+      "title": "Building a Flexible Philippines Route Around Weather Disruption",
+      "situation": "Several island connections can create a chain of missed bookings",
+      "checks": [
+        "Identify the least flexible commitment first",
+        "Insert recovery time before international travel",
+        "Prepare a shorter route if a segment is suspended"
+      ]
+    },
+    {
+      "country": "Philippines",
+      "city": "Cebu",
+      "category": "before-you-go",
+      "title": "Choosing a Snorkeling Guide With Clear Group Boundaries",
+      "situation": "An appealing water outing may not match everyone's swimming ability",
+      "checks": [
+        "Discuss the least confident swimmer's needs",
+        "Ask about supervision, equipment and route",
+        "Choose a shore-based alternative if conditions are unsuitable"
+      ]
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "transport",
+      "title": "Planning Step-Free Singapore Transit Before a Long Day",
+      "situation": "A group with luggage or limited mobility needs predictable station access",
+      "checks": [
+        "Check entrances and lifts for the planned stations",
+        "Avoid transfers requiring long detours",
+        "Keep a direct backup ride or accessible route"
+      ]
+    },
+    {
+      "country": "Singapore",
+      "city": "Sentosa",
+      "category": "travel-essentials",
+      "title": "Building a Singapore Family Attraction Day With Rest Breaks",
+      "situation": "A full day at several attractions can exhaust children and adults",
+      "checks": [
+        "Choose one anchor activity before adding extras",
+        "Identify quiet rest and meal opportunities",
+        "Know how the group will leave early if needed"
+      ]
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "food",
+      "title": "Explaining a Food Allergy at a Singapore Hawker Centre",
+      "situation": "Busy stalls and shared utensils make clear communication important",
+      "checks": [
+        "State the ingredient restriction specifically",
+        "Ask about sauces and cross-contact",
+        "Choose a verifiable alternative if unsure"
+      ]
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "transport",
+      "title": "Creating a Rain-Sheltered Walking Plan in Singapore",
+      "situation": "An outdoor route can turn uncomfortable during heavy showers",
+      "checks": [
+        "Identify safe covered alternatives where available",
+        "Keep a transit shortcut between distant stops",
+        "Avoid pushing through flooded or hazardous walkways"
+      ]
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "before-you-go",
+      "title": "Reading Singapore Hotel Room Listings for Practical Fit",
+      "situation": "Compact rooms and unfamiliar layouts can affect a short stay",
+      "checks": [
+        "Confirm the actual sleeping and luggage arrangement",
+        "Check accessibility and noise needs before booking",
+        "Prioritize location and usable space over decorative photos"
+      ]
+    },
+    {
+      "country": "Singapore",
+      "city": "Marina Bay",
+      "category": "safety-health",
+      "title": "Balancing Sun Exposure and Walking on a Singapore City Day",
+      "situation": "A waterfront walk can become longer and hotter than expected",
+      "checks": [
+        "Break the route into manageable sections",
+        "Carry suitable water and weather protection",
+        "Add an indoor escape option if anyone needs rest"
+      ]
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "etiquette",
+      "title": "Visiting Singapore Nature Trails Without Disturbing Wildlife",
+      "situation": "A well-used trail is still a habitat for animals and plants",
+      "checks": [
+        "Remain on permitted paths and follow posted guidance",
+        "Do not feed or crowd wildlife",
+        "Pack out waste and avoid loud group behavior"
+      ]
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "etiquette",
+      "title": "Keeping Public Shared Spaces Comfortable in Singapore",
+      "situation": "Public seating, walkways and transport are used by many people",
+      "checks": [
+        "Follow local signage and posted facility rules",
+        "Keep bags clear of shared circulation space",
+        "Ask before filming identifiable strangers"
+      ]
+    },
+    {
+      "country": "Singapore",
+      "city": "Singapore",
+      "category": "travel-essentials",
+      "title": "Packing a Small Singapore Day Bag That Actually Works",
+      "situation": "A city day combines indoor cooling, walks and transport transfers",
+      "checks": [
+        "Carry water and personal essentials without overpacking",
+        "Protect travel cards and devices from rain",
+        "Leave room for a light layer and purchases"
+      ]
+    },
+    {
+      "country": "Thailand",
+      "city": "Bangkok",
+      "category": "travel-essentials",
+      "title": "Keeping Taxi and Ride Receipts Organized in Thailand",
+      "situation": "A confusing fare or route is harder to discuss without booking details",
+      "checks": [
+        "Save the provider and trip record",
+        "Clarify the agreed destination before riding",
+        "Use documented customer support for legitimate disputes"
+      ]
+    },
+    {
+      "country": "Thailand",
+      "city": "Chiang Mai",
+      "category": "etiquette",
+      "title": "Helping Children Follow Thailand Temple Visitor Etiquette",
+      "situation": "Families need simple expectations for quiet cultural spaces",
+      "checks": [
+        "Check posted dress and access guidance",
+        "Explain photography and voice-level rules before entry",
+        "Step outside when a child needs a break"
+      ]
+    },
+    {
+      "country": "Thailand",
+      "city": "Chiang Mai",
+      "category": "safety-health",
+      "title": "Checking Air Quality Before an Outdoor Chiang Mai Day",
+      "situation": "Outdoor plans can depend on conditions that change by day",
+      "checks": [
+        "Consult a reliable current local air-quality source",
+        "Adjust exertion and activities to personal health needs",
+        "Keep an indoor option when conditions are unfavorable"
+      ]
+    },
+    {
+      "country": "Thailand",
+      "city": "Bangkok",
+      "category": "transport",
+      "title": "Building a Bangkok Rainy-Day Route With Fewer Transfers",
+      "situation": "An exposed itinerary becomes difficult during heavy rain",
+      "checks": [
+        "Prioritize connected indoor stops",
+        "Check available official transit connections",
+        "Avoid wading into dangerous water or flooded streets"
+      ]
+    },
+    {
+      "country": "Thailand",
+      "city": "Phuket",
+      "category": "before-you-go",
+      "title": "Checking a Phuket Beach Day Beyond the Weather Forecast",
+      "situation": "A sunny forecast alone does not establish safe swimming conditions",
+      "checks": [
+        "Read posted beach and lifeguard warnings",
+        "Choose a supervised suitable location when possible",
+        "Use shore-based activities if sea conditions are uncertain"
+      ]
+    },
+    {
+      "country": "Thailand",
+      "city": "Thailand",
+      "category": "food",
+      "title": "Asking About Ingredients in Thai Food Without Guesswork",
+      "situation": "Names and spice levels do not reveal every ingredient",
+      "checks": [
+        "Explain the exact dietary concern rather than assuming labels",
+        "Ask about sauces, pastes and shared utensils",
+        "Choose a reliably suitable alternative"
+      ]
+    },
+    {
+      "country": "Thailand",
+      "city": "Koh Samui",
+      "category": "before-you-go",
+      "title": "Selecting a Snorkeling Excursion With a Clear Safety Plan",
+      "situation": "A boat tour may attract travelers with different water confidence",
+      "checks": [
+        "Ask about equipment, briefing and supervision",
+        "Check return arrangements and conditions",
+        "Avoid booking beyond the group's abilities"
+      ]
+    },
+    {
+      "country": "Thailand",
+      "city": "Bangkok",
+      "category": "travel-essentials",
+      "title": "Planning a Bangkok Work-Friendly Café Stop Responsibly",
+      "situation": "A working traveler needs power, connection and consideration for others",
+      "checks": [
+        "Check the venue's seating and laptop policy",
+        "Protect accounts when using shared networks",
+        "Buy appropriately and avoid monopolizing tables"
+      ]
+    },
+    {
+      "country": "Thailand",
+      "city": "Ayutthaya",
+      "category": "safety-health",
+      "title": "Making an Ayutthaya Heritage Walk Manageable",
+      "situation": "Ruins and exposed paths can require more effort than anticipated",
+      "checks": [
+        "Choose a short logical route with breaks",
+        "Wear footwear suited to uneven surfaces",
+        "Arrange a return alternative before fatigue"
+      ]
+    },
+    {
+      "country": "Thailand",
+      "city": "Thailand",
+      "category": "travel-essentials",
+      "title": "Preparing a Thailand Hotel Backup When a Reservation Goes Wrong",
+      "situation": "Arrival-time booking trouble is harder when all details are on one phone",
+      "checks": [
+        "Save confirmations and the property's direct contact",
+        "Know the platform's dispute and support route",
+        "Keep a modest alternative lodging plan"
+      ]
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Dili",
+      "category": "before-you-go",
+      "title": "Checking Room Essentials Before Booking a Dili Stay",
+      "situation": "A room description can omit details important to comfort",
+      "checks": [
+        "Ask about sleeping arrangements and water access",
+        "Confirm power and connectivity needs explicitly",
+        "Keep alternative accommodation details available"
+      ]
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Dili",
+      "category": "transport",
+      "title": "Planning a Practical Daylight Walking Route in Dili",
+      "situation": "A short walking route may cross exposed or uneven roads",
+      "checks": [
+        "Check whether the actual path is walkable",
+        "Build shade and rest stops into the outing",
+        "Choose a reliable return option before late hours"
+      ]
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Dili",
+      "category": "travel-essentials",
+      "title": "Creating an Offline Group Meeting Plan in Timor-Leste",
+      "situation": "A group may lose contact when data coverage is uncertain",
+      "checks": [
+        "Agree on a specific public meeting place",
+        "Set a waiting window and fallback contact",
+        "Keep the lodging address on paper"
+      ]
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Timor-Leste",
+      "category": "before-you-go",
+      "title": "Questions to Ask Before a Community-Led Timor-Leste Visit",
+      "situation": "A community visit needs clarity about hosts and expectations",
+      "checks": [
+        "Check whether the visit is welcomed and locally arranged",
+        "Clarify transport, fees and timing before arrival",
+        "Ask consent before filming or sharing photos"
+      ]
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Timor-Leste",
+      "category": "transport",
+      "title": "Planning Road Travel With a Conservative Time Budget in Timor-Leste",
+      "situation": "A map estimate may ignore difficult roads and stops",
+      "checks": [
+        "Ask locally about actual conditions and vehicle suitability",
+        "Build daylight and rest buffers",
+        "Avoid tight onward connections"
+      ]
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Timor-Leste",
+      "category": "etiquette",
+      "title": "Photographing Village Life in Timor-Leste With Consent",
+      "situation": "An image that seems public to a visitor may feel private to residents",
+      "checks": [
+        "Explain the intended use before photographing people",
+        "Respect refusals without negotiation",
+        "Avoid publishing identifiable children without appropriate permission"
+      ]
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Atauro",
+      "category": "before-you-go",
+      "title": "Choosing a Guided Atauro Water Activity Carefully",
+      "situation": "Snorkeling and diving conditions vary with people and place",
+      "checks": [
+        "Ask about supervision, equipment and emergency arrangements",
+        "Choose an activity suitable for the least experienced person",
+        "Keep a safe land-based alternative"
+      ]
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Dili",
+      "category": "travel-essentials",
+      "title": "Building a Simple Charging Plan for a Timor-Leste Journey",
+      "situation": "Several devices and plug types can complicate a long day",
+      "checks": [
+        "Check accommodation charging and outlet arrangements",
+        "Keep essential tickets and contacts offline",
+        "Carry suitable approved charging equipment"
+      ]
+    },
+    {
+      "country": "Timor-Leste",
+      "city": "Timor-Leste",
+      "category": "travel-essentials",
+      "title": "Keeping Travel Documents Organized on a Timor-Leste Trip",
+      "situation": "A multi-leg journey creates scattered paper and digital documents",
+      "checks": [
+        "Store passport and booking details securely",
+        "Keep usable offline copies of essential arrangements",
+        "Avoid exposing identity details in public messages"
+      ]
+    },
+    {
+      "country": "Vietnam",
+      "city": "Hanoi",
+      "category": "transport",
+      "title": "Navigating Busy Hanoi Streets as a Pedestrian",
+      "situation": "A direct route can require careful attention at crossings",
+      "checks": [
+        "Choose marked and workable crossings where available",
+        "Watch road users rather than assuming a vehicle will yield",
+        "Use a different route when the crossing feels unsafe"
+      ]
+    },
+    {
+      "country": "Vietnam",
+      "city": "Hoi An",
+      "category": "food",
+      "title": "Communicating Vegetarian Needs at a Vietnam Restaurant",
+      "situation": "A vegetable dish may use animal-based stock or condiments",
+      "checks": [
+        "Explain ingredients and preparation concerns specifically",
+        "Ask about broth, fish sauce and shared surfaces",
+        "Choose a verified alternative when the answer is unclear"
+      ]
+    },
+    {
+      "country": "Vietnam",
+      "city": "Vietnam",
+      "category": "transport",
+      "title": "Comparing Overnight Bus and Train Comfort in Vietnam",
+      "situation": "Two overnight journeys can differ more in sleep quality than price",
+      "checks": [
+        "Review berth or seat details and pickup location",
+        "Compare baggage and arrival-time constraints",
+        "Choose a daylight option if overnight travel does not suit the group"
+      ]
+    },
+    {
+      "country": "Vietnam",
+      "city": "Ha Giang",
+      "category": "before-you-go",
+      "title": "Questions Before a Guided Vietnam Mountain Road Journey",
+      "situation": "A scenic road plan can involve demanding terrain and vehicle choices",
+      "checks": [
+        "Check driver skills, vehicle suitability and legal requirements",
+        "Ask about weather and daily driving hours",
+        "Leave a shorter or postponed alternative"
+      ]
+    },
+    {
+      "country": "Vietnam",
+      "city": "Da Nang",
+      "category": "travel-essentials",
+      "title": "Preparing a Flexible Central Vietnam Coastal Day",
+      "situation": "A waterfront activity can be disrupted by weather or fatigue",
+      "checks": [
+        "Check conditions shortly before going",
+        "Pack protection for sun and rain",
+        "Keep a safe indoor activity instead of forcing the plan"
+      ]
+    },
+    {
+      "country": "Vietnam",
+      "city": "Sapa",
+      "category": "before-you-go",
+      "title": "Reading Vietnam Homestay Listings for Real Accessibility",
+      "situation": "A rural homestay may require stairs or a steep final approach",
+      "checks": [
+        "Ask about the last stretch of access",
+        "Confirm sleeping and bathroom details",
+        "Plan luggage help and onward transport before arrival"
+      ]
+    },
+    {
+      "country": "Vietnam",
+      "city": "Ho Chi Minh City",
+      "category": "travel-essentials",
+      "title": "Working From a Vietnam Café Without Risking Your Accounts",
+      "situation": "A café session involves shared space and public connectivity",
+      "checks": [
+        "Check whether laptop use and sockets are welcome",
+        "Use account security appropriate to shared networks",
+        "Avoid leaving devices or confidential work unattended"
+      ]
+    },
+    {
+      "country": "Vietnam",
+      "city": "Vietnam",
+      "category": "travel-essentials",
+      "title": "Building a One-Page Vietnam Arrival Information Sheet",
+      "situation": "Arrival goes more smoothly when information is not scattered across apps",
+      "checks": [
+        "Record the exact accommodation address and contact",
+        "Keep reservation details and transport plan offline",
+        "Protect personal identifiers from public sharing"
+      ]
+    },
+    {
+      "country": "Vietnam",
+      "city": "Hoi An",
+      "category": "safety-health",
+      "title": "Planning a Long Old-Town Walk With Shade and Rest",
+      "situation": "An old-town stroll can extend across warm exposed streets",
+      "checks": [
+        "Divide the route into comfortable segments",
+        "Identify drinking-water and indoor rest options",
+        "Keep a shorter return route if anyone tires"
+      ]
+    }
+  ]
+}
