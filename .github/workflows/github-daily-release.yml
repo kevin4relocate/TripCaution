@@ -38,7 +38,8 @@ jobs:
         run: node scripts/release-daily-article.mjs
       - name: Commit the newly public article and release index
         run: |
-          git add content/github-release-log.json src/github-release-index.js public/releases/articles/
+          git add content/github-release-log.json src/github-release-index.js
+          if [ -d public/releases/articles ]; then git add public/releases/articles/; fi
           if git diff --cached --quiet; then
             echo "No article due, already released today, or no pending articles." >> "$GITHUB_STEP_SUMMARY"
             exit 0
