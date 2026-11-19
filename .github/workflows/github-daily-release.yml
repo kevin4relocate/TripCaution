@@ -1,0 +1,50 @@
+name: TripCaution release one approved calendar slot daily
+
+on:
+  schedule:
+    # 08:00 Asia/Ho_Chi_Minh (01:00 UTC), once per day.
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tripcaution-one-daily-guide
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate one-daily-release script and unit tests
+        run: |
+          node --check scripts/release-daily-article.mjs
+          node --check src/github-articles.js
+          node --test tests/github-release.test.js
+      - name: Release one due article only after both R2 WebP objects respond successfully
+        env:
+          TRIPCAUTION_PUBLIC_URL: ${{ vars.TRIPCAUTION_API_URL || 'https://tripcaution.nghiep4tube.workers.dev' }}
+        run: node scripts/release-daily-article.mjs
+      - name: Commit the newly public article and release index
+        run: |
+          git add content/github-release-log.json src/github-release-index.js public/releases/articles/
+          if git diff --cached --quiet; then
+            echo "No article due, already released today, or no pending articles." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "release: publish one scheduled TripCaution guide"
+          git push origin HEAD:main
+          echo "Released one due article. The Cloudflare Git integration must deploy this commit automatically." >> "$GITHUB_STEP_SUMMARY"
