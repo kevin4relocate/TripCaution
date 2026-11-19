@@ -5,16 +5,17 @@ import {nextDailyRelease} from '../scripts/release-daily-article.mjs';
 import {githubGuides,mergeGuides,githubTopicCounts} from '../src/github-articles.js';
 
 const read=p=>JSON.parse(readFileSync(new URL('../'+p,import.meta.url),'utf8'));
-const batches=['001','002','003'];
+const batches=['001','002','003','004'];
 const drafts=batches.flatMap(b=>read('content/batch-'+b+'/articles.json').articles)
  .sort((a,b)=>Date.parse(a.planned_publish_at)-Date.parse(b.planned_publish_at));
 const log=read('content/github-release-log.json');
-test('Exactly 300 unique scheduled release slots remain in fixed one-day sequence',()=>{
- assert.equal(drafts.length,300);
+test('Exactly 400 unique scheduled release slots remain in fixed one-day sequence',()=>{
+ assert.equal(drafts.length,400);
  assert.equal(new Set(drafts.map(a=>a.slug)).size,300);
  assert.equal(new Set(drafts.map(a=>a.planned_publish_at)).size,300);
  assert.equal(drafts[0].planned_publish_at,'2026-11-20T01:00:00.000Z');
- for(let i=1;i<300;i++)assert.equal(Date.parse(drafts[i].planned_publish_at)-Date.parse(drafts[i-1].planned_publish_at),86400000);
+ assert.equal(drafts.at(-1).planned_publish_at,'2027-12-24T01:00:00.000Z');
+ for(let i=1;i<400;i++)assert.equal(Date.parse(drafts[i].planned_publish_at)-Date.parse(drafts[i-1].planned_publish_at),86400000);
 });
 test('GitHub release is time-gated and never publishes before the assigned date',()=>{
  const before=new Date('2026-11-19T23:00:00+07:00');
