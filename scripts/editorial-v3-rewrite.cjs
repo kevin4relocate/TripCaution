@@ -30,23 +30,22 @@ function context(a){
 }
 function rewriteRepeated(p,c){
  const [s1,s2,s3]=c.steps,[source,detail,record,failure,question]=c.family;
- const title=c.a.title;
  if(p.startsWith('A useful test is to imagine')||p.startsWith('Think about whether someone else')||p.startsWith('A single phone may hold')||p.startsWith('Offline access to the next'))
-  return 'Try an offline rehearsal of **'+low(s2)+'** for '+title+'. Keep '+record+', the name of the person responsible for resolving a problem, and the date of the last confirmation. If another member of the group cannot follow the next step from those notes, request a clearer answer before relying on the arrangement.';
+  return 'Test **'+low(s2)+'** offline. Save '+record+' and a confirmation date; if another traveler cannot follow the next step from those notes, ask '+source+' for clearer instructions.';
  if(p.startsWith('When comparing two options')||p.startsWith('A transfer is not just')||p.startsWith('A route is made')||p.startsWith('The handoff between services'))
-  return 'Compare alternatives against '+detail+' rather than only an advertised price or a short map route. For this itinerary, **'+low(s3)+'** is the stress test: assess the original arrangement and the backup on the same terms, including what happens at the handoff. A good option is one the traveler can actually complete and reverse if needed.';
+  return 'Compare alternatives using '+detail+'. Apply **'+low(s3)+'** to both options, including their handoffs and return arrangements, rather than relying on price or map distance alone.';
  if(p.startsWith('The best questions are specific')||p.startsWith('Ask for the answer in a form')||p.startsWith('A glossy listing may say little')||p.startsWith('A booking page can make'))
-  return 'Make the question narrow enough to be answered with evidence: '+question+' Tie the response to **'+low(s1)+'**, and keep the exact instruction, issuer and relevant date. A general assurance or a screenshot with no named service does not settle '+detail+' for this particular visit.';
+  return 'Ask a verifiable question: '+question+' Connect the reply to **'+low(s1)+'** and record the issuer and date instead of trusting an undated screenshot.';
  if(p.startsWith('Test two changes')||p.startsWith('Now introduce two changes'))
-  return 'Run two hypothetical changes through this plan. First, imagine that '+failure+'. Second, imagine the person with the tightest schedule or greatest support needs must leave early. Which option still makes **'+low(s3)+'** practical? If neither works, shorten the visit or change the booking before the pressure of the day makes the decision harder.';
+  return 'Stress-test the plan if '+failure+'. Then consider an early return by the least comfortable traveler. Does **'+low(s3)+'** still work without another unconfirmed booking?';
  if(p.startsWith('Different people may make different choices')||p.startsWith('The right choice depends on the traveler')||p.startsWith('Name the requirement that cannot be traded away'))
-  return 'The limits for '+title+' are personal, not a single universal ranking. One traveler may need '+detail+' settled in advance, while another values a faster or less expensive choice. Agree which condition is non-negotiable for this group, then use **'+low(s1)+'** as the first check before committing time or money.';
+  return 'For '+c.a.title+', agree what cannot be compromised: '+detail+'. Use **'+low(s1)+'** as the first decision rather than treating one option as universally best.';
  if(p.startsWith('Save the relevant answer')||p.startsWith('Before you act, look at the original source'))
-  return 'Keep '+record+' in a private offline note. Confirm live operational details with '+source+'; broad government destination advice is context, not proof that a named business or service will operate as expected. Avoid sharing booking references, identity documents or sensitive information in public groups merely to obtain an answer.';
+  return 'Store '+record+' privately. Check live details with '+source+'; a general travel advisory cannot verify a named provider, schedule or booking. Never share personal documents in public advice groups.';
  if(p.startsWith('When comparing alternatives')||p.startsWith('Carry an independent backup')||p.startsWith('Use a smaller or more flexible')||p.startsWith('Choose an option with fewer'))
-  return 'A genuine alternative for '+title+' must still work if '+failure+'. Use **'+low(s3)+'** to design that alternative: identify who makes the change, what it would cost or invalidate, and how the traveler would return. Do not call two listings a backup when they depend on the same operator, access point or unverified condition.';
+  return 'A backup must still work when '+failure+'. Use **'+low(s3)+'** to choose an independent alternative and identify who can arrange the change or return.';
  if(p.startsWith('The scope of the booked experience')||p.startsWith('Respect for people and places'))
-  return 'Before calling this plan complete, return to **'+low(s2)+'**. The deciding evidence is '+detail+', not how persuasive the listing or photograph looks. For a visit in '+c.city+', note who gave the answer and whether the same arrangement would remain comfortable and respectful if one member of the party needed to change course.';
+  return 'Before confirming the '+c.city+' visit, resolve **'+low(s2)+'** with '+source+'. Record whether the answer changes the experience for someone who needs an early exit.';
  return p;
 }
 function rewriteQuestions(markdown,c){
@@ -86,6 +85,6 @@ function upgrade(article,note,frequency){
  if(idx<0)throw Error('No takeaways '+article.slug);
  result=result.slice(0,idx)+'\n\n'+note+result.slice(idx);
  result=rewriteQuestions(result,c);
- return {...article,content_markdown:result,editorial_standard_version:3,editorial_revision:'topic-specific-provisional-v3'};
+ return {...article,content_markdown:result,editorial_standard_version:3};
 }
 module.exports={upgrade,context,rewriteRepeated,rewriteQuestions};
