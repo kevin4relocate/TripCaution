@@ -87,4 +87,12 @@ function upgrade(article,note,frequency){
  result=rewriteQuestions(result,c);
  return {...article,content_markdown:result,editorial_standard_version:3};
 }
-module.exports={upgrade,context,rewriteRepeated,rewriteQuestions};
+
+function deriveNote(topic){
+ if(!topic||!topic.situation||!Array.isArray(topic.checks)||topic.checks.length!==3)throw Error('Incomplete original editorial plan');
+ const describe=clean(topic.situation).replace(/\bvisitors\b/ig,'travelers');
+ const [one,two,three]=topic.checks;
+ return 'The practical issue here is that '+describe.slice(0,1).toLowerCase()+describe.slice(1)+'. For this specific itinerary, '+low(one)+'; then '+low(two)+'; and finally '+low(three)+'. These checks are planning suggestions, not a confirmation of local operating conditions.';
+}
+module.exports={upgrade,context,rewriteRepeated,rewriteQuestions,deriveNote};
+
