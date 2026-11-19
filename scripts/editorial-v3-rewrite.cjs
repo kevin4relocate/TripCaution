@@ -83,7 +83,7 @@ function upgrade(article,note,frequency){
  let result=chunks.join('\n\n');
  const idx=result.indexOf('\n\n## Key takeaways');
  if(idx<0)throw Error('No takeaways '+article.slug);
- if(article.batch_number===1) result=result.slice(0,idx)+'\n\n'+note+result.slice(idx);
+ if(!article.evergreen) result=result.slice(0,idx)+'\n\n'+note+result.slice(idx);
  else result=note+'\n\nThe checks below identify decisions to verify with the responsible provider; they are not confirmation of live conditions.'+result.slice(idx);
  result=rewriteQuestions(result,c);
  return {...article,content_markdown:result,editorial_standard_version:3};
