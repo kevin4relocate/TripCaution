@@ -31,7 +31,7 @@ jobs:
         run: |
           node --check scripts/release-daily-article.mjs
           node --check src/github-articles.js
-          node --test tests/github-release.test.js
+          node --test tests/github-release.test.js tests/github-site-integration.test.js
       - name: Release one due article only after both R2 WebP objects respond successfully
         env:
           TRIPCAUTION_PUBLIC_URL: ${{ vars.TRIPCAUTION_API_URL || 'https://tripcaution.nghiep4tube.workers.dev' }}
