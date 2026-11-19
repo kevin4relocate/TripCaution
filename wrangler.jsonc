@@ -24,11 +24,6 @@
       "bucket_name": "tripcaution-media"
     }
   ],
-  "triggers": {
-    "crons": [
-      "*/15 * * * *"
-    ]
-  },
   "vars": {
     "SITE_NAME": "TripCaution",
     "EDITORIAL_CONTACT_EMAIL": "contact@tripcaution.com",
