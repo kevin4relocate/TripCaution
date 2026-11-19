@@ -11,8 +11,8 @@ const drafts=batches.flatMap(b=>read('content/batch-'+b+'/articles.json').articl
 const log=read('content/github-release-log.json');
 test('Exactly 400 unique scheduled release slots remain in fixed one-day sequence',()=>{
  assert.equal(drafts.length,400);
- assert.equal(new Set(drafts.map(a=>a.slug)).size,300);
- assert.equal(new Set(drafts.map(a=>a.planned_publish_at)).size,300);
+ assert.equal(new Set(drafts.map(a=>a.slug)).size,400);
+ assert.equal(new Set(drafts.map(a=>a.planned_publish_at)).size,400);
  assert.equal(drafts[0].planned_publish_at,'2026-11-20T01:00:00.000Z');
  assert.equal(drafts.at(-1).planned_publish_at,'2027-12-24T01:00:00.000Z');
  for(let i=1;i<400;i++)assert.equal(Date.parse(drafts[i].planned_publish_at)-Date.parse(drafts[i-1].planned_publish_at),86400000);
