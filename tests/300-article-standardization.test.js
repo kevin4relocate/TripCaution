@@ -69,3 +69,27 @@ test('V3: editorial content is article-specific and shared boilerplate does not 
   assert.ok(load('001').articles[i].content_markdown.includes(notes[i].note));
  }
 });
+
+test('Eleven first-priority draft guides cite a matching official operator or authority',()=>{
+ const cases=[
+  ['001','choosing-between-klia-rail-and-airport-coaches','kliaekspres.com'],
+  ['001','singapore-arrival-card-finding-the-genuine-free-service','ica.gov.sg'],
+  ['001','finding-the-official-angkor-ticket-channel-before-you-visit','angkorenterprise.gov.kh'],
+  ['001','planning-cebu-ferry-connections-to-nearby-islands','marina.gov.ph'],
+  ['001','navigating-changi-airport-terminal-transfers','changiairport.com'],
+  ['001','choosing-a-practical-mrt-payment-method-in-singapore','simplygo.com.sg'],
+  ['001','using-the-official-philippines-etravel-process','etravel.gov.ph'],
+  ['001','finding-vietnam-s-official-e-visa-website','evisa.gov.vn'],
+  ['002','asking-for-a-boat-safety-briefing-before-a-philippines-island-trip','marina.gov.ph'],
+  ['003','moving-through-changi-with-luggage-and-a-mobility-aid','changiairport.com'],
+  ['003','choosing-a-singapore-bicycle-rental-for-a-low-stress-ride','lta.gov.sg']
+ ];
+ for(const [batch,slug,host] of cases){
+  const a=load(batch).articles.find(x=>x.slug===slug);
+  assert.ok(a,'Article missing: '+slug);
+  const refs=a.sources.filter(s=>s.url.includes(host));
+  assert.ok(refs.length>=1,'Official source missing: '+slug);
+  assert.ok(refs.some(s=>a.content_markdown.includes(']('+s.url+')')),'Source not cited in article: '+slug);
+  assert.equal(a.editorial_status,'REVIEW_REQUIRED_NOT_PUBLISHABLE_AS_IS');
+ }
+});
