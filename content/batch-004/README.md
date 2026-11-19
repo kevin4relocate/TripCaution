@@ -3,7 +3,7 @@
 **Status:** RESEARCH-FIRST EDITORIAL DRAFTS. Not independently verified or approved. Publication is controlled by the existing owner-requested GitHub daily release calendar, and requires both R2 images.
 
 - 100 guides: 10 countries x 10 unique topics, excluding Myanmar.
-- Individual planning situation, three decision checks, scenario, destination context, 856–915 words per guide, SEO title and description, internal routes, a same-page reference anchor and two country-advisory research starting points.
+- Individual planning situation, three decision checks, scenario, destination context, approximately 875–940 words per guide, SEO title and description, internal routes, a same-page reference anchor and two country-advisory research starting points.
 - 200 distinct editorial gouache-and-ink image prompts with exact `tripcaution.com` watermark request: 1 hero + 1 inline per article.
 - Initial image files belong in `Images/Batch-004/Gen_001.webp` through `Gen_200.webp`.
 - Manifest assigns separate SEO filenames and unique `editorial/...` R2 keys, preserving all prior 600 image mappings.
