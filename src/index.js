@@ -234,6 +234,8 @@ async function cautionTopicPage(env,topic,url){
   const countryResults=await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now') AND category_id IN ("+ph+") ORDER BY country COLLATE NOCASE ASC").bind(...ids).all();
   countries=(countryResults.results||[]).map(row=>row.country).filter(Boolean);
  }
+ for(const item of githubGuides())if(ids.includes(item.category_id)&&!countries.includes(item.country))countries.push(item.country);
+ countries.sort((a,b)=>a.localeCompare(b));
  const requested=String(url.searchParams.get('country')||'').trim().slice(0,90);
  // Never use arbitrary, unverified country labels in page headings or SQL filters.
  selectedCountry=countries.find(name=>name.toLocaleLowerCase('en')===requested.toLocaleLowerCase('en'))||'';
@@ -241,7 +243,9 @@ async function cautionTopicPage(env,topic,url){
  const selectedLevel=CAUTION_LEVELS.some(x=>x.id===requestedLevel&&x.id!=='unassessed')?requestedLevel:'';
  const conditions=(selectedCountry?' AND a.country=?':'')+(selectedLevel?' AND a.caution_level=?':'');
  const args=[...ids,...(selectedCountry?[selectedCountry]:[]),...(selectedLevel?[selectedLevel]:[])];
- const rows=env.DB?(await env.DB.prepare("SELECT a.*,c.name category_name"+sql+conditions+" ORDER BY a.published_at DESC,a.id DESC LIMIT 40").bind(...args).all()).results||[]:[];
+ let rows=env.DB?(await env.DB.prepare("SELECT a.*,c.name category_name"+sql+conditions+" ORDER BY a.published_at DESC,a.id DESC LIMIT 40").bind(...args).all()).results||[]:[];
+ rows=mergeGuides(rows,githubGuides().filter(a=>ids.includes(a.category_id)&&
+   (!selectedCountry||a.country===selectedCountry)&&(!selectedLevel||a.caution_level===selectedLevel)),40);
  const countryOptions=countries.map(name=>'<option value="'+esc(name)+'"'+(name===selectedCountry?' selected':'')+'>'+esc(name)+'</option>').join('');
  const levelOptions=CAUTION_LEVELS.filter(item=>item.id!=='unassessed')
   .map(item=>'<option value="'+item.id+'"'+(item.id===selectedLevel?' selected':'')+'>'+esc(item.label)+'</option>').join('');
@@ -262,7 +266,10 @@ async function cautionTopicPage(env,topic,url){
  }));
 }
 async function southeastAsiaPage(env){
- const rows=env.DB?(await env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country").all()).results:[];
+ let rows=env.DB?(await env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country").all()).results:[];
+ const totals=new Map(rows.map(row=>[row.country,Number(row.total)||0]));
+ for(const a of githubGuides())totals.set(a.country,(totals.get(a.country)||0)+1);
+ rows=[...totals].map(([country,total])=>({country,total}));
  const regionalRows=rows.filter(row=>isSoutheastAsia(row.country)&&Number(row.total)>0);
  const publishedCount=regionalRows.reduce((sum,row)=>sum+Number(row.total),0);
  let articles=[];
@@ -271,6 +278,7 @@ async function southeastAsiaPage(env){
   articles=(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND a.country IN ("+placeholders+") ORDER BY a.published_at DESC LIMIT 6")
    .bind(...SOUTHEAST_ASIA_COUNTRIES).all()).results;
  }
+ articles=mergeGuides(articles,githubGuides().filter(a=>isSoutheastAsia(a.country)),6);
  const body=`<main><section class="destination-hero sea-hub-hero"><div class="shell">
   <a class="backlink" href="/">← Back to TripCaution</a>
   <div class="eyebrow">REGIONAL GUIDE / ALL 11 COUNTRIES</div>
@@ -291,7 +299,10 @@ async function southeastAsiaPage(env){
  }),200,{'cache-control':'public, max-age=60'});
 }
 async function destinationIndexPage(env){
- const rows=env.DB?(await env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country ORDER BY country COLLATE NOCASE ASC LIMIT 250").all()).results:[];
+ let rows=env.DB?(await env.DB.prepare("SELECT country,COUNT(*) total FROM articles WHERE status='published' AND published_at<=datetime('now') GROUP BY country ORDER BY country COLLATE NOCASE ASC LIMIT 250").all()).results:[];
+ const totals=new Map(rows.map(row=>[row.country,Number(row.total)||0]));
+ for(const a of githubGuides())totals.set(a.country,(totals.get(a.country)||0)+1);
+ rows=[...totals].map(([country,total])=>({country,total}));
  const countByCountry=new Map(rows.map(row=>[row.country.toLocaleLowerCase('en'),Number(row.total)]));
  // The platform is worldwide; unpublished countries are plain research-planned tiles.
  // Southeast Asia remains the content priority, not a catalog constraint.
@@ -330,11 +341,13 @@ async function destinationPage(env,slug){
  const common={'vietnam':'Vietnam','cambodia':'Cambodia','thailand':'Thailand','laos':'Laos','japan':'Japan','singapore':'Singapore','france':'France','indonesia':'Indonesia','malaysia':'Malaysia','italy':'Italy','spain':'Spain','united-states':'United States'};
  const cityMap={'bangkok':{name:'Bangkok',country:'Thailand'}};
  const city=cityMap[slug]||null;
- const country=common[slug]||city?.country||all.results[0]?.country;
+ const released=githubGuides().filter(a=>slugify(a.country)===slug);
+ const country=common[slug]||city?.country||all.results[0]?.country||released[0]?.country;
  if(!country)return html(layout(env,'Destination not found','<main class="shell simple"><h1>We could not find that destination.</h1><a href="/">Explore destinations ↗</a></main>',{noindex:true}),404,{'cache-control':'no-store','x-robots-tag':'noindex'});
- let articles=all.results;
+ let articles=mergeGuides(all.results,released,100);
  if(city && env.DB) {
-  articles=(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND lower(a.city)=? ORDER BY a.published_at DESC LIMIT 100").bind(city.name.toLowerCase()).all()).results;
+  const dbCity=(await env.DB.prepare("SELECT a.*,c.name category_name FROM articles a LEFT JOIN categories c ON c.id=a.category_id WHERE a.status='published' AND a.published_at<=datetime('now') AND lower(a.city)=? ORDER BY a.published_at DESC LIMIT 100").bind(city.name.toLowerCase()).all()).results;
+  articles=mergeGuides(dbCity,githubGuides().filter(a=>a.city?.toLowerCase()===city.name.toLowerCase()),100);
  }
  const heading=city?.name||country;
  const groups=groupDestinationGuides(articles);
@@ -1128,10 +1141,14 @@ export default {
       {headers:{'content-type':'text/plain; charset=utf-8','cache-control':'public, max-age=300','x-content-type-options':'nosniff'}});
    }
    if(path==='/sitemap.xml'){
-    const rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at,published_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
-    const countries=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+    let rows=env.DB?(await env.DB.prepare("SELECT slug,updated_at,published_at FROM articles WHERE status='published' AND published_at<=datetime('now') LIMIT 40000").all()).results:[];
+    let countries=env.DB?(await env.DB.prepare("SELECT DISTINCT country FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+    const additional=githubGuides();
+    rows=[...new Map([...rows,...additional.map(a=>({slug:a.slug,published_at:a.published_at,updated_at:a.updated_at}))].map(a=>[a.slug,a])).values()];
+    countries=[...new Map([...countries,...additional.map(a=>({country:a.country}))].map(a=>[a.country,a])).values()];
+    publishedCategories=[...new Map([...publishedCategories,...additional.map(a=>({category_id:a.category_id}))].map(a=>[a.category_id,a])).values()];
     const hasContact=Boolean(editorialEmail(env))&&env.EDITORIAL_CONTACT_VERIFIED==='true';
-    const publishedCategories=env.DB?(await env.DB.prepare("SELECT DISTINCT category_id FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+    let publishedCategories=env.DB?(await env.DB.prepare("SELECT DISTINCT category_id FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
     const active=new Set(publishedCategories.map(row=>row.category_id));
     const publishedTopics=CAUTION_TOPICS.filter(topic=>topic.ids.some(id=>active.has(id))).map(topic=>topic.slug);
     return new Response(sitemapXML(siteURL(env),rows,countries,hasContact,countries.some(row=>isSoutheastAsia(row.country)),publishedTopics),{
