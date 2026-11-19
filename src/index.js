@@ -77,7 +77,7 @@ function articleCard(a,variant='standard') {
  const categoryClass=topic?' category-'+topic.slug:' category-general';
  const cls=(variant==='lead'?' guide-card-lead':variant==='side'?' guide-card-side':'')+categoryClass;
  const level=isRatedCaution(a.caution_level)?cautionLevel(a.caution_level):null;
- const autoDisclosure=a.status==='published'&&['github-automation','owner-import','github-scheduled'].includes(a.source_mode)&&Number(a.review_approved)===0?'<span class="auto-research-label">Imported content · Not reviewed in Dashboard</span>':'';
+ const autoDisclosure=a.status==='published'&&['github-automation','owner-import','github-scheduled'].includes(a.source_mode)&&Number(a.review_approved)===0?'<span class="auto-research-label">'+(a.source_mode==='github-scheduled'?'Scheduled research · Sources require verification':'Imported content · Not reviewed in Dashboard')+'</span>':'';
  const badge=level&&a.severity_scope?.length>=12&&a.severity_rationale?.length>=40?'<span class="impact-pill impact-'+level.id+'">'+esc(level.label)+'</span>':'';
  return `<article class="guide-card${cls}"><a class="card-visual" href="${path}" aria-label="Read ${esc(a.title)} — ${category}">
  ${safeMedia(a.hero_image_url)?'<img loading="lazy" decoding="async" fetchpriority="low" width="640" height="360" src="'+esc(a.hero_image_url)+'" alt="'+esc(a.hero_alt||'Editorial travel illustration')+'">':'<div class="abstract-map"><span>✳</span><i></i></div>'}
@@ -377,7 +377,7 @@ function renderGuideArticle(env,a,preview=false,related=[]){
   '<div class="impact-panel-head"><strong>Potential impact · '+esc(rating.label)+'</strong><span>For this situation only</span></div>'+
   '<p><strong>When this applies:</strong> '+esc(a.severity_scope)+'</p><p><strong>Why this level:</strong> '+esc(a.severity_rationale)+'</p>'+
   '<small>Impact if this problem occurs—not its likelihood, a live alert, or a safety rating for the country. Consult linked sources for changes.</small></section>':'';
- const autoDisclosure=a.status==='published'&&['github-automation','owner-import','github-scheduled'].includes(a.source_mode)&&Number(a.review_approved)===0?'<p class="auto-research-notice"><strong>Research-first guide · Not independently verified.</strong> This article was scheduled for release from GitHub research drafts and has not been individually marked reviewed in the Dashboard. Automated research links may have been excerpt-checked, while owner-imported packages may have been checked locally. Verify original sources, especially before important travel decisions.</p>':'';
+ const autoDisclosure=a.status==='published'&&['github-automation','owner-import','github-scheduled'].includes(a.source_mode)&&Number(a.review_approved)===0?'<p class="auto-research-notice"><strong>Research-first guide · Not independently verified.</strong> This page was published from a research package without an individual Dashboard review, and important claims still require checking against original sources. Automated research links may have been excerpt-checked, while owner-imported packages may have been checked locally. Verify original sources, especially before important travel decisions.</p>':'';
  const takes=editorialQuickTakes(a.content_markdown);
  const tocHTML=rendered.headings.length>=2?'<details class="article-toc" data-article-toc open><summary>In this guide <span aria-hidden="true">⌄</span></summary><nav aria-label="On this page"><ol>'+
   rendered.headings.map(h=>'<li class="toc-level-'+h.level+'"><a href="#'+esc(h.id)+'">'+esc(h.label)+'</a></li>').join('')+
