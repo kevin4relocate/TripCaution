@@ -57,12 +57,12 @@ function rewriteQuestions(markdown,c){
  if(n<5||n>7)throw Error('Unexpected checklist count '+n+' for '+c.a.slug);
  const [s1,s2,s3]=c.steps,[source,detail,record,failure,question]=c.family;
  const custom=[
-  '- **'+s1+':** Which current instruction or written confirmation from '+source+' addresses this step?',
-  '- **'+s2+':** What precise detail needs to be recorded — '+detail+' — for this date and group?',
-  '- **'+s3+':** If the original choice fails, what alternative is independent and still workable?',
-  '- **One accountable answer:** '+question,
-  '- **Proof for travel day:** Can you retrieve '+record+' without mobile access?',
-  '- **Change of plan:** If '+failure+', who will decide, cancel or arrange the return?'
+  '- **'+s1+':** What does '+source+' currently confirm?',
+  '- **'+s2+':** Which detail needs checking: '+detail+'?',
+  '- **'+s3+':** Which backup works independently?',
+  '- **Authority:** '+question,
+  '- **Offline proof:** Can you retrieve '+record+'?',
+  '- **Fallback:** What happens if '+failure+'?'
  ];
  const count=n;
  let index=0;
@@ -83,7 +83,8 @@ function upgrade(article,note,frequency){
  let result=chunks.join('\n\n');
  const idx=result.indexOf('\n\n## Key takeaways');
  if(idx<0)throw Error('No takeaways '+article.slug);
- result=result.slice(0,idx)+'\n\n'+note+result.slice(idx);
+ if(article.batch_number===1) result=result.slice(0,idx)+'\n\n'+note+result.slice(idx);
+ else result=note+'\n\nThe checks below identify decisions to verify with the responsible provider; they are not confirmation of live conditions.'+result.slice(idx);
  result=rewriteQuestions(result,c);
  return {...article,content_markdown:result,editorial_standard_version:3};
 }
