@@ -101,7 +101,7 @@ function finalize(article){
  let body=article.content_markdown;
  body=body.replace(/\n\nThe checks below identify decisions to verify with the responsible provider; they are not confirmation of live conditions\./g,'');
  body=body.replace(/^Store [^\n]+ privately\. Check live details with [^\n]+$/gm,
-   'For **'+low(c.steps[1])+'**, keep '+record+' and ask '+source+' to verify '+detail+'. Country-level advisories cannot guarantee a named service is available.');
+   'For **'+low(c.steps[1])+'**, save '+record+' and confirm '+detail+' with '+source+'.');
  body=body.replace(/\n{3,}/g,'\n\n');
  return {...article,content_markdown:body};
 }
