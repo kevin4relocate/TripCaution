@@ -1117,6 +1117,8 @@ export default {
    }
    if(path.startsWith('/api/'))return await api(request,env,url);
    if(path.startsWith('/media/'))return await media(env,path.slice(7));
+   // The JSON file backs rendered guide pages; do not expose a duplicate raw URL.
+   if(path.startsWith('/releases/'))return new Response('Not found',{status:404,headers:{'x-robots-tag':'noindex','cache-control':'no-store'}});
    if(path==='/')return await homepage(env);
    if(path==='/about'||path==='/privacy'||path==='/contact')return staticPage(env,path.slice(1));
    if(path==='/search')return await searchPage(env,url);
@@ -1137,7 +1139,7 @@ export default {
     catch {return json({status:'not-ready',database:'schema-missing'},503);}
    }
    if(path==='/robots.txt'){
-    return new Response('User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /sign-in\nDisallow: /api/\nSitemap: '+siteURL(env)+'/sitemap.xml\n',
+    return new Response('User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /sign-in\nDisallow: /api/\nDisallow: /releases/\nSitemap: '+siteURL(env)+'/sitemap.xml\n',
       {headers:{'content-type':'text/plain; charset=utf-8','cache-control':'public, max-age=300','x-content-type-options':'nosniff'}});
    }
    if(path==='/sitemap.xml'){
