@@ -1146,9 +1146,9 @@ export default {
     const additional=githubGuides();
     rows=[...new Map([...rows,...additional.map(a=>({slug:a.slug,published_at:a.published_at,updated_at:a.updated_at}))].map(a=>[a.slug,a])).values()];
     countries=[...new Map([...countries,...additional.map(a=>({country:a.country}))].map(a=>[a.country,a])).values()];
-    publishedCategories=[...new Map([...publishedCategories,...additional.map(a=>({category_id:a.category_id}))].map(a=>[a.category_id,a])).values()];
     const hasContact=Boolean(editorialEmail(env))&&env.EDITORIAL_CONTACT_VERIFIED==='true';
     let publishedCategories=env.DB?(await env.DB.prepare("SELECT DISTINCT category_id FROM articles WHERE status='published' AND published_at<=datetime('now')").all()).results:[];
+    publishedCategories=[...new Map([...publishedCategories,...additional.map(a=>({category_id:a.category_id}))].map(a=>[a.category_id,a])).values()];
     const active=new Set(publishedCategories.map(row=>row.category_id));
     const publishedTopics=CAUTION_TOPICS.filter(topic=>topic.ids.some(id=>active.has(id))).map(topic=>topic.slug);
     return new Response(sitemapXML(siteURL(env),rows,countries,hasContact,countries.some(row=>isSoutheastAsia(row.country)),publishedTopics),{
