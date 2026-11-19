@@ -10,7 +10,7 @@ for(const batch of ['001','002','003']){
   assert.equal(images.length,200);
   for(let i=0;i<100;i++){
    const a=pkg.articles[i],hero=images[2*i],inline=images[2*i+1];
-   assert.equal(a.editorial_standard_version,2);
+   assert.equal(a.editorial_standard_version,3);
    assert.equal(a.editorial_status,'REVIEW_REQUIRED_NOT_PUBLISHABLE_AS_IS');
    assert.equal(a.hero_image_url,hero.public_path);
    assert.equal(a.hero_prompt,hero.prompt);
@@ -39,5 +39,33 @@ test('Article titles, SEO image paths and publish date are distinct across 3 bat
  assert.equal(new Set(all.map(x=>x.hero_image_url)).size,300);
  for(let i=1;i<all.length;i++){
   assert.equal(new Date(all[i].planned_publish_at).getTime()-new Date(all[i-1].planned_publish_at).getTime(),86400000);
+ }
+});
+
+test('V3: editorial content is article-specific and shared boilerplate does not dominate',()=>{
+ const all=['001','002','003'].flatMap(b=>load(b).articles);
+ const paragraphs=new Map(),introductions=new Set();
+ for(const a of all){
+  assert.equal(a.editorial_standard_version,3,a.slug);
+  assert.equal(a.editorial_status,'REVIEW_REQUIRED_NOT_PUBLISHABLE_AS_IS',a.slug);
+  const first=a.content_markdown.split(/\n\n## Key takeaways/)[0];
+  assert.ok(first.length>=100,'Topic-specific opening missing: '+a.slug);
+  assert.ok(!introductions.has(first),'Repeated opening: '+a.slug);
+  introductions.add(first);
+  assert.ok(a.content_markdown.split(/\s+/).length>=780,'Article too thin: '+a.slug);
+  assert.ok(!a.content_markdown.includes('The checks below identify decisions to verify with the responsible provider; they are not confirmation of live conditions.'),a.slug);
+  for(const part of a.content_markdown.split(/\n\s*\n/)){
+   const p=part.trim();
+   if(p.length<=90||p.startsWith('#')||p.startsWith('- '))continue;
+   paragraphs.set(p,(paragraphs.get(p)||0)+1);
+  }
+ }
+ const veryFrequent=[...paragraphs].filter(([,n])=>n>=12);
+ assert.deepEqual(veryFrequent.map(([p,n])=>({excerpt:p.slice(0,95),n})),[]);
+ const notes=load('001','topic-notes.json').notes;
+ assert.equal(notes.length,100);
+ for(let i=0;i<100;i++){
+  assert.equal(notes[i].slug,load('001').articles[i].slug);
+  assert.ok(load('001').articles[i].content_markdown.includes(notes[i].note));
  }
 });
