@@ -27,11 +27,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate one-daily-release script and unit tests
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Validate release mechanism and entire website
         run: |
           node --check scripts/release-daily-article.mjs
           node --check src/github-articles.js
-          node --test tests/github-release.test.js tests/github-site-integration.test.js
+          npm run check
+          npm test
+          npm run audit:content
       - name: Release one due article only after both R2 WebP objects respond successfully
         env:
           TRIPCAUTION_PUBLIC_URL: ${{ vars.TRIPCAUTION_API_URL || 'https://tripcaution.nghiep4tube.workers.dev' }}
