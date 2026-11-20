@@ -1,1 +1,25 @@
-{"schema_version":1,"releases":[]}
+{
+  "schema_version": 1,
+  "releases": [
+    {
+      "slug": "getting-from-brunei-international-airport-to-bandar-seri-begawan",
+      "title": "Getting from Brunei International Airport to Bandar Seri Begawan",
+      "country": "Brunei",
+      "city": "Bandar Seri Begawan",
+      "category_id": "transport",
+      "category_name": "transport",
+      "excerpt": "In Bandar Seri Begawan, Brunei, use this checklist to identify a documented airport pickup point before leaving the terminal, confirm your accommodation address and a return transfer option, and compare transfer quotes using an agreed route and luggage needs. Confirm changing details with the responsible provider.",
+      "seo_title": "Getting from Brunei International Airport to Bandar Seri",
+      "seo_description": "Getting from Brunei International Airport to Bandar Seri Begawan: Identify a documented airport pickup point before leaving the terminal.",
+      "hero_image_url": "/media/editorial/getting-from-brunei-international-airport-to-bandar-seri-begawan.webp",
+      "hero_alt": "Hand-painted ink-and-gouache editorial illustration of Bandar Seri Begawan, Brunei travel preparation related to getting from brunei international airport to bandar seri begawan",
+      "published_at": "2026-11-20T07:54:00.486Z",
+      "updated_at": "2026-11-20T07:54:00.486Z",
+      "status": "published",
+      "source_mode": "github-scheduled",
+      "review_approved": 0,
+      "caution_level": "unassessed",
+      "released_at": "2026-11-20T07:54:00.486Z"
+    }
+  ]
+}
